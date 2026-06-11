@@ -59,6 +59,24 @@
   zoom: 1;
 }
 
+.linkoff-slop-warning {
+  background: rgba(220, 38, 38, 0.88);
+  border-left: 4px solid #7f1d1d;
+  color: #fff;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 10px;
+  user-select: none;
+  letter-spacing: 0.01em;
+}
+
+.linkoff-slop-warning:hover {
+  background: rgba(220, 38, 38, 1);
+}
+
 .wide-mode {
   margin-left: 0rem !important;
   margin-right: 0rem !important;

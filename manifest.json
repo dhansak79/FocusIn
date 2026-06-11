@@ -49,6 +49,8 @@
         "src/constants.js",
         "src/features/feed.js",
         "src/features/feed-keywords.js",
+        "src/features/slop-detector.js",
+        "src/features/slop-keywords.js",
         "src/features/general.js",
         "src/features/jobs.js",
         "src/features/job-keywords.js",
