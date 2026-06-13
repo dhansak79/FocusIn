@@ -5,6 +5,7 @@ export default defineConfig({
     exclude: ['node_modules/**', '.stryker-tmp/**'],
     coverage: {
       provider: 'v8',
+      reporter: ['text', 'lcov'],
       include: [
         'src/features/feed-keywords.js',
         'src/features/job-keywords.js',

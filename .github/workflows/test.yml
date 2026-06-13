@@ -16,3 +16,33 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/lcov.info
+
+  cs-coverage-check:
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download coverage
+        uses: actions/download-artifact@v4
+        with:
+          path: coverage/
+      - uses: ./.github/actions/check-coverage
+        if: always()
+        with:
+          access-token: ${{ secrets.CODESCENE_API_TOKEN }}
+          project-url: "https://api.codescene.io/v2/projects/81232"
+          coverage-files: "**/coverage/lcov.info"
