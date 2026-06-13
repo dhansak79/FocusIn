@@ -10,6 +10,7 @@
     "src/utils.js"
   ],
   "coverageAnalysis": "perTest",
-  "reporters": ["html", "json", "progress"],
+  "reporters": ["html", "json", "progress", "clear-text"],
+  "thresholds": { "break": 75 },
   "tempDirName": ".stryker-tmp"
 }
