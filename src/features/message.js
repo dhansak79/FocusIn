@@ -1,4 +1,16 @@
-// Modified from https://gist.github.com/twhitacre/d4536183c22a2f5a8c7c427df04acc90
+async function loadAllMessages(container) {
+  let height = 0
+  let attempts = 0
+  for (let tick = 0; tick < 20; tick++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const { scrollHeight } = container
+    container.scrollTop = scrollHeight
+    if (scrollHeight > 20000 || (scrollHeight === height && attempts >= 3)) break
+    if (scrollHeight === height) attempts++
+    height = scrollHeight
+  }
+}
+
 const selectMessagesForDeletion = async () => {
   const container = document.querySelector(
     '.msg-conversations-container__conversations-list'
@@ -11,30 +23,9 @@ const selectMessagesForDeletion = async () => {
     return
   }
 
-  async function loadAllMessages() {
-    return await new Promise((resolve) => {
-      let height = 0
-      let attempts = 0
-      const interval = setInterval(() => {
-        const { scrollHeight } = container
-        container.scrollTop = scrollHeight
-        const reachedLimit = scrollHeight > 20000
-        const stalledLongEnough = scrollHeight === height && attempts >= 3
-        if (reachedLimit || stalledLongEnough) {
-          clearInterval(interval)
-          return resolve()
-        }
-        if (scrollHeight === height) attempts++
-        height = scrollHeight
-      }, 1000)
-    })
-  }
-  await loadAllMessages()
-  const labels = container.getElementsByTagName('label')
-  for (let i = 0; i < labels.length; i++) {
-    if (labels[i]) {
-      labels[i].click()
-    }
+  await loadAllMessages(container)
+  for (const label of container.getElementsByTagName('label')) {
+    label.click()
   }
   alert('Click the trash can icon at the top to delete all messages.')
 }
