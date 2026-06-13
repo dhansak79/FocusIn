@@ -55,26 +55,15 @@ also called on load so the current page initialises immediately. Fallback interv
 
 ---
 
-## 6. Rework `autoScrollFeed` to be reactive rather than unconditional
+## ~~6. Rework `autoScrollFeed` to be reactive rather than unconditional~~ ✅ Done
 
-**Branch**: `perf/reactive-auto-scroll`
+**Branch**: `perf/reactive-auto-scroll` — merged 2026-06-13
 
-**Problem**: On every page visit, `autoScrollFeed` fires 10 full-viewport `scrollBy` calls at
-400ms intervals regardless of how many posts are already loaded. This causes 4 seconds of forced
-jank on every feed visit.
-
-**Change**:
-- Remove the unconditional `autoScrollFeed` call from `handleFilterFeed`.
-- Instead, after the MutationObserver is set up, observe how many posts have been processed. If
-  after 1 second fewer than `MIN_POST_COUNT` posts have been seen, trigger a single smooth scroll
-  to prompt LinkedIn to load more.
-- Use `window.scrollBy({ top: window.innerHeight, behavior: 'smooth' })` for a less jarring
-  scroll, and only repeat if the post count is still low after another second.
-- Remove the `lastAutoScrolledUrl` guard (it becomes unnecessary).
-
-**Files**: `src/features/feed.js`
-
-**Depends on**: ~~Item 1~~ ✅ complete
+**Result**: Removed the 10×scrollBy loop (4s of forced jank on every feed visit). Replaced with
+a lazy check: if fewer than `MIN_POST_COUNT` posts are seen 1s after the observer connects, one
+smooth scroll nudges LinkedIn to load more. A second attempt fires after another 1s if posts are
+still absent; stops after 2 attempts. `lastAutoScrolledUrl` guard and `autoScrollFeed` removed
+entirely. `disconnectObserver` cancels any pending scroll timer.
 
 ---
 
@@ -86,5 +75,5 @@ jank on every feed visit.
 3 ✅ remove reset timer             (after 1 ✅)
 4 ✅ waitForSelector observer       (independent)
 5 ✅ Navigation API URL detection   (independent)
-6 → reactive auto-scroll           (after 1 ✅)
+6 ✅ reactive auto-scroll           (after 1 ✅)
 ```

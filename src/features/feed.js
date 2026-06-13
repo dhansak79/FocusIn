@@ -1,6 +1,7 @@
 import {
   DROPDOWN_TRIGGER_SELECTOR,
   FEED_SELECTOR_CANDIDATES,
+  MIN_POST_COUNT,
   POST_SELECTOR,
   RECENT_OPTION_SELECTOR,
 } from '../constants.js'
@@ -17,9 +18,9 @@ import { getFeedKeywords } from './feed-keywords.js'
 import { getSlopSignals, isSlop } from './slop-detector.js'
 
 let feedObserver = null
+let scrollTimerId = null
 let feedKeywords = []
 let oldFeedKeywords = []
-let lastAutoScrolledUrl = null
 
 const handleSortByRecent = async (checkNeedUpdate) => {
   if (!checkNeedUpdate('sort-by-recent', true)) return
@@ -117,8 +118,10 @@ const isPostNode = (node) => {
 
 const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop) => {
   oldFeedKeywords = keywords
+  let postsProcessed = 0
 
   const applyKeywordToPost = (post) => {
+    postsProcessed++
     const postText = post.textContent
     const isKeywordMatch = keywords.some((keyword) => postText.indexOf(keyword) !== -1)
     let slopSignals = null
@@ -161,8 +164,21 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop) => {
       return
     }
 
+    postsProcessed = 0
+
     // Process posts already in the DOM (handles initial load and keyword changes)
     document.querySelectorAll(getCustomSelector(POST_SELECTOR, 'all')).forEach(applyKeywordToPost)
+
+    // Scroll only if LinkedIn hasn't loaded enough posts yet — up to 2 nudges, 1s apart
+    const scheduleScroll = (attempt) => {
+      if (postsProcessed >= MIN_POST_COUNT || attempt > 2) {
+        scrollTimerId = null
+        return
+      }
+      window.scrollBy({ top: window.innerHeight, behavior: 'smooth' })
+      scrollTimerId = setTimeout(() => scheduleScroll(attempt + 1), 1000)
+    }
+    scrollTimerId = setTimeout(() => scheduleScroll(1), 1000)
 
     feedObserver = new MutationObserver((mutations) => {
       for (const { addedNodes } of mutations) {
@@ -191,6 +207,10 @@ const toggleFeed = async (shown) => {
 const disconnectObserver = () => {
   feedObserver?.disconnect()
   feedObserver = null
+  if (scrollTimerId !== null) {
+    clearTimeout(scrollTimerId)
+    scrollTimerId = null
+  }
 }
 
 const handleToggledOff = () => {
@@ -206,21 +226,10 @@ const handleHideWholeFeed = () => {
   resetBlockedPosts()
 }
 
-const autoScrollFeed = () => {
-  if (lastAutoScrolledUrl === window.location.href) return
-  lastAutoScrolledUrl = window.location.href
-  let count = 0
-  const id = setInterval(() => {
-    window.scrollBy(0, window.innerHeight)
-    if (++count >= 10) clearInterval(id)
-  }, 400)
-}
-
 const handleFilterFeed = (mode, config) => {
   toggleFeed(true)
   disconnectObserver()
   resetBlockedPosts()
-  autoScrollFeed()
   blockPostsByKeywords(feedKeywords, mode, !!config['detect-slop'], !!config['hide-slop'])
 }
 

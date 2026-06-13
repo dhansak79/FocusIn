@@ -355,3 +355,65 @@ describe('legacy DOM fallback', () => {
     expect(window.alert).not.toHaveBeenCalled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Reactive auto-scroll
+// ---------------------------------------------------------------------------
+
+describe('reactive auto-scroll', () => {
+  const scrollBySpy = () => vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
+
+  it('does not scroll when posts are already in the DOM', async () => {
+    buildFeedDOM(['Post 1', 'Post 2'])
+    const spy = scrollBySpy()
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('scrolls once after 1s when no posts are found', async () => {
+    document.body.innerHTML = '<div data-testid="mainFeed"></div>'
+    const spy = scrollBySpy()
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy).toHaveBeenCalledWith({ top: window.innerHeight, behavior: 'smooth' })
+  })
+
+  it('scrolls a second time after 2s if posts are still absent', async () => {
+    document.body.innerHTML = '<div data-testid="mainFeed"></div>'
+    const spy = scrollBySpy()
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(spy).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops scrolling after 2 attempts even if posts never appear', async () => {
+    document.body.innerHTML = '<div data-testid="mainFeed"></div>'
+    const spy = scrollBySpy()
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(spy).toHaveBeenCalledTimes(2)
+  })
+
+  it('cancels the scroll timer when the observer is disconnected', async () => {
+    document.body.innerHTML = '<div data-testid="mainFeed"></div>'
+    const spy = scrollBySpy()
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    // Toggle off before the 1s timer fires — should cancel the scroll
+    doFeed(() => true, false, 'hide', { ...baseConfig })
+
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(spy).not.toHaveBeenCalled()
+  })
+})
