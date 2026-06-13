@@ -6,60 +6,49 @@
 </head>
 
 <body>
-  <nav class="tabs is-boxed is-fullwidth">
-    <ul>
-      <li class="tab is-active" title="Home"><a>Home</a></li>
-      <li class="tab" title="Feed"><a>Feed</a></li>
-      <li class="tab" title="Jobs"><a>Jobs</a></li>
-      <li class="tab" title="Misc"><a>Misc</a></li>
-    </ul>
-  </nav>
+  <div class="home-header">
+    <div class="app-title">FocusIn</div>
+    <div class="app-subtitle">LinkedIn Attention Filter</div>
+  </div>
 
-  <div class="columns is-mobile">
-    <div id="Home" class="column is-12 content-tab" style="display:block">
-      <div class="home-header">
-        <div class="app-title">FocusIn</div>
-        <div class="app-subtitle">LinkedIn Attention Filter</div>
-      </div>
+  <div class="onoffswitch">
+    <input
+      type="checkbox"
+      class="onoffswitch-checkbox"
+      id="main-toggle"
+      tabindex="0"
+      checked
+    />
+    <label class="onoffswitch-label" for="main-toggle">
+      <span class="onoffswitch-inner"></span>
+      <span class="onoffswitch-switch"></span>
+    </label>
+  </div>
 
-      <div class="onoffswitch">
-        <input
-          type="checkbox"
-          class="onoffswitch-checkbox"
-          id="main-toggle"
-          tabindex="0"
-          checked
-        />
-        <label class="onoffswitch-label" for="main-toggle">
-          <span class="onoffswitch-inner"></span>
-          <span class="onoffswitch-switch"></span>
-        </label>
-      </div>
-
-      <div class="home-options">
-        <div class="field">
-          <input id="gentle-mode" class="switch is-rounded" type="checkbox" />
-          <label for="gentle-mode">
-            <span class="is-inline-flex is-align-items-center">
-              Gentle mode
-              <span
-                class="has-tooltip-arrow has-tooltip-multiline icon ml-1"
-                data-tooltip="Fading blocked elements instead&#10;of removing them"
-              >
-                <img src="../icons/info.svg" class="icon" alt="Info" />
-              </span>
-            </span>
-          </label>
-        </div>
-        <div class="field">
-          <input id="wide-mode" class="switch is-rounded" type="checkbox" />
-          <label for="wide-mode">Wide mode</label>
-        </div>
-      </div>
+  <div class="home-options">
+    <div class="field">
+      <input id="gentle-mode" class="switch is-rounded" type="checkbox" />
+      <label for="gentle-mode">
+        <span class="is-inline-flex is-align-items-center">
+          Gentle mode
+          <span
+            class="has-tooltip-arrow has-tooltip-multiline icon ml-1"
+            data-tooltip="Fading blocked elements instead&#10;of removing them"
+          >
+            <img src="../icons/info.svg" class="icon" alt="Info" />
+          </span>
+        </span>
+      </label>
+    </div>
+    <div class="field">
+      <input id="wide-mode" class="switch is-rounded" type="checkbox" />
+      <label for="wide-mode">Wide mode</label>
     </div>
   </div>
 
-  <div id="Feed" class="px-4 pb-6 content-tab">
+  <div class="flat-section px-4 pb-4">
+    <div class="divider">Feed</div>
+
     <div class="field">
       <input id="hide-whole-feed" class="switch is-rounded" type="checkbox" />
       <label for="hide-whole-feed">Hide the whole feed</label>
@@ -146,7 +135,7 @@
       />
     </div>
 
-    <div class="divider">Hide post by interactions</div>
+    <div class="divider">Hide by interactions</div>
 
     <div class="field">
       <input id="hide-suggested" class="switch is-rounded" type="checkbox" />
@@ -204,7 +193,9 @@
     </div>
   </div>
 
-  <div id="Jobs" class="px-4 pb-4 content-tab">
+  <div class="flat-section px-4 pb-4">
+    <div class="divider">Jobs</div>
+
     <div class="field">
       <input id="hide-promoted-jobs" class="switch is-rounded" type="checkbox" />
       <label for="hide-promoted-jobs">Hide promoted</label>
@@ -221,12 +212,12 @@
     </div>
   </div>
 
-  <div id="Misc" class="px-4 pb-4 content-tab">
+  <div class="flat-section px-4 pb-4">
+    <div class="divider">Misc</div>
+
     <div class="field">
       <input id="disable-postcount-prompt" class="switch is-rounded" type="checkbox" />
-      <label for="disable-postcount-prompt"
-        >Disable post count prompt for feed</label
-      >
+      <label for="disable-postcount-prompt">Disable post count prompt for feed</label>
     </div>
 
     <div class="divider">Actions</div>
@@ -249,7 +240,7 @@
 
     <div class="field">
       <input id="hide-notification-count" class="switch is-rounded" type="checkbox" />
-      <label for="hide-notification-count"> Hide notification count </label>
+      <label for="hide-notification-count">Hide notification count</label>
     </div>
 
     <div class="field">
@@ -259,9 +250,7 @@
 
     <div class="field">
       <input id="hide-follow-recommendations" class="switch is-rounded" type="checkbox" />
-      <label for="hide-follow-recommendations">
-        Hide Follow recommendations
-      </label>
+      <label for="hide-follow-recommendations">Hide Follow recommendations</label>
     </div>
 
     <div class="field">

@@ -66,36 +66,6 @@ body {
   font-family: $family-sans-serif;
 }
 
-// ── Tabs ───────────────────────────────────────────────────────────────────
-.tabs {
-  background-color: $surface;
-  margin-bottom: 0;
-
-  ul {
-    border-bottom-color: $border-col;
-  }
-
-  a {
-    color: $muted;
-    border-bottom-color: transparent;
-    font-size: 0.85rem;
-    letter-spacing: 0.04em;
-    padding: 0.75rem 1rem;
-    transition: color 0.15s, border-color 0.15s;
-
-    &:hover {
-      color: $text;
-      border-bottom-color: $muted;
-      background-color: transparent;
-    }
-  }
-
-  li.is-active a {
-    color: $accent;
-    border-bottom-color: $accent;
-    background-color: transparent;
-  }
-}
 
 // ── Home tab ───────────────────────────────────────────────────────────────
 .home-header {
@@ -220,13 +190,9 @@ body {
   }
 }
 
-// ── Content tabs (Feed / Jobs / Misc) ─────────────────────────────────────
-.content-tab {
-  display: none;
-
-  &.is-active {
-    display: block;
-  }
+// ── Flat sections ──────────────────────────────────────────────────────────
+.flat-section {
+  border-top: 1px solid $border-col;
 }
 
 // ── Switches ───────────────────────────────────────────────────────────────

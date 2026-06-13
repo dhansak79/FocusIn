@@ -13258,32 +13258,6 @@ body {
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
-.tabs {
-  background-color: #0d2755;
-  margin-bottom: 0;
-}
-.tabs ul {
-  border-bottom-color: #1e3a7a;
-}
-.tabs a {
-  color: #505868;
-  border-bottom-color: transparent;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  padding: 0.75rem 1rem;
-  transition: color 0.15s, border-color 0.15s;
-}
-.tabs a:hover {
-  color: #bbc4d0;
-  border-bottom-color: #505868;
-  background-color: transparent;
-}
-.tabs li.is-active a {
-  color: #00d1b2;
-  border-bottom-color: #00d1b2;
-  background-color: transparent;
-}
-
 .home-header {
   padding: 2rem 1.5rem 1.5rem;
   text-align: center;
@@ -13392,11 +13366,8 @@ body {
   margin-left: 0.5rem;
 }
 
-.content-tab {
-  display: none;
-}
-.content-tab.is-active {
-  display: block;
+.flat-section {
+  border-top: 1px solid #1e3a7a;
 }
 
 .switch + label {
