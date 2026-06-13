@@ -4,87 +4,15 @@ import { getFeedKeywords } from '../../src/features/feed-keywords.js'
 // Baseline config: no flags, no custom keywords, age filtering off
 const base = { 'feed-keywords': '', 'hide-by-age': 'disabled' }
 
-describe('getFeedKeywords — content type flags', () => {
+describe('getFeedKeywords — interaction flags', () => {
   it('returns an empty array when no flags are set', () => {
     expect(getFeedKeywords(base)).toEqual([])
-  })
-
-  it('includes the video keyword when hide-videos is true', () => {
-    expect(getFeedKeywords({ ...base, 'hide-videos': true })).toContain('video')
-  })
-
-  it('includes the carousel keyword when hide-carousels is true', () => {
-    expect(getFeedKeywords({ ...base, 'hide-carousels': true })).toContain(
-      'data-view-name="feed-document-container"'
-    )
-  })
-
-  it('includes the image keyword when hide-images is true', () => {
-    expect(getFeedKeywords({ ...base, 'hide-images': true })).toContain(
-      'data-view-name="feed-update-image"'
-    )
-  })
-
-  it('includes the poll keyword when hide-polls is true', () => {
-    expect(getFeedKeywords({ ...base, 'hide-polls': true })).toContain('poll')
-  })
-
-  it('includes the links keyword when hide-links is true', () => {
-    expect(getFeedKeywords({ ...base, 'hide-links': true })).toContain(
-      'https://lnkd.in/'
-    )
-  })
-
-  it('includes "Promoted" when hide-promoted is true', () => {
-    expect(getFeedKeywords({ ...base, 'hide-promoted': true })).toContain(
-      'Promoted'
-    )
-  })
-
-  it('includes "reposted" when hide-shared is true', () => {
-    expect(getFeedKeywords({ ...base, 'hide-shared': true })).toContain(
-      'reposted'
-    )
-  })
-
-  it('includes "following" when hide-followed is true', () => {
-    expect(getFeedKeywords({ ...base, 'hide-followed': true })).toContain(
-      'following'
-    )
   })
 
   it('includes both liked keywords when hide-liked is true', () => {
     const result = getFeedKeywords({ ...base, 'hide-liked': true })
     expect(result).toContain('likes this')
     expect(result).toContain('like this')
-  })
-
-  it('includes all reaction keywords when hide-other-reactions is true', () => {
-    const result = getFeedKeywords({ ...base, 'hide-other-reactions': true })
-    expect(result).toContain('loves this')
-    expect(result).toContain('finds this insightful')
-    expect(result).toContain('celebrates this')
-    expect(result).toContain('is curious about this')
-    expect(result).toContain('supports this')
-    expect(result).toContain('finds this funny')
-  })
-
-  it('includes "commented on this" when hide-commented-on is true', () => {
-    expect(
-      getFeedKeywords({ ...base, 'hide-commented-on': true })
-    ).toContain('commented on this')
-  })
-
-  it('includes the company URL fragment when hide-by-companies is true', () => {
-    expect(
-      getFeedKeywords({ ...base, 'hide-by-companies': true })
-    ).toContain('href="https://www.linkedin.com/company/')
-  })
-
-  it('includes the people URL fragment when hide-by-people is true', () => {
-    expect(
-      getFeedKeywords({ ...base, 'hide-by-people': true })
-    ).toContain('href="https://www.linkedin.com/in/')
   })
 
   it('includes "Suggested" when hide-suggested is true', () => {
@@ -109,10 +37,10 @@ describe('getFeedKeywords — custom keywords', () => {
     const result = getFeedKeywords({
       ...base,
       'feed-keywords': 'hustle',
-      'hide-promoted': true,
+      'hide-liked': true,
     })
     expect(result).toContain('hustle')
-    expect(result).toContain('Promoted')
+    expect(result).toContain('likes this')
   })
 })
 

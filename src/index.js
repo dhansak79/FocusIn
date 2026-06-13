@@ -1,5 +1,4 @@
 import { setupDeleteMessagesButton } from './features/message.js'
-import doGenerals from './features/general.js'
 import doFeed from './features/feed.js'
 import doMisc, { unfollowAll } from './features/misc.js'
 import doJobs from './features/jobs.js'
@@ -31,7 +30,6 @@ const doIt = async (config) => {
   const mode = config['gentle-mode'] ? 'dim' : 'hide'
   const enabled = config['main-toggle']
 
-  doGenerals(checkNeedUpdate)
   doFeed(checkNeedUpdate, enabled, mode, config)
   doJobs(checkNeedUpdate, enabled, mode, config)
   doMisc(checkNeedUpdate, enabled, mode)

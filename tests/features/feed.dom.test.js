@@ -53,30 +53,30 @@ const baseConfig = { 'feed-keywords': '', 'hide-by-age': 'disabled' }
 
 describe('runBlockPosts - keyword matching', () => {
   it('hides a post whose outerHTML contains a matched keyword', () => {
-    const posts = buildFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Promoted post', 'Post 5', 'Post 6'])
+    const posts = buildFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Alice likes this post', 'Post 5', 'Post 6'])
 
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
     vi.advanceTimersByTime(350)
 
-    const promoted = Array.from(posts).find((p) => p.textContent.includes('Promoted'))
-    expect(promoted.classList.contains('hide')).toBe(true)
+    const liked = Array.from(posts).find((p) => p.textContent.includes('likes this'))
+    expect(liked.classList.contains('hide')).toBe(true)
   })
 
   it('sets data-hidden=false on posts that do not match any keyword', () => {
-    const posts = buildFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Promoted post', 'Post 5', 'Post 6'])
+    const posts = buildFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Alice likes this post', 'Post 5', 'Post 6'])
 
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
     vi.advanceTimersByTime(350)
 
     Array.from(posts)
-      .filter((p) => !p.textContent.includes('Promoted'))
+      .filter((p) => !p.textContent.includes('likes this'))
       .forEach((p) => expect(p.dataset.hidden).toBe('false'))
   })
 
   it('applies dim class instead of hide when mode is dim', () => {
-    const [post] = buildFeedDOM(['Promoted post'])
+    const [post] = buildFeedDOM(['Alice likes this post'])
 
-    doFeed(neverTrigger, true, 'dim', { ...baseConfig, 'hide-promoted': true })
+    doFeed(neverTrigger, true, 'dim', { ...baseConfig, 'hide-liked': true })
     vi.advanceTimersByTime(350)
 
     expect(post.classList.contains('dim')).toBe(true)
@@ -87,7 +87,7 @@ describe('runBlockPosts - keyword matching', () => {
     const posts = buildFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Post 4', 'Post 5', 'Post 6'])
     posts[0].classList.add('hide', 'showIcon')
 
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
     vi.advanceTimersByTime(350)
 
     expect(posts[0].classList.contains('hide')).toBe(false)
@@ -100,21 +100,21 @@ describe('runBlockPosts - keyword matching', () => {
     // so `every` would leave them unblocked while `some` correctly hides them.
     const posts = buildFeedDOM([
       'P1', 'P2', 'P3', 'P4',
-      'Promoted post',    // matches 'Promoted' but not 'video'
-      'Watch this video', // matches 'video' but not 'Promoted'
+      'Alice likes this post', // matches 'likes this' but not 'Suggested'
+      'Suggested post',        // matches 'Suggested' but not 'likes this'
     ])
 
     doFeed(neverTrigger, true, 'hide', {
       ...baseConfig,
-      'hide-promoted': true,
-      'hide-videos': true,
+      'hide-liked': true,
+      'hide-suggested': true,
     })
     vi.advanceTimersByTime(350)
 
-    const promoted = Array.from(posts).find((p) => p.textContent.includes('Promoted'))
-    const video    = Array.from(posts).find((p) => p.textContent.includes('video'))
-    expect(promoted.classList.contains('hide')).toBe(true)
-    expect(video.classList.contains('hide')).toBe(true)
+    const liked     = Array.from(posts).find((p) => p.textContent.includes('likes this'))
+    const suggested = Array.from(posts).find((p) => p.textContent.includes('Suggested'))
+    expect(liked.classList.contains('hide')).toBe(true)
+    expect(suggested.classList.contains('hide')).toBe(true)
   })
 
   it('does not start the interval when there are no keywords', () => {
@@ -124,72 +124,6 @@ describe('runBlockPosts - keyword matching', () => {
     vi.advanceTimersByTime(350)
 
     posts.forEach((p) => expect(p.dataset.hidden).toBeUndefined())
-  })
-})
-
-// ---------------------------------------------------------------------------
-// runBlockPosts — post count prompt
-// ---------------------------------------------------------------------------
-
-describe('runBlockPosts - post count prompt', () => {
-  it('shows an alert when at or below MIN_POST_COUNT posts are loaded in hide mode', () => {
-    buildFeedDOM(Array.from({ length: MIN_POST_COUNT }, (_, i) => `Post ${i + 1}`))
-
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
-    vi.advanceTimersByTime(350)
-
-    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Scroll down'))
-  })
-
-  it('does not show the alert when above MIN_POST_COUNT posts are loaded', () => {
-    buildFeedDOM(Array.from({ length: MIN_POST_COUNT + 1 }, (_, i) => `P${i + 1}`))
-
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
-    vi.advanceTimersByTime(350)
-
-    expect(window.alert).not.toHaveBeenCalled()
-  })
-
-  it('does not show the alert when disable-postcount-prompt is true', () => {
-    buildFeedDOM(['Post 1', 'Post 2', 'Post 3'])
-
-    doFeed(neverTrigger, true, 'hide', {
-      ...baseConfig,
-      'hide-promoted': true,
-      'disable-postcount-prompt': true,
-    })
-    vi.advanceTimersByTime(350)
-
-    expect(window.alert).not.toHaveBeenCalled()
-  })
-
-  it('shows the alert only once when the interval fires multiple times', () => {
-    buildFeedDOM(Array.from({ length: MIN_POST_COUNT }, (_, i) => `Post ${i + 1}`))
-
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
-    vi.advanceTimersByTime(350) // first tick → alert fires, postCountPrompted = true
-    vi.advanceTimersByTime(350) // second tick → no repeat
-
-    expect(window.alert).toHaveBeenCalledTimes(1)
-  })
-
-  it('does not show the alert in dim mode regardless of post count', () => {
-    buildFeedDOM(['Post 1', 'Post 2'])
-
-    // dim mode bypasses the 5-post minimum — filtering runs, no prompt
-    doFeed(neverTrigger, true, 'dim', { ...baseConfig, 'hide-promoted': true })
-    vi.advanceTimersByTime(350)
-
-    expect(window.alert).not.toHaveBeenCalled()
-  })
-
-  it('shows an alert when there are exactly MIN_POST_COUNT posts in hide mode', () => {
-    buildFeedDOM(Array.from({ length: MIN_POST_COUNT }, (_, i) => `P${i + 1}`))
-
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
-    vi.advanceTimersByTime(350)
-
-    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Scroll down'))
   })
 })
 
@@ -260,25 +194,25 @@ describe('resetShownPosts guard', () => {
     const posts = buildFeedDOM(['P1', 'P2', 'P3'])
     posts.forEach((p) => p.setAttribute('data-hidden', 'false'))
 
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
 
     posts.forEach((p) => expect(p.dataset.hidden).toBe('false'))
   })
 
   it('calls resetShownPosts when a keyword is removed from config', () => {
-    // Call 1: two keywords → all 6 posts get data-hidden=false after interval tick.
+    // Call 1: two keyword flags → all 6 posts get data-hidden=false after interval tick.
     const posts = buildFeedDOM(['P1', 'P2', 'P3', 'P4', 'P5', 'P6'])
     doFeed(neverTrigger, true, 'hide', {
       ...baseConfig,
-      'hide-promoted': true,
-      'hide-videos': true,
+      'hide-liked': true,
+      'hide-suggested': true,
     })
     vi.advanceTimersByTime(350)
     posts.forEach((p) => expect(p.dataset.hidden).toBe('false'))
 
-    // Call 2: remove hide-videos → oldFeedKeywords has 'video' which is no longer in
-    // new keywords → some() → true → resetShownPosts removes data-hidden from shown posts.
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
+    // Call 2: remove hide-suggested → oldFeedKeywords has 'Suggested' which is no longer
+    // in new keywords → some() → true → resetShownPosts removes data-hidden from shown posts.
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
 
     posts.forEach((p) => expect(p.dataset.hidden).toBeUndefined())
   })
@@ -331,13 +265,13 @@ describe('handleSortByRecent', () => {
 
 describe('legacy DOM fallback', () => {
   it('hides a post via keyword match on the legacy componentkey + data-display-contents DOM', () => {
-    const posts = buildLegacyFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Promoted post', 'Post 5', 'Post 6'])
+    const posts = buildLegacyFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Alice likes this post', 'Post 5', 'Post 6'])
 
-    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
     vi.advanceTimersByTime(350)
 
-    const promoted = Array.from(posts).find((p) => p.textContent.includes('Promoted'))
-    expect(promoted.classList.contains('hide')).toBe(true)
+    const liked = Array.from(posts).find((p) => p.textContent.includes('likes this'))
+    expect(liked.classList.contains('hide')).toBe(true)
   })
 
   it('does not match posts when neither current nor legacy feed container is present', () => {

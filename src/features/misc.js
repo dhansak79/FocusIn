@@ -1,12 +1,10 @@
 import {
   ADVERTISEMENT_CONTAINER_SELECTOR,
   FOLLOWS_SELECTOR,
-  GOOGLE_INTEGRATION_SELECTOR,
   NEWS_MODULE_SELECTOR,
   NOTIFICATION_COUNT_SELECTOR,
   PREMIUM_IDENTITY_UPSELL_SELECTOR,
   PREMIUM_NAV_UPSELL_SELECTOR,
-  PROFILE_COUNTERS_SELECTOR,
   UNFOLLOW_ALL_BUTTON_SELECTOR,
 } from '../constants.js'
 import {
@@ -39,18 +37,6 @@ const handleNotifications = (checkNeedUpdate) => {
     hideBySelector(NOTIFICATION_COUNT_SELECTOR, 'hide', false)
   } else if (checkNeedUpdate('hide-notification-count', false)) {
     showNotifications()
-  }
-}
-
-const showProfileCounters = () => {
-  showAncestorIndexBySelector(PROFILE_COUNTERS_SELECTOR, 3)
-}
-
-const handleProfileCounters = (checkNeedUpdate, mode) => {
-  if (checkNeedUpdate('hide-profile-counters', true)) {
-    hideAncestorIndexBySelector(PROFILE_COUNTERS_SELECTOR, 3, mode, false)
-  } else if (checkNeedUpdate('hide-profile-counters', false)) {
-    showProfileCounters()
   }
 }
 
@@ -97,16 +83,9 @@ const handleFollowRecommendations = (checkNeedUpdate, mode) => {
   }
 }
 
-const handleGoogleIntegration = (checkNeedUpdate) => {
-  if (checkNeedUpdate('hide-google-integration', true)) {
-    document.querySelector(GOOGLE_INTEGRATION_SELECTOR)?.remove()
-  }
-}
-
 const showAll = () => {
   showFollowRecommendations()
   showNews()
-  showProfileCounters()
   showNotifications()
   showPremium()
   showAdvertisement()
@@ -115,11 +94,9 @@ const showAll = () => {
 const handleAll = (checkNeedUpdate, mode) => {
   handleFollowRecommendations(checkNeedUpdate, mode)
   handleNews(checkNeedUpdate, mode)
-  handleProfileCounters(checkNeedUpdate, mode)
   handleNotifications(checkNeedUpdate)
   handlePremium(checkNeedUpdate, mode)
   handleAdvertisement(checkNeedUpdate, mode)
-  handleGoogleIntegration(checkNeedUpdate, mode)
 }
 
 export const unfollowAll = async () => {

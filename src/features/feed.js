@@ -19,7 +19,6 @@ import { getSlopSignals, isSlop } from './slop-detector.js'
 
 let runs = 0
 let feedInterval
-let postCountPrompted = false
 let feedKeywords = []
 let oldFeedKeywords = []
 let lastAutoScrolledUrl = null
@@ -107,7 +106,7 @@ const addRevealBanner = (post, signals) => {
   post.before(banner)
 }
 
-const blockPostsByKeywords = (keywords, mode, disablePostCount, detectSlop, hideSlop) => {
+const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop) => {
   if (oldFeedKeywords.some((kw) => !keywords.includes(kw))) {
     resetShownPosts()
   }
@@ -139,15 +138,6 @@ const blockPostsByKeywords = (keywords, mode, disablePostCount, detectSlop, hide
     }
   }
 
-  const promptScrollIfNeeded = () => {
-    if (!postCountPrompted && !disablePostCount) {
-      postCountPrompted = true
-      alert(
-        'Scroll down to start blocking posts (LinkedIn needs at least 10 loaded to load new ones).\n\nTo disable this alert, toggle it under misc in LinkOff settings'
-      )
-    }
-  }
-
   const runBlockPosts = () => {
     if (!findElement(FEED_SELECTOR_CANDIDATES)) return
     if (runs % 10 === 0) resetBlockedPosts()
@@ -156,8 +146,6 @@ const blockPostsByKeywords = (keywords, mode, disablePostCount, detectSlop, hide
     )
     if (posts.length > MIN_POST_COUNT || mode == 'dim') {
       posts.forEach(applyKeywordToPost)
-    } else if (keywords.length) {
-      promptScrollIfNeeded()
     }
   }
 
@@ -210,7 +198,7 @@ const handleFilterFeed = (mode, config) => {
   resetBlockedPosts()
   clearInterval(feedInterval)
   autoScrollFeed()
-  blockPostsByKeywords(feedKeywords, mode, config['disable-postcount-prompt'], !!config['detect-slop'], !!config['hide-slop'])
+  blockPostsByKeywords(feedKeywords, mode, !!config['detect-slop'], !!config['hide-slop'])
 }
 
 export default (checkNeedUpdate, enabled, mode, config) => {

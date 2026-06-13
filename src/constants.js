@@ -21,34 +21,13 @@ export const DROPDOWN_TRIGGER_SELECTOR =
 export const RECENT_OPTION_SELECTOR =
   'div[data-view-name="feed-sort-view-set-recent"]'
 
-export const WIDE_MODE_SELECTOR = 'main > div'
-
 export const PREMIUM_NAV_UPSELL_SELECTOR =
   '[data-view-name="premium-nav-upsell-text"]'
 
 export const PREMIUM_IDENTITY_UPSELL_SELECTOR =
   '[data-view-name="identity-module-upsell"]'
 
-export const VIDEO_KEYWORD = 'video'
-export const IMAGE_KEYWORD = 'data-view-name="feed-update-image"'
-export const CAROUSEL_KEYWORD = 'data-view-name="feed-document-container"'
-export const POLLS_KEYWORD = 'poll'
-export const LINKS_KEYWORD = 'https://lnkd.in/'
-export const PROMOTED_KEYWORD = 'Promoted'
-export const SHARED_KEYWORD = 'reposted'
-export const FOLLOWED_KEYWORD = 'following'
 export const LIKED_KEYWORDS = ['likes this', 'like this']
-export const OTHER_REACTIONS_KEYWORDS = [
-  'loves this',
-  'finds this insightful',
-  'celebrates this',
-  'is curious about this',
-  'supports this',
-  'finds this funny',
-]
-export const COMMENTED_ON_KEYWORD = 'commented on this'
-export const BY_COMPANIES_KEYWORD = 'href="https://www.linkedin.com/company/'
-export const BY_PEOPLE_KEYWORD = 'href="https://www.linkedin.com/in/'
 export const SUGGESTED_KEYWORD = 'Suggested'
 
 // Visibility selectors
@@ -61,9 +40,6 @@ export const FOLLOWS_SELECTOR = '[data-view-name="edge-creation-follow-action"]'
 
 export const ADVERTISEMENT_CONTAINER_SELECTOR =
   "iframe[componentkey='MainFeedDesktopNav_feed_ad']"
-
-export const PROFILE_COUNTERS_SELECTOR =
-  "[data-view-name^='home-nav-left-rail-growth-widgets']"
 
 export const NOTIFICATION_COUNT_SELECTOR =
   "[data-view-name='navigation-notifications'] > span > svg + span"
@@ -78,4 +54,3 @@ export const FOLLOW_PAGE_URL = '/mynetwork/network-manager/people-follow'
 export const UNFOLLOW_ALL_BUTTON_SELECTOR =
   'button[aria-label^="Click to stop"]'
 
-export const GOOGLE_INTEGRATION_SELECTOR = '.google-auth-button'
