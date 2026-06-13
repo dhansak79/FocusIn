@@ -263,6 +263,76 @@ describe('handleSortByRecent', () => {
 })
 
 // ---------------------------------------------------------------------------
+// MutationObserver — nodes added after initial scan
+// ---------------------------------------------------------------------------
+
+describe('MutationObserver — nodes added after initial scan', () => {
+  it('hides a post node added directly to the feed wrapper', async () => {
+    document.body.innerHTML = `
+      <div data-testid="mainFeed">
+        <div data-lazy-mount-id="b1" style="display:contents"></div>
+      </div>`
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    const post = document.createElement('div')
+    post.textContent = 'Alice likes this post'
+    document.querySelector('[data-lazy-mount-id]').appendChild(post)
+
+    await Promise.resolve()
+
+    expect(post.classList.contains('hide')).toBe(true)
+  })
+
+  it('hides posts inside an intermediate container added to the feed', async () => {
+    document.body.innerHTML = `<div data-testid="mainFeed"></div>`
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    const wrapper = document.createElement('div')
+    wrapper.setAttribute('data-lazy-mount-id', 'b2')
+    const post = document.createElement('div')
+    post.textContent = 'Alice likes this post'
+    wrapper.appendChild(post)
+    document.querySelector('[data-testid="mainFeed"]').appendChild(wrapper)
+
+    await Promise.resolve()
+
+    expect(post.classList.contains('hide')).toBe(true)
+  })
+
+  it('ignores text nodes added to the feed without throwing', async () => {
+    document.body.innerHTML = `<div data-testid="mainFeed"></div>`
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    document.querySelector('[data-testid="mainFeed"]').appendChild(document.createTextNode('  '))
+
+    await Promise.resolve()
+
+    expect(document.querySelectorAll('[data-hidden]').length).toBe(0)
+  })
+
+  it('retries connecting the observer when the feed container is not yet in the DOM', async () => {
+    document.body.innerHTML = ''
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
+
+    document.body.innerHTML = `
+      <div data-testid="mainFeed">
+        <div data-lazy-mount-id="b1" style="display:contents">
+          <div>Alice likes this post</div>
+        </div>
+      </div>`
+
+    await vi.advanceTimersByTimeAsync(16)
+
+    const post = document.querySelector('[data-lazy-mount-id] > div')
+    expect(post.classList.contains('hide')).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Legacy DOM fallback (componentkey + data-display-contents)
 // ---------------------------------------------------------------------------
 
