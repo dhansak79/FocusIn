@@ -44,7 +44,7 @@ jobs:
         with:
           type: 'zip'
           filename: 'LinkOff.zip'
-          exclusions: '*.git* /*node_modules/* /*assets/* README.md package* .* yarn.lock'
+          exclusions: '*.git* /*node_modules/* /*assets/* README.md package* .*'
 
       - name: Create release
         uses: ncipollo/release-action@v1

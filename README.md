@@ -74,9 +74,9 @@ Since neither Chrome or Firefox allow for extensions in mobile browsers, you nee
 
 Please create an issue before submitting a pull request.
 
-Use `yarn` to install dependencies. To build the CSS from SCSS run `yarn css-build`.
+Use `npm install` to install dependencies. To build the CSS from SCSS run `npm run css-build`.
 
-You can also trigger the build on changes by running the watcher with  `yarn start`
+You can also trigger the build on changes by running the watcher with `npm start`
 
 To install the extension locally follow the instructions below for your browser.
 
