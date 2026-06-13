@@ -7,6 +7,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       include: [
+        'src/index.js',
         'src/features/feed-keywords.js',
         'src/features/job-keywords.js',
         'src/features/jobs.js',

@@ -59,44 +59,55 @@ chrome.runtime.onMessage.addListener(async (req) => {
   }
 })
 
-// Track url changes
-let lastUrl
-let urlCheckIntervalId = null
-
 const AUTHORIZED_URLS = ['/', '/feed/', '/jobs/', '/messaging/']
 
-const startUrlCheck = () => {
-  if (urlCheckIntervalId !== null) return
-  urlCheckIntervalId = setInterval(() => {
-    if (!AUTHORIZED_URLS.includes(window.location.pathname)) return
+const handleNavigation = (url) => {
+  const pathname = new URL(url).pathname
+  if (!AUTHORIZED_URLS.includes(pathname)) return
 
-    if (window.location.href !== lastUrl) {
-      lastUrl = window.location.href
-      oldConfig = {}
-      initialize()
+  oldConfig = {}
+  initialize()
 
-      if (window.location.href.includes('/messaging/')) {
-        setupDeleteMessagesButton()
+  if (pathname.startsWith('/messaging/')) {
+    setupDeleteMessagesButton()
+  }
+}
+
+if (typeof window.navigation !== 'undefined' && window.navigation !== null) {
+  window.navigation.addEventListener('navigate', (e) => {
+    if (!e.canIntercept || e.hashChange || e.downloadRequest !== null) return
+    handleNavigation(e.destination.url)
+  })
+} else {
+  // Fallback for environments where the Navigation API is unavailable
+  let lastUrl
+  let urlCheckIntervalId = null
+
+  const startUrlCheck = () => {
+    if (urlCheckIntervalId !== null) return
+    urlCheckIntervalId = setInterval(() => {
+      if (window.location.href !== lastUrl) {
+        lastUrl = window.location.href
+        handleNavigation(window.location.href)
       }
+    }, 2000)
+  }
+
+  const stopUrlCheck = () => {
+    if (urlCheckIntervalId !== null) {
+      clearInterval(urlCheckIntervalId)
+      urlCheckIntervalId = null
     }
-  }, 500)
-}
-
-const stopUrlCheck = () => {
-  if (urlCheckIntervalId !== null) {
-    clearInterval(urlCheckIntervalId)
-    urlCheckIntervalId = null
   }
+
+  startUrlCheck()
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      stopUrlCheck()
+    } else {
+      startUrlCheck()
+    }
+  })
+  window.addEventListener('pagehide', stopUrlCheck)
 }
-
-startUrlCheck()
-
-// Clean up interval when tab is hidden so we don't leave a long-lived timer (avoids extra workers)
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') {
-    stopUrlCheck()
-  } else {
-    startUrlCheck()
-  }
-})
-window.addEventListener('pagehide', stopUrlCheck)
