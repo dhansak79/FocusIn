@@ -35,23 +35,12 @@ cleanup only.
 
 ---
 
-## 4. Replace `waitForSelector` rAF loop with `MutationObserver`
+## ~~4. Replace `waitForSelector` rAF loop with `MutationObserver`~~ ✅ Done
 
-**Branch**: `perf/wait-for-selector-observer`
+**Branch**: `perf/wait-for-selector-observer` — merged 2026-06-13
 
-**Problem**: `waitForSelector` uses `requestAnimationFrame` to poll for an element — up to 60
-checks per second until it appears. For elements that take seconds to render (sort dropdown,
-recent option), this wastes up to ~120 frames.
-
-**Change**:
-- Rewrite `waitForSelector` in `utils.js` to use a `MutationObserver` on `document.body`
-  (`subtree: true, childList: true`).
-- Check for the element once immediately; if not present, set up the observer and resolve as
-  soon as the node appears, then disconnect.
-- Keep the same `async`/`Promise` API so all callers (`handleSortByRecent` etc.) are unchanged.
-- Add a timeout (e.g. 5 s) that resolves with `null` to match current behaviour.
-
-**Files**: `src/utils.js`
+**Result**: rAF polling loop replaced with a MutationObserver that resolves immediately on the
+first matching mutation, then disconnects. 5 s timeout prevents hangs. `checkElementAndPlaceholderBySelector` removed; replaced by the leaner `isReady` predicate.
 
 ---
 
@@ -105,7 +94,7 @@ jank on every feed visit.
 1 ✅ MutationObserver feed          (foundational — unlocks 3 and 6)
 2 ✅ textContent keyword match      (independent)
 3 ✅ remove reset timer             (after 1 ✅)
-4 → waitForSelector observer       (independent)
+4 ✅ waitForSelector observer       (independent)
 5 → Navigation API URL detection   (independent)
 6 → reactive auto-scroll           (after 1 ✅)
 ```
