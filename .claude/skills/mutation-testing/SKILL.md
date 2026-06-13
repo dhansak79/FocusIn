@@ -33,6 +33,16 @@ Do not use this skill for deciding which files to refactor. Use `code_health_rev
 6. Write the recommended tests, then re-run `npm run mutate:report` to confirm the score improved.
 7. Stop when the remaining survivors are all equivalent, or the user explicitly accepts the gap.
 
+## Definition of Done
+
+Work is **not finished** until all three of these pass cleanly:
+
+1. **Tests** — `npm test` exits 0, all tests green.
+2. **Coverage** — `npm run coverage` exits 0, all four thresholds met (statements, branches, functions, lines ≥ 90%). A branch drop is the most common failure; check the per-file breakdown.
+3. **Mutation score** — remaining survivors are either killed or explicitly accepted as equivalent.
+
+Run steps 1 and 2 before step 3. There is no point running Stryker against failing or under-covered tests.
+
 ## Common Mistakes
 
 - Treating every survivor as actionable — many are equivalent (fast-path checks, console.log strings, initial values immediately overwritten).
@@ -40,3 +50,4 @@ Do not use this skill for deciding which files to refactor. Use `code_health_rev
 - Declaring coverage sufficient after writing tests without re-running mutation tests to verify the survivors are actually killed.
 - Writing tests that pass with the mutation — verify the mutant is killed, not just that the test runs.
 - Reporting a low score without explaining which survivors are equivalent vs killable.
+- Declaring work done before running `npm test` and `npm run coverage` — passing tests and meeting thresholds is a hard prerequisite, not a nice-to-have.
