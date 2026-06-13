@@ -13294,6 +13294,9 @@ body {
   align-items: center;
   justify-content: space-between;
 }
+#settings-panel .field .tagify {
+  width: 100%;
+}
 
 .switch + label {
   color: #bbc4d0;
@@ -13351,22 +13354,35 @@ body {
   --tagify-dd-color-primary: #00d1b2;
   --tagify-dd-bg-color: #0d2755;
   --tag-bg: #162f66;
-  --tag-text-color: #bbc4d0;
+  --tag-text-color: #ffffff;
   --tag-remove-btn-color: #505868;
   --placeholder-color: #505868;
-  --input-color: #bbc4d0;
+  --input-color: #ffffff;
+}
+
+.tagify__dropdown {
+  background-color: #0d2755;
+  border-color: #1e3a7a;
+}
+.tagify__dropdown__item {
+  color: #ffffff;
+}
+.tagify__dropdown__item--active {
+  background-color: #00d1b2;
+  color: #0a1f44;
 }
 
 .tagify--outside {
   border: 0;
   background: transparent;
+  width: 100%;
 }
 .tagify--outside .tagify__input {
   order: -1;
   flex: 100%;
   border: 1px solid var(--tags-border-color);
   background-color: #0d2755;
-  color: #bbc4d0;
+  color: #ffffff;
   border-radius: 4px;
   margin-bottom: 1em;
   transition: border-color 0.1s;
@@ -13374,8 +13390,8 @@ body {
 .tagify--outside .tagify__input:hover {
   border-color: var(--tags-hover-border-color);
 }
-.tagify--outside .tagify__input::before {
-  color: #505868;
+.tagify--outside .tagify__input::before, .tagify--outside .tagify__input:focus::before {
+  color: #505868 !important;
 }
 
 .icon {

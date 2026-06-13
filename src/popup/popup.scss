@@ -108,6 +108,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  .tagify {
+    width: 100%;
+  }
 }
 
 // ── Switches ───────────────────────────────────────────────────────────────
@@ -175,22 +179,37 @@ body {
   --tagify-dd-color-primary: #{$accent};
   --tagify-dd-bg-color: #{$surface};
   --tag-bg: #{$raised};
-  --tag-text-color: #{$text};
+  --tag-text-color: #{$white};
   --tag-remove-btn-color: #{$muted};
   --placeholder-color: #{$muted};
-  --input-color: #{$text};
+  --input-color: #{$white};
+}
+
+.tagify__dropdown {
+  background-color: $surface;
+  border-color: $border-col;
+
+  &__item {
+    color: $white;
+
+    &--active {
+      background-color: $accent;
+      color: $bg;
+    }
+  }
 }
 
 .tagify--outside {
   border: 0;
   background: transparent;
+  width: 100%;
 
   .tagify__input {
     order: -1;
     flex: 100%;
     border: 1px solid var(--tags-border-color);
     background-color: $surface;
-    color: $text;
+    color: $white;
     border-radius: 4px;
     margin-bottom: 1em;
     transition: border-color 0.1s;
@@ -199,8 +218,9 @@ body {
       border-color: var(--tags-hover-border-color);
     }
 
-    &::before {
-      color: $muted;
+    &::before,
+    &:focus::before {
+      color: $muted !important;
     }
   }
 }
