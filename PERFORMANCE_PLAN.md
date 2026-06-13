@@ -25,26 +25,13 @@ metadata outside the expandable text box.
 
 ---
 
-## 3. Remove the `resetBlockedPosts` polling timer
+## ~~3. Remove the `resetBlockedPosts` polling timer~~ ✅ Done
 
-**Branch**: `perf/remove-reset-timer`
+**Branch**: `perf/remove-reset-timer` — merged 2026-06-13
 
-**Problem**: `if (runs % 10 === 0) resetBlockedPosts()` strips state from every post every
-~3.5 seconds as a defensive measure against LinkedIn mutating posts in-place. After the
-MutationObserver refactor (item 1), this is no longer needed — the observer handles new/replaced
-nodes automatically.
-
-**Change**:
-- Remove the `runs` counter and the `% 10` reset in both `feed.js` and `jobs.js`.
-- If LinkedIn does replace a post node in-place (rather than removing + re-inserting it), handle
-  that with a separate `subtree: true, attributes: false, characterData: false, childList: true`
-  observer rather than periodic full resets.
-- Keep `resetBlockedPosts` as a utility for the "toggle off" cleanup path, but don't call it on
-  a timer.
-
-**Files**: `src/features/feed.js`, `src/features/jobs.js`
-
-**Depends on**: ~~Item 1~~ ✅ complete
+**Result**: `runs` counter and `% 10` reset removed from `jobs.js` (feed.js was already clean
+from item 1). `resetJobs` / `resetBlockedPosts` are kept for toggle-off and keyword-change
+cleanup only.
 
 ---
 
@@ -117,7 +104,7 @@ jank on every feed visit.
 ```
 1 ✅ MutationObserver feed          (foundational — unlocks 3 and 6)
 2 ✅ textContent keyword match      (independent)
-3 → remove reset timer             (after 1 ✅)
+3 ✅ remove reset timer             (after 1 ✅)
 4 → waitForSelector observer       (independent)
 5 → Navigation API URL detection   (independent)
 6 → reactive auto-scroll           (after 1 ✅)
