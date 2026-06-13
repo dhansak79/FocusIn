@@ -9,6 +9,7 @@ export default defineConfig({
       include: [
         'src/features/feed-keywords.js',
         'src/features/job-keywords.js',
+        'src/features/jobs.js',
         'src/features/slop-detector.js',
         'src/features/feed.js',
         'src/features/message.js',

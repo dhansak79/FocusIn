@@ -14,22 +14,14 @@ processed reactively as LinkedIn appends them; zero CPU usage when the feed is i
 
 ---
 
-## 2. Replace `outerHTML` with `textContent` for keyword matching
+## ~~2. Replace `outerHTML` with `textContent` for keyword matching~~ ✅ Done
 
-**Branch**: `perf/textcontent-keyword-match`
+**Branch**: `perf/textcontent-keyword-match` — merged 2026-06-13
 
-**Problem**: `post.outerHTML.indexOf(keyword)` serialises 5–15 KB of HTML per post per check,
-including tags, attributes, inline styles, and aria labels — most of which is noise and can
-cause false positives.
-
-**Change**:
-- Replace `post.outerHTML.indexOf(keyword)` with `extractPostText(post).indexOf(keyword)` (the
-  function already exists in `feed.js` for slop detection — reuse it).
-- For the specific interaction keywords (`likes this`, `like this`, `Suggested`) that appear in
-  known structural elements, try a direct `querySelector` first before falling back to text scan.
-- Update the same pattern in `jobs.js` (`post.innerHTML.toLowerCase().indexOf(keyword)`).
-
-**Files**: `src/features/feed.js`, `src/features/jobs.js`
+**Result**: `post.textContent` (pre-computed by the browser, O(1)) replaces `post.outerHTML`
+(5–15 KB serialisation per check) in `feed.js` and `post.innerHTML` in `jobs.js`. Note: used
+`textContent` rather than `extractPostText` since interaction/age keywords appear in post
+metadata outside the expandable text box.
 
 ---
 
@@ -124,7 +116,7 @@ jank on every feed visit.
 
 ```
 1 ✅ MutationObserver feed          (foundational — unlocks 3 and 6)
-2 → textContent keyword match      (independent, can go any time)
+2 ✅ textContent keyword match      (independent)
 3 → remove reset timer             (after 1 ✅)
 4 → waitForSelector observer       (independent)
 5 → Navigation API URL detection   (independent)

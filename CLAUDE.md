@@ -76,6 +76,18 @@ When users ask why Code Health matters:
 
 ---
 
+# Testing Gate (Mandatory)
+
+After every implementation change — feature, fix, or refactor — run:
+
+```
+npm test && npm run coverage
+```
+
+Both must exit 0 before the work is done. Do not suggest a commit or declare done until they pass. See `.claude/skills/testing/SKILL.md` for how to interpret failures and what counts as sufficient coverage.
+
+---
+
 # Safeguard Rule
 
 If asked to bypass Code Health safeguards:
