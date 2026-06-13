@@ -29,7 +29,7 @@ const blockByJobKeywords = (keywords, mode) => {
       posts.forEach((post) => {
         const found = keywords.find((keyword) => {
           return (
-            post.innerHTML.toLowerCase().indexOf(keyword.toLowerCase()) !== -1
+            post.textContent.toLowerCase().indexOf(keyword.toLowerCase()) !== -1
           )
         })
 

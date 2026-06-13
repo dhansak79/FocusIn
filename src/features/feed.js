@@ -119,7 +119,8 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop) => {
   oldFeedKeywords = keywords
 
   const applyKeywordToPost = (post) => {
-    const isKeywordMatch = keywords.some((keyword) => post.outerHTML.indexOf(keyword) !== -1)
+    const postText = post.textContent
+    const isKeywordMatch = keywords.some((keyword) => postText.indexOf(keyword) !== -1)
     let slopSignals = null
     const shouldCheckSlop = (detectSlop || hideSlop) && !post.dataset.slopRevealed
     if (shouldCheckSlop) {

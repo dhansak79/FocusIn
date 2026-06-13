@@ -51,7 +51,7 @@ const baseConfig = { 'feed-keywords': '', 'hide-by-age': 'disabled' }
 // ---------------------------------------------------------------------------
 
 describe('post processing - keyword matching', () => {
-  it('hides a post whose outerHTML contains a matched keyword', () => {
+  it('hides a post whose text content contains a matched keyword', () => {
     const posts = buildFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Alice likes this post', 'Post 5', 'Post 6'])
 
     doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-liked': true })
