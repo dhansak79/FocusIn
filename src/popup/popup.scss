@@ -1,78 +1,192 @@
 @charset "utf-8";
+
+// ── Palette (from design.png) ──────────────────────────────────────────────
+$bg:         #0a1f44;   // Deep Navy
+$surface:    #0d2755;
+$raised:     #162f66;
+$border-col: #1e3a7a;
+$accent:     #00d1b2;   // teal — complements the navy
+$accent-dim: rgba(0, 209, 178, 0.1);
+$text:       #bbc4d0;   // Cool Silver
+$muted:      #505868;   // Body Grey
+$white:      #ffffff;
+
+// ── Bulma variable overrides (before imports) ──────────────────────────────
+$body-background-color: $bg;
+$scheme-main:           $bg;
+$scheme-main-bis:       $surface;
+$scheme-main-ter:       $raised;
+$background:            $surface;
+$border:                $border-col;
+$border-light:          $raised;
+$text:                  $text;
+$text-light:            $muted;
+$text-strong:           $white;
+$link:                  $accent;
+$link-hover:            lighten($accent, 8%);
+$link-visited:          $accent;
+$family-sans-serif:     'Segoe UI', system-ui, -apple-system, sans-serif;
+
+$tabs-border-bottom-color:                   $border-col;
+$tabs-link-color:                            $muted;
+$tabs-link-active-color:                     $accent;
+$tabs-link-hover-color:                      $text;
+$tabs-link-hover-border-bottom-color:        $text;
+$tabs-boxed-link-active-background-color:    $bg;
+$tabs-boxed-link-active-border-color:        $border-col;
+$tabs-boxed-link-active-border-bottom-color: $bg;
+
+$input-background-color:    $surface;
+$input-border-color:        $border-col;
+$input-color:               $text;
+$input-hover-border-color:  $accent;
+$input-focus-border-color:  $accent;
+$input-focus-box-shadow-color: rgba(0, 209, 178, 0.2);
+$select-arrow-color:        $accent;
+
+$button-background-color:   $surface;
+$button-border-color:       $border-col;
+$button-color:              $text;
+$button-hover-border-color: $accent;
+$button-hover-color:        $white;
+$button-focus-border-color: $accent;
+
+// ── Imports ────────────────────────────────────────────────────────────────
 @import '../../node_modules/@yaireo/tagify/src/tagify.scss';
 @import '../../node_modules/bulma/bulma.sass';
 @import '../../node_modules/bulma-switch/src/sass/index.sass';
 @import '../../node_modules/@creativebulma/bulma-divider/src/sass/index.sass';
 @import '../../node_modules/@creativebulma/bulma-tooltip/src/sass/index.sass';
 
-// Fixed width
+// ── Base ───────────────────────────────────────────────────────────────────
 body {
   width: 400px;
+  background-color: $bg;
+  color: $text;
+  font-family: $family-sans-serif;
 }
 
-// Master switch
+// ── Tabs ───────────────────────────────────────────────────────────────────
+.tabs {
+  background-color: $surface;
+  margin-bottom: 0;
+
+  ul {
+    border-bottom-color: $border-col;
+  }
+
+  a {
+    color: $muted;
+    border-bottom-color: transparent;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    padding: 0.75rem 1rem;
+    transition: color 0.15s, border-color 0.15s;
+
+    &:hover {
+      color: $text;
+      border-bottom-color: $muted;
+      background-color: transparent;
+    }
+  }
+
+  li.is-active a {
+    color: $accent;
+    border-bottom-color: $accent;
+    background-color: transparent;
+  }
+}
+
+// ── Home tab ───────────────────────────────────────────────────────────────
+.home-header {
+  padding: 2rem 1.5rem 1.5rem;
+  text-align: center;
+
+  .app-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $white;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
+  }
+
+  .app-subtitle {
+    font-size: 0.8rem;
+    color: $muted;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+// ── Master toggle ──────────────────────────────────────────────────────────
 .onoffswitch {
   position: relative;
   width: 180px;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
+  margin: 0 auto 1.5rem;
+
   &-checkbox {
     position: absolute;
     opacity: 0;
     pointer-events: none;
   }
+
   &-label {
     display: block;
     overflow: hidden;
     cursor: pointer;
     border-radius: 60px;
+    border: 1px solid $border-col;
   }
+
   &-inner {
     display: block;
     width: 200%;
     margin-left: -100%;
-    transition: margin 0.3s ease-in 0s;
-    &:before,
-    &:after {
+    transition: margin 0.25s ease-in 0s;
+
+    &:before, &:after {
       display: block;
       float: left;
       width: 50%;
-      height: 60px;
+      height: 52px;
       padding: 0;
-      line-height: 60px;
-      font-size: 20px;
-      color: white;
-      font-family: Trebuchet, Arial, sans-serif;
-      font-weight: bold;
+      line-height: 52px;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      font-family: $family-sans-serif;
+      font-weight: 700;
       box-sizing: border-box;
     }
+
     &:before {
       content: 'ENABLED';
-      padding-left: 15px;
-      background-color: #00d1b2;
-      color: #ffffff;
+      padding-left: 18px;
+      background-color: $accent;
+      color: $bg;
     }
+
     &:after {
       content: 'DISABLED';
-      padding-right: 15px;
-      background-color: #eeeeee;
-      color: #999999;
+      padding-right: 18px;
+      background-color: $raised;
+      color: $muted;
       text-align: right;
     }
   }
+
   &-switch {
     display: block;
-    width: 50px;
-    margin: 5px;
-    background: #ffffff;
+    width: 44px;
+    margin: 4px;
+    background: $white;
     position: absolute;
     top: 0;
     bottom: 0;
-    right: 116px;
+    right: 118px;
     border-radius: 60px;
-    transition: all 0.3s ease-in 0s;
+    transition: all 0.25s ease-in 0s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
   }
 }
 
@@ -84,38 +198,148 @@ body {
   right: 0px;
 }
 
-:root {
-  --tags-border-color: #00d1b2 !important;
-  --tags-hover-border-color: #00d1b2 !important;
-  --tags-focus-border-color: rgba(76, 175, 80, 0) !important;
-  --tagify-dd-color-primary: #00d1b2 !important;
-  --tagify-dd-color-primary: rgba(76, 175, 80, 0) !important;
-  --tagify-dd-bg-color: #f8f8ff !important;
+// ── Home options (gentle/wide mode) ────────────────────────────────────────
+.home-options {
+  padding: 0 1.5rem 1.5rem;
+
+  .field {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid $border-col;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  label {
+    color: $text;
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+  }
 }
 
-// Tagify show tags below input field
+// ── Content tabs (Feed / Jobs / Misc) ─────────────────────────────────────
+.content-tab {
+  display: none;
+
+  &.is-active {
+    display: block;
+  }
+}
+
+// ── Switches ───────────────────────────────────────────────────────────────
+.switch + label {
+  color: $text;
+  font-size: 0.88rem;
+  padding-left: 0.4rem;
+}
+
+.switch:checked + label::before {
+  background-color: $accent !important;
+}
+
+// ── Dividers ───────────────────────────────────────────────────────────────
+.divider {
+  color: $accent;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 1rem 0 0.75rem;
+
+  &::before, &::after {
+    background-color: $border-col;
+  }
+}
+
+// ── Select ─────────────────────────────────────────────────────────────────
+.select select {
+  background-color: $surface;
+  border-color: $border-col;
+  color: $text;
+  font-size: 0.85rem;
+
+  &:hover {
+    border-color: $accent;
+  }
+
+  option {
+    background-color: $surface;
+    color: $text;
+  }
+}
+
+// ── Buttons ────────────────────────────────────────────────────────────────
+.button.is-primary.is-outlined {
+  border-color: $accent;
+  color: $accent;
+  background-color: $accent-dim;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+
+  &:hover {
+    background-color: $accent;
+    color: $bg;
+    border-color: $accent;
+  }
+}
+
+// ── Tagify ─────────────────────────────────────────────────────────────────
+:root {
+  --tags-border-color: #{$border-col};
+  --tags-hover-border-color: #{$accent};
+  --tags-focus-border-color: #{$accent};
+  --tagify-dd-color-primary: #{$accent};
+  --tagify-dd-bg-color: #{$surface};
+  --tag-bg: #{$raised};
+  --tag-text-color: #{$text};
+  --tag-remove-btn-color: #{$muted};
+  --placeholder-color: #{$muted};
+  --input-color: #{$text};
+}
+
 .tagify--outside {
   border: 0;
+  background: transparent;
+
   .tagify__input {
     order: -1;
     flex: 100%;
     border: 1px solid var(--tags-border-color);
+    background-color: $surface;
+    color: $text;
+    border-radius: 4px;
     margin-bottom: 1em;
-    transition: 0.1s;
+    transition: border-color 0.1s;
+
     &:hover {
       border-color: var(--tags-hover-border-color);
     }
-  }
-  .tagify--focus .tagify__input {
-    transition: 0s;
-    border-color: var(--tags-focus-border-color);
+
+    &::before {
+      color: $muted;
+    }
   }
 }
 
+// ── Info icon ──────────────────────────────────────────────────────────────
 .icon {
   height: 18px;
+  filter: invert(60%) sepia(10%) saturate(400%) hue-rotate(180deg);
 }
 
 .has-tooltip-arrow {
   border-bottom: none !important;
+}
+
+// ── Misc tweaks ────────────────────────────────────────────────────────────
+.is-pulled-left, .is-pulled-right {
+  color: $text;
+  font-size: 0.88rem;
+}
+
+p.is-pulled-left {
+  line-height: 2rem;
 }
