@@ -112,6 +112,21 @@
   background: rgba(255, 255, 255, 0.28);
 }
 
+.linkoff-slop-score {
+  background: rgba(255, 160, 0, 0.2);
+  border: 1px solid rgba(255, 160, 0, 0.7);
+  border-radius: 3px;
+  color: #ffa000;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+
+.linkoff-slop-score:hover {
+  background: rgba(255, 160, 0, 0.35);
+}
+
 .wide-mode {
   margin-left: 0rem !important;
   margin-right: 0rem !important;

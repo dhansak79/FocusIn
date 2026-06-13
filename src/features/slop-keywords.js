@@ -71,6 +71,7 @@ export const SLOP_PHRASES = [
 
   // "X just dropped" breathlessness
   'just dropped',
+  'blown away',
   'just announced',
   'just changed everything',
   'just killed',

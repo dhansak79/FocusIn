@@ -6,7 +6,7 @@ const LINE_PATTERN_RATIO = 0.6
 const HEAVY_LINE_COUNT = 15
 const HEAVY_LINE_RATIO = 0.8
 
-export const SLOP_THRESHOLD = 2
+export const SLOP_THRESHOLD = 1
 
 const countSlopPhrases = (text) => {
   const lower = text.toLowerCase()
@@ -18,6 +18,14 @@ const hasHighEmojiDensity = (text) => {
   const keycap = (text.match(/⃣/gu) ?? []).length
   return standard + keycap > EMOJI_THRESHOLD
 }
+
+const hasMarkdownFormatting = (text) =>
+  // **bold** is the clearest artifact — almost never appears in real posts
+  /\*\*\S[^*]*\*\*/.test(text) ||
+  // Markdown headers: lines starting with one or more #
+  /^#{1,3} /m.test(text) ||
+  // Asterisk bullet lists: lines starting with "* text"
+  /^\* \S/m.test(text)
 
 // Returns 0 (no pattern), 1 (moderate stacking), or 2 (extreme stacking).
 // Extreme stacking — 15+ single-sentence lines at 80%+ ratio — is suspicious
@@ -37,6 +45,7 @@ const linePatternScore = (text) => {
 export const getSlopScore = (text) =>
   (countSlopPhrases(text) > 0 ? SLOP_THRESHOLD : 0) +
   (hasHighEmojiDensity(text) ? 1 : 0) +
+  (hasMarkdownFormatting(text) ? 1 : 0) +
   linePatternScore(text)
 
 export const getSlopSignals = (text) => {
@@ -44,6 +53,7 @@ export const getSlopSignals = (text) => {
   const phraseCount = countSlopPhrases(text)
   if (phraseCount > 0) signals.push(`buzzword phrases (${phraseCount})`)
   if (hasHighEmojiDensity(text)) signals.push('emoji overload')
+  if (hasMarkdownFormatting(text)) signals.push('raw markdown')
   const lps = linePatternScore(text)
   if (lps === 2) signals.push('extreme line stacking')
   else if (lps === 1) signals.push('line stacking')

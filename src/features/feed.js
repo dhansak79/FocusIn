@@ -22,6 +22,7 @@ let feedInterval
 let postCountPrompted = false
 let feedKeywords = []
 let oldFeedKeywords = []
+let lastAutoScrolledUrl = null
 
 const handleSortByRecent = async (checkNeedUpdate) => {
   if (!checkNeedUpdate('sort-by-recent', true)) return
@@ -52,6 +53,9 @@ const extractPostText = (el) => {
 const extractAuthorName = (post) =>
   post.querySelector('a[href*="/in/"] strong')?.textContent?.trim() ?? null
 
+const SLOP_SCORE_COMMENT =
+  `This is triggering our "AI created content" algorithm. Do you normally write this way or is this an AI/LinkedIn thing? I am building an extension to detect AI generated and non-human content and it would be great to understand if my test passed or failed. Happy for a direct message for obvious reasons. We will send a list of real human content at the end of our study.`
+
 const addRevealBanner = (post, signals) => {
   if (post.previousElementSibling?.classList.contains('linkoff-slop-collapsed')) return
   const author = extractAuthorName(post)
@@ -60,15 +64,27 @@ const addRevealBanner = (post, signals) => {
 
   const row = document.createElement('div')
   row.className = 'linkoff-slop-row'
-  const btn = document.createElement('button')
-  btn.className = 'linkoff-slop-reveal'
-  btn.textContent = 'Reveal post'
-  btn.onclick = () => {
+
+  const revealBtn = document.createElement('button')
+  revealBtn.className = 'linkoff-slop-reveal'
+  revealBtn.textContent = 'Reveal post'
+  revealBtn.onclick = () => {
     post.classList.remove('hide', 'dim', 'linkoff-slop-soft-hide')
     post.dataset.slopRevealed = true
     banner.remove()
   }
-  row.append(document.createTextNode(`🤖 AI slop hidden (${signals.join(', ')})`), btn)
+
+  const scoreBtn = document.createElement('button')
+  scoreBtn.className = 'linkoff-slop-score'
+  scoreBtn.textContent = 'SlopScore'
+  scoreBtn.onclick = () => {
+    post.classList.remove('hide', 'dim', 'linkoff-slop-soft-hide')
+    post.dataset.slopRevealed = true
+    banner.remove()
+    navigator.clipboard.writeText(SLOP_SCORE_COMMENT)
+  }
+
+  row.append(document.createTextNode(`🤖 AI slop hidden (${signals.join(', ')})`), revealBtn, scoreBtn)
   banner.append(row)
 
   if (author) {
@@ -168,11 +184,22 @@ const handleHideWholeFeed = () => {
   clearInterval(feedInterval)
 }
 
+const autoScrollFeed = () => {
+  if (lastAutoScrolledUrl === window.location.href) return
+  lastAutoScrolledUrl = window.location.href
+  let count = 0
+  const id = setInterval(() => {
+    window.scrollBy(0, window.innerHeight)
+    if (++count >= 10) clearInterval(id)
+  }, 400)
+}
+
 const handleFilterFeed = (mode, config) => {
   toggleFeed(true)
 
   resetBlockedPosts()
   clearInterval(feedInterval)
+  autoScrollFeed()
   blockPostsByKeywords(feedKeywords, mode, config['disable-postcount-prompt'], !!config['detect-slop'], !!config['hide-slop'])
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getSlopScore, getSlopSignals, isSlop } from '../../src/features/slop-detector.js'
+import { getSlopScore, getSlopSignals, isSlop, SLOP_THRESHOLD } from '../../src/features/slop-detector.js'
 
 // ---------------------------------------------------------------------------
 // Phrase signal — binary: any matching phrase scores SLOP_THRESHOLD (triggers alone)
@@ -11,7 +11,7 @@ describe('getSlopScore - slop phrases', () => {
   })
 
   it('scores SLOP_THRESHOLD when a known slop phrase is present', () => {
-    expect(getSlopScore("In today's fast-paced world, we need to adapt.")).toBeGreaterThanOrEqual(2)
+    expect(getSlopScore("In today's fast-paced world, we need to adapt.")).toBeGreaterThanOrEqual(SLOP_THRESHOLD)
   })
 
   it('triggers for "let that sink in"', () => {
@@ -330,6 +330,38 @@ describe('isSlop - numbered list CTA pattern', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Markdown formatting — raw markdown pasted from an AI chat window
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - raw markdown', () => {
+  it('scores above 0 for **bold** text', () => {
+    expect(getSlopScore('Meenakshi reflects **advocacy and technical evolution** in her posts.')).toBeGreaterThan(0)
+  })
+
+  it('scores above 0 for ### headers', () => {
+    expect(getSlopScore('### 3. Mentorship & Freshers Engagement\nA consistent theme.')).toBeGreaterThan(0)
+  })
+
+  it('scores above 0 for asterisk bullet lines', () => {
+    expect(getSlopScore('* The Returnship Program: she shares content on women returning to work.')).toBeGreaterThan(0)
+  })
+
+  it('flags a post with mixed markdown as slop', () => {
+    const post = [
+      '**1. Diversity, Equity & Inclusion (DE&I)**',
+      '* She promotes the RISE program for mid-level leadership.',
+      '* She promotes the Propel program for senior coaching.',
+      '### **2. Quality Engineering**',
+    ].join('\n')
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('does not flag a clean post with a single asterisk used naturally', () => {
+    expect(getSlopScore('Revenue grew 3x — it was a great quarter*.')).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // getSlopSignals — human-readable labels for each triggered signal
 // ---------------------------------------------------------------------------
 
@@ -349,6 +381,10 @@ describe('getSlopSignals', () => {
 
   it('includes "emoji overload" when emoji density exceeds threshold', () => {
     expect(getSlopSignals('🚀 Launch 💡 Idea 🔥 Fire 💪 Strong ⚡ Fast')).toContain('emoji overload')
+  })
+
+  it('includes "raw markdown" when markdown formatting is present', () => {
+    expect(getSlopSignals('Her work reflects **advocacy and technical evolution**.')).toContain('raw markdown')
   })
 
   it('includes "line stacking" for moderate single-sentence stacking (5–14 lines)', () => {
