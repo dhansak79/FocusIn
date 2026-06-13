@@ -89,110 +89,25 @@ body {
 }
 
 // ── Master toggle ──────────────────────────────────────────────────────────
-.onoffswitch {
-  position: relative;
-  width: 180px;
-  user-select: none;
-  margin: 0 auto 1.5rem;
+.master-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid $border-col;
 
-  &-checkbox {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  &-label {
-    display: block;
-    overflow: hidden;
-    cursor: pointer;
-    border-radius: 60px;
-    border: 1px solid $border-col;
-  }
-
-  &-inner {
-    display: block;
-    width: 200%;
-    margin-left: -100%;
-    transition: margin 0.25s ease-in 0s;
-
-    &:before, &:after {
-      display: block;
-      float: left;
-      width: 50%;
-      height: 52px;
-      padding: 0;
-      line-height: 52px;
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      font-family: $family-sans-serif;
-      font-weight: 700;
-      box-sizing: border-box;
-    }
-
-    &:before {
-      content: 'ENABLED';
-      padding-left: 18px;
-      background-color: $accent;
-      color: $bg;
-    }
-
-    &:after {
-      content: 'DISABLED';
-      padding-right: 18px;
-      background-color: $raised;
-      color: $muted;
-      text-align: right;
-    }
-  }
-
-  &-switch {
-    display: block;
-    width: 44px;
-    margin: 4px;
-    background: $white;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 118px;
-    border-radius: 60px;
-    transition: all 0.25s ease-in 0s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  }
-}
-
-.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
-  margin-left: 0;
-}
-
-.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
-  right: 0px;
-}
-
-// ── Home options (gentle/wide mode) ────────────────────────────────────────
-.home-options {
-  padding: 0 1.5rem 1.5rem;
-
-  .field {
-    display: flex;
-    align-items: center;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid $border-col;
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  label {
+  &-text {
     color: $text;
     font-size: 0.9rem;
-    margin-left: 0.5rem;
+    cursor: pointer;
   }
 }
 
-// ── Flat sections ──────────────────────────────────────────────────────────
-.flat-section {
-  border-top: 1px solid $border-col;
+// ── Settings rows (text left, toggle right) ────────────────────────────────
+#settings-panel .field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 // ── Switches ───────────────────────────────────────────────────────────────
@@ -300,12 +215,12 @@ body {
   border-bottom: none !important;
 }
 
-// ── Misc tweaks ────────────────────────────────────────────────────────────
-.is-pulled-left, .is-pulled-right {
-  color: $text;
+// ── Age filter row ─────────────────────────────────────────────────────────
+.age-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
   font-size: 0.88rem;
-}
-
-p.is-pulled-left {
-  line-height: 2rem;
+  color: $text;
 }

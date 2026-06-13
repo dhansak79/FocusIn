@@ -49,29 +49,27 @@ document.addEventListener('DOMContentLoaded', function () {
   for (i = 0; i < x.length; i++) {
     x[i].addEventListener('change', toggleProperty(x[i]))
   }
+
+  var mainToggle = document.getElementById('main-toggle')
+  var settingsPanel = document.getElementById('settings-panel')
+  mainToggle.addEventListener('change', function () {
+    settingsPanel.style.display = mainToggle.checked ? 'block' : 'none'
+  })
+
   // Set initial checked state from storage
   chrome.storage.local.get(
     [].map.call(x, (el) => el.id),
     (res) => {
       if (res) {
         for (i = 0; i < x.length; i++) {
-          x[i].checked = res[x[i].id]
+          if (res[x[i].id] !== undefined) {
+            x[i].checked = res[x[i].id]
+          }
         }
+        settingsPanel.style.display = mainToggle.checked ? 'block' : 'none'
       }
     }
   )
-})
-
-document.addEventListener('DOMContentLoaded', function () {
-  // Add change listeners to main switch
-  var x = document.getElementById('main-toggle')
-  x.addEventListener('change', toggleProperty(x))
-  // Set initial checked state from storage
-  chrome.storage.local.get([x.id], (res) => {
-    if (res) {
-      x.checked = res[x.id]
-    }
-  })
 })
 
 // Selection dropdowns

@@ -11,23 +11,23 @@
     <div class="app-subtitle">LinkedIn Attention Filter</div>
   </div>
 
-  <div class="onoffswitch">
+  <div class="master-field">
+    <label for="main-toggle" class="master-field-text">Enable FocusIn</label>
     <input
       type="checkbox"
-      class="onoffswitch-checkbox"
+      class="switch is-rounded"
       id="main-toggle"
       tabindex="0"
       checked
     />
-    <label class="onoffswitch-label" for="main-toggle">
-      <span class="onoffswitch-inner"></span>
-      <span class="onoffswitch-switch"></span>
-    </label>
+    <label for="main-toggle"></label>
   </div>
 
-  <div class="home-options">
+  <div id="settings-panel" class="px-4 pb-4">
+
+    <div class="divider">General</div>
+
     <div class="field">
-      <input id="gentle-mode" class="switch is-rounded" type="checkbox" />
       <label for="gentle-mode">
         <span class="is-inline-flex is-align-items-center">
           Gentle mode
@@ -39,93 +39,109 @@
           </span>
         </span>
       </label>
+      <input id="gentle-mode" class="switch is-rounded" type="checkbox" />
+      <label for="gentle-mode"></label>
     </div>
-    <div class="field">
-      <input id="wide-mode" class="switch is-rounded" type="checkbox" />
-      <label for="wide-mode">Wide mode</label>
-    </div>
-  </div>
 
-  <div class="flat-section px-4 pb-4">
+    <div class="field">
+      <label for="wide-mode">Wide mode</label>
+      <input id="wide-mode" class="switch is-rounded" type="checkbox" />
+      <label for="wide-mode"></label>
+    </div>
+
     <div class="divider">Feed</div>
 
     <div class="field">
-      <input id="hide-whole-feed" class="switch is-rounded" type="checkbox" />
       <label for="hide-whole-feed">Hide the whole feed</label>
+      <input id="hide-whole-feed" class="switch is-rounded" type="checkbox" />
+      <label for="hide-whole-feed"></label>
     </div>
 
     <div class="field">
-      <input id="sort-by-recent" class="switch is-rounded" type="checkbox" />
       <label for="sort-by-recent">Sort posts by recent</label>
+      <input id="sort-by-recent" class="switch is-rounded" type="checkbox" />
+      <label for="sort-by-recent"></label>
     </div>
 
-    <div class="divider">Hide posts by content</div>
-
-    <div class="columns is-mobile">
-      <div class="column is-half">
-        <div class="field">
-          <input id="hide-polls" class="switch is-rounded" type="checkbox" />
-          <label for="hide-polls">Hide polls</label>
-        </div>
-        <div class="field">
-          <input id="hide-videos" class="switch is-rounded" type="checkbox" />
-          <label for="hide-videos">Hide videos</label>
-        </div>
-        <div class="field">
-          <input id="hide-links" class="switch is-rounded" type="checkbox" />
-          <label for="hide-links">Hide links</label>
-        </div>
-      </div>
-      <div class="column is-half">
-        <div class="field">
-          <input id="hide-images" class="switch is-rounded" type="checkbox" />
-          <label for="hide-images">Hide images</label>
-        </div>
-        <div class="field">
-          <input
-            id="hide-carousels"
-            class="switch is-rounded"
-            type="checkbox"
-          />
-          <label for="hide-carousels">Hide carousels</label>
-        </div>
-        <div class="field">
-          <input id="hide-promoted" class="switch is-rounded" type="checkbox" />
-          <label for="hide-promoted">Hide promoted</label>
-        </div>
-        <div class="field">
-          <input id="hide-shared" class="switch is-rounded" type="checkbox" />
-          <label for="hide-shared">Hide shared</label>
-        </div>
+    <div class="age-filter-row">
+      <span>Hide posts older than</span>
+      <div class="select is-small">
+        <select id="hide-by-age">
+          <option value="disabled">Disabled</option>
+          <option value="hour">an hour</option>
+          <option value="day">a day</option>
+          <option value="week">a week</option>
+          <option value="month">a month</option>
+          <option value="year">a year</option>
+        </select>
       </div>
     </div>
 
-    <div class="divider">Hide posts by author</div>
-
-    <div class="columns is-mobile">
-      <div class="column is-half">
-        <div class="field">
-          <input
-            id="hide-by-people"
-            class="switch is-rounded"
-            type="checkbox"
-          />
-          <label for="hide-by-people">By people</label>
-        </div>
-      </div>
-      <div class="column is-half">
-        <div class="field">
-          <input
-            id="hide-by-companies"
-            class="switch is-rounded"
-            type="checkbox"
-          />
-          <label for="hide-by-companies">By companies</label>
-        </div>
-      </div>
+    <div class="field">
+      <label for="disable-postcount-prompt">Disable post count prompt</label>
+      <input id="disable-postcount-prompt" class="switch is-rounded" type="checkbox" />
+      <label for="disable-postcount-prompt"></label>
     </div>
 
-    <div class="divider">Hide by keywords</div>
+    <div class="divider">Filter by content</div>
+
+    <div class="field">
+      <label for="hide-polls">Hide polls</label>
+      <input id="hide-polls" class="switch is-rounded" type="checkbox" />
+      <label for="hide-polls"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-images">Hide images</label>
+      <input id="hide-images" class="switch is-rounded" type="checkbox" />
+      <label for="hide-images"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-videos">Hide videos</label>
+      <input id="hide-videos" class="switch is-rounded" type="checkbox" />
+      <label for="hide-videos"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-carousels">Hide carousels</label>
+      <input id="hide-carousels" class="switch is-rounded" type="checkbox" />
+      <label for="hide-carousels"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-links">Hide links</label>
+      <input id="hide-links" class="switch is-rounded" type="checkbox" />
+      <label for="hide-links"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-promoted">Hide promoted</label>
+      <input id="hide-promoted" class="switch is-rounded" type="checkbox" />
+      <label for="hide-promoted"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-shared">Hide shared</label>
+      <input id="hide-shared" class="switch is-rounded" type="checkbox" />
+      <label for="hide-shared"></label>
+    </div>
+
+    <div class="divider">Filter by author</div>
+
+    <div class="field">
+      <label for="hide-by-people">By people</label>
+      <input id="hide-by-people" class="switch is-rounded" type="checkbox" />
+      <label for="hide-by-people"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-by-companies">By companies</label>
+      <input id="hide-by-companies" class="switch is-rounded" type="checkbox" />
+      <label for="hide-by-companies"></label>
+    </div>
+
+    <div class="divider">Filter by keyword</div>
 
     <div class="field">
       <input
@@ -135,73 +151,59 @@
       />
     </div>
 
-    <div class="divider">Hide by interactions</div>
+    <div class="divider">Filter by interaction</div>
 
     <div class="field">
-      <input id="hide-suggested" class="switch is-rounded" type="checkbox" />
       <label for="hide-suggested">Hide suggestions</label>
+      <input id="hide-suggested" class="switch is-rounded" type="checkbox" />
+      <label for="hide-suggested"></label>
     </div>
 
     <div class="field">
-      <input id="hide-liked" class="switch is-rounded" type="checkbox" />
       <label for="hide-liked">Hide liked by connections</label>
+      <input id="hide-liked" class="switch is-rounded" type="checkbox" />
+      <label for="hide-liked"></label>
     </div>
 
     <div class="field">
-      <input
-        id="hide-other-reactions"
-        class="switch is-rounded"
-        type="checkbox"
-      />
       <label for="hide-other-reactions">Hide with other reactions</label>
+      <input id="hide-other-reactions" class="switch is-rounded" type="checkbox" />
+      <label for="hide-other-reactions"></label>
     </div>
 
     <div class="field">
-      <input id="hide-commented-on" class="switch is-rounded" type="checkbox" />
       <label for="hide-commented-on">Hide commented on by connections</label>
+      <input id="hide-commented-on" class="switch is-rounded" type="checkbox" />
+      <label for="hide-commented-on"></label>
     </div>
 
     <div class="field">
-      <input id="hide-followed" class="switch is-rounded" type="checkbox" />
       <label for="hide-followed">Hide followed by connections</label>
+      <input id="hide-followed" class="switch is-rounded" type="checkbox" />
+      <label for="hide-followed"></label>
     </div>
 
-    <div class="divider">Experimental</div>
+    <div class="divider">AI content</div>
 
     <div class="field">
-      <input id="detect-slop" class="switch is-rounded" type="checkbox" />
       <label for="detect-slop">Collapse AI-generated posts (reveal button shown)</label>
+      <input id="detect-slop" class="switch is-rounded" type="checkbox" />
+      <label for="detect-slop"></label>
     </div>
 
     <div class="field">
-      <input id="hide-slop" class="switch is-rounded" type="checkbox" />
       <label for="hide-slop">Completely hide AI-generated posts</label>
+      <input id="hide-slop" class="switch is-rounded" type="checkbox" />
+      <label for="hide-slop"></label>
     </div>
 
-    <div class="divider">Other</div>
-
-    <p class="is-pulled-left level-item">Hide posts older than</p>
-    <div class="is-pulled-right select is-small">
-      <select id="hide-by-age">
-        <option value="disabled">Disabled</option>
-        <option value="hour">an hour</option>
-        <option value="day">a day</option>
-        <option value="week">a week</option>
-        <option value="month">a month</option>
-        <option value="year">a year</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="flat-section px-4 pb-4">
     <div class="divider">Jobs</div>
 
     <div class="field">
+      <label for="hide-promoted-jobs">Hide promoted jobs</label>
       <input id="hide-promoted-jobs" class="switch is-rounded" type="checkbox" />
-      <label for="hide-promoted-jobs">Hide promoted</label>
+      <label for="hide-promoted-jobs"></label>
     </div>
-
-    <div class="divider">Hide jobs by keywords</div>
 
     <div class="field">
       <input
@@ -210,14 +212,49 @@
         class="tagify--outside"
       />
     </div>
-  </div>
 
-  <div class="flat-section px-4 pb-4">
-    <div class="divider">Misc</div>
+    <div class="divider">Interface</div>
 
     <div class="field">
-      <input id="disable-postcount-prompt" class="switch is-rounded" type="checkbox" />
-      <label for="disable-postcount-prompt">Disable post count prompt for feed</label>
+      <label for="hide-advertisements">Hide advertisements</label>
+      <input id="hide-advertisements" class="switch is-rounded" type="checkbox" />
+      <label for="hide-advertisements"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-notification-count">Hide notification count</label>
+      <input id="hide-notification-count" class="switch is-rounded" type="checkbox" />
+      <label for="hide-notification-count"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-profile-counters">Hide profile counters</label>
+      <input id="hide-profile-counters" class="switch is-rounded" type="checkbox" />
+      <label for="hide-profile-counters"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-follow-recommendations">Hide follow recommendations</label>
+      <input id="hide-follow-recommendations" class="switch is-rounded" type="checkbox" />
+      <label for="hide-follow-recommendations"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-premium">Hide premium prompts</label>
+      <input id="hide-premium" class="switch is-rounded" type="checkbox" />
+      <label for="hide-premium"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-google-integration">Hide Google integration</label>
+      <input id="hide-google-integration" class="switch is-rounded" type="checkbox" />
+      <label for="hide-google-integration"></label>
+    </div>
+
+    <div class="field">
+      <label for="hide-news">Hide LinkedIn News</label>
+      <input id="hide-news" class="switch is-rounded" type="checkbox" />
+      <label for="hide-news"></label>
     </div>
 
     <div class="divider">Actions</div>
@@ -231,42 +268,6 @@
       </button>
     </div>
 
-    <div class="divider">Other hideables</div>
-
-    <div class="field">
-      <input id="hide-advertisements" class="switch is-rounded" type="checkbox" />
-      <label for="hide-advertisements">Hide all advertisements</label>
-    </div>
-
-    <div class="field">
-      <input id="hide-notification-count" class="switch is-rounded" type="checkbox" />
-      <label for="hide-notification-count">Hide notification count</label>
-    </div>
-
-    <div class="field">
-      <input id="hide-profile-counters" class="switch is-rounded" type="checkbox" />
-      <label for="hide-profile-counters">Hide profile counters</label>
-    </div>
-
-    <div class="field">
-      <input id="hide-follow-recommendations" class="switch is-rounded" type="checkbox" />
-      <label for="hide-follow-recommendations">Hide Follow recommendations</label>
-    </div>
-
-    <div class="field">
-      <input id="hide-premium" class="switch is-rounded" type="checkbox" />
-      <label for="hide-premium">Hide LinkedIn premium prompts</label>
-    </div>
-
-    <div class="field">
-      <input id="hide-google-integration" class="switch is-rounded" type="checkbox" />
-      <label for="hide-google-integration">Hide Google integration</label>
-    </div>
-
-    <div class="field">
-      <input id="hide-news" class="switch is-rounded" type="checkbox" />
-      <label for="hide-news">Hide LinkedIn News</label>
-    </div>
   </div>
 
   <script language="javascript" src="../lib/tagify.min.js"></script>

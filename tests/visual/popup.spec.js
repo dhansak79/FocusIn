@@ -27,7 +27,7 @@ test('Header — title and master toggle present', async ({ page }) => {
   await expect(page.locator('.app-title')).toHaveText('FocusIn')
   await expect(page.locator('.app-subtitle')).toHaveText('LinkedIn Attention Filter')
   await expect(page.locator('#main-toggle')).toBeChecked()
-  await expect(page.locator('.onoffswitch-label')).toBeVisible()
+  await expect(page.locator('label.master-field-text')).toBeVisible()
   await page.screenshot({ path: 'tests/visual/screenshots/top.png' })
 })
 
@@ -40,26 +40,26 @@ test('No Noah Jelich references', async ({ page }) => {
 })
 
 test('Feed section — switches present', async ({ page }) => {
-  await expect(page.locator('label[for="hide-whole-feed"]')).toBeVisible()
-  await expect(page.locator('label[for="sort-by-recent"]')).toBeVisible()
-  await expect(page.locator('label[for="detect-slop"]')).toBeVisible()
+  await expect(page.locator('label[for="hide-whole-feed"]').first()).toBeVisible()
+  await expect(page.locator('label[for="sort-by-recent"]').first()).toBeVisible()
+  await expect(page.locator('label[for="detect-slop"]').first()).toBeVisible()
   await expect(page.locator('#hide-by-keywords')).toBeAttached()
   await page.screenshot({ path: 'tests/visual/screenshots/feed.png', fullPage: true })
 })
 
 test('Jobs section — present', async ({ page }) => {
-  await expect(page.locator('label[for="hide-promoted-jobs"]')).toBeVisible()
+  await expect(page.locator('label[for="hide-promoted-jobs"]').first()).toBeVisible()
   await expect(page.locator('#hide-by-job-keywords')).toBeAttached()
 })
 
 test('Misc section — present', async ({ page }) => {
   await expect(page.locator('#unfollow-all')).toBeVisible()
-  await expect(page.locator('label[for="hide-advertisements"]')).toBeVisible()
+  await expect(page.locator('label[for="hide-advertisements"]').first()).toBeVisible()
 })
 
 test('Master toggle switches to DISABLED', async ({ page }) => {
   await expect(page.locator('#main-toggle')).toBeChecked()
-  await page.locator('.onoffswitch-label').click()
+  await page.locator('label.master-field-text').click()
   await expect(page.locator('#main-toggle')).not.toBeChecked()
   await page.screenshot({ path: 'tests/visual/screenshots/disabled.png' })
 })

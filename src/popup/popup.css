@@ -13276,98 +13276,23 @@ body {
   text-transform: uppercase;
 }
 
-.onoffswitch {
-  position: relative;
-  width: 180px;
-  user-select: none;
-  margin: 0 auto 1.5rem;
-}
-.onoffswitch-checkbox {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.onoffswitch-label {
-  display: block;
-  overflow: hidden;
-  cursor: pointer;
-  border-radius: 60px;
-  border: 1px solid #1e3a7a;
-}
-.onoffswitch-inner {
-  display: block;
-  width: 200%;
-  margin-left: -100%;
-  transition: margin 0.25s ease-in 0s;
-}
-.onoffswitch-inner:before, .onoffswitch-inner:after {
-  display: block;
-  float: left;
-  width: 50%;
-  height: 52px;
-  padding: 0;
-  line-height: 52px;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  font-weight: 700;
-  box-sizing: border-box;
-}
-.onoffswitch-inner:before {
-  content: "ENABLED";
-  padding-left: 18px;
-  background-color: #00d1b2;
-  color: #0a1f44;
-}
-.onoffswitch-inner:after {
-  content: "DISABLED";
-  padding-right: 18px;
-  background-color: #162f66;
-  color: #505868;
-  text-align: right;
-}
-.onoffswitch-switch {
-  display: block;
-  width: 44px;
-  margin: 4px;
-  background: #ffffff;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 118px;
-  border-radius: 60px;
-  transition: all 0.25s ease-in 0s;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-}
-
-.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
-  margin-left: 0;
-}
-
-.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
-  right: 0px;
-}
-
-.home-options {
-  padding: 0 1.5rem 1.5rem;
-}
-.home-options .field {
+.master-field {
   display: flex;
   align-items: center;
-  padding: 0.6rem 0;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid #1e3a7a;
 }
-.home-options .field:last-child {
-  border-bottom: none;
-}
-.home-options label {
+.master-field-text {
   color: #bbc4d0;
   font-size: 0.9rem;
-  margin-left: 0.5rem;
+  cursor: pointer;
 }
 
-.flat-section {
-  border-top: 1px solid #1e3a7a;
+#settings-panel .field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .switch + label {
@@ -13462,11 +13387,11 @@ body {
   border-bottom: none !important;
 }
 
-.is-pulled-left, .is-pulled-right {
-  color: #bbc4d0;
+.age-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
   font-size: 0.88rem;
-}
-
-p.is-pulled-left {
-  line-height: 2rem;
+  color: #bbc4d0;
 }
