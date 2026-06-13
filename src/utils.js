@@ -18,6 +18,14 @@ const checkElementAndPlaceholderBySelector = (selector, scope = undefined) => {
   return true
 }
 
+export const findElement = (candidates) => {
+  for (const selector of candidates) {
+    const el = document.querySelector(selector)
+    if (el) return el
+  }
+  return null
+}
+
 export const removeHideClasses = (element) => {
   element.classList.remove('hide', 'dim', 'showIcon')
 }

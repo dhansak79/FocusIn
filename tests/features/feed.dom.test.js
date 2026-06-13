@@ -1,18 +1,31 @@
 // @vitest-environment jsdom
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { MIN_POST_COUNT } from '../../src/constants.js'
 
-const FEED_CONTAINER = "container-update-list_mainFeed-lazy-container"
-const POST_ROOT = `[componentkey='${FEED_CONTAINER}'] > div[data-display-contents="true"] > div`
+// Current LinkedIn DOM uses data-testid="mainFeed" + data-lazy-mount-id children.
+// Legacy DOM used componentkey + data-display-contents="true" children.
+// Tests cover both so we catch regressions on either path.
 
 const buildFeedDOM = (postContents) => {
   const postDivs = postContents.map((c) => `<div>${c}</div>`).join('')
   document.body.innerHTML = `
-    <div componentkey="${FEED_CONTAINER}">
+    <div data-testid="mainFeed" data-component-type="LazyColumn" componentkey="container-update-list_mainFeed-lazy-container">
+      <div data-lazy-mount-id="test-mount" style="display:contents">
+        ${postDivs}
+      </div>
+    </div>`
+  return document.querySelectorAll('[data-testid="mainFeed"] > div[data-lazy-mount-id] > div')
+}
+
+const buildLegacyFeedDOM = (postContents) => {
+  const postDivs = postContents.map((c) => `<div>${c}</div>`).join('')
+  document.body.innerHTML = `
+    <div componentkey="container-update-list_mainFeed-lazy-container">
       <div data-display-contents="true">
         ${postDivs}
       </div>
     </div>`
-  return document.querySelectorAll(POST_ROOT)
+  return document.querySelectorAll('[componentkey="container-update-list_mainFeed-lazy-container"] > div[data-display-contents="true"] > div')
 }
 
 let doFeed
@@ -61,12 +74,11 @@ describe('runBlockPosts - keyword matching', () => {
   })
 
   it('applies dim class instead of hide when mode is dim', () => {
-    buildFeedDOM(['Promoted post'])
+    const [post] = buildFeedDOM(['Promoted post'])
 
     doFeed(neverTrigger, true, 'dim', { ...baseConfig, 'hide-promoted': true })
     vi.advanceTimersByTime(350)
 
-    const post = document.querySelector(POST_ROOT)
     expect(post.classList.contains('dim')).toBe(true)
     expect(post.classList.contains('hide')).toBe(false)
   })
@@ -120,8 +132,8 @@ describe('runBlockPosts - keyword matching', () => {
 // ---------------------------------------------------------------------------
 
 describe('runBlockPosts - post count prompt', () => {
-  it('shows an alert when fewer than 6 posts are loaded in hide mode', () => {
-    buildFeedDOM(['Post 1', 'Post 2', 'Post 3'])
+  it('shows an alert when at or below MIN_POST_COUNT posts are loaded in hide mode', () => {
+    buildFeedDOM(Array.from({ length: MIN_POST_COUNT }, (_, i) => `Post ${i + 1}`))
 
     doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
     vi.advanceTimersByTime(350)
@@ -129,8 +141,8 @@ describe('runBlockPosts - post count prompt', () => {
     expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Scroll down'))
   })
 
-  it('does not show the alert when there are 6 or more posts', () => {
-    buildFeedDOM(['P1', 'P2', 'P3', 'P4', 'P5', 'P6'])
+  it('does not show the alert when above MIN_POST_COUNT posts are loaded', () => {
+    buildFeedDOM(Array.from({ length: MIN_POST_COUNT + 1 }, (_, i) => `P${i + 1}`))
 
     doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
     vi.advanceTimersByTime(350)
@@ -152,7 +164,7 @@ describe('runBlockPosts - post count prompt', () => {
   })
 
   it('shows the alert only once when the interval fires multiple times', () => {
-    buildFeedDOM(['Post 1', 'Post 2', 'Post 3'])
+    buildFeedDOM(Array.from({ length: MIN_POST_COUNT }, (_, i) => `Post ${i + 1}`))
 
     doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
     vi.advanceTimersByTime(350) // first tick → alert fires, postCountPrompted = true
@@ -171,8 +183,8 @@ describe('runBlockPosts - post count prompt', () => {
     expect(window.alert).not.toHaveBeenCalled()
   })
 
-  it('shows an alert when there are exactly 5 posts in hide mode', () => {
-    buildFeedDOM(['P1', 'P2', 'P3', 'P4', 'P5'])
+  it('shows an alert when there are exactly MIN_POST_COUNT posts in hide mode', () => {
+    buildFeedDOM(Array.from({ length: MIN_POST_COUNT }, (_, i) => `P${i + 1}`))
 
     doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
     vi.advanceTimersByTime(350)
@@ -213,27 +225,26 @@ describe('main-toggle and hide-whole-feed', () => {
 
   it('hides the feed element on /feed/ when hide-whole-feed is triggered', () => {
     document.body.innerHTML = `
-      <div componentkey="${FEED_CONTAINER}"></div>`
+      <div data-testid="mainFeed"></div>`
     vi.stubGlobal('location', { pathname: '/feed/' })
     const triggerHideWholeFeed = (field, bool) => field === 'hide-whole-feed' && bool === true
 
     doFeed(triggerHideWholeFeed, true, 'hide', baseConfig)
 
-    const feed = document.querySelector(`[componentkey='${FEED_CONTAINER}']`)
+    const feed = document.querySelector('[data-testid="mainFeed"]')
     expect(feed.classList.contains('hide')).toBe(true)
   })
 
   it('shows the feed element on /feed/ when handleFilterFeed runs', () => {
     document.body.innerHTML = `
-      <div componentkey="${FEED_CONTAINER}" class="hide"></div>
-      <div componentkey="${FEED_CONTAINER}">
-        <div data-display-contents="true"></div>
+      <div data-testid="mainFeed" class="hide">
+        <div data-lazy-mount-id="x" style="display:contents"></div>
       </div>`
     vi.stubGlobal('location', { pathname: '/feed/' })
 
     doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
 
-    const feed = document.querySelector(`[componentkey='${FEED_CONTAINER}']`)
+    const feed = document.querySelector('[data-testid="mainFeed"]')
     expect(feed.classList.contains('hide')).toBe(false)
   })
 })
@@ -311,5 +322,31 @@ describe('handleSortByRecent', () => {
     await vi.advanceTimersByTimeAsync(0)
 
     expect(clickDropdown).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Legacy DOM fallback (componentkey + data-display-contents)
+// ---------------------------------------------------------------------------
+
+describe('legacy DOM fallback', () => {
+  it('hides a post via keyword match on the legacy componentkey + data-display-contents DOM', () => {
+    const posts = buildLegacyFeedDOM(['Post 1', 'Post 2', 'Post 3', 'Promoted post', 'Post 5', 'Post 6'])
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
+    vi.advanceTimersByTime(350)
+
+    const promoted = Array.from(posts).find((p) => p.textContent.includes('Promoted'))
+    expect(promoted.classList.contains('hide')).toBe(true)
+  })
+
+  it('does not match posts when neither current nor legacy feed container is present', () => {
+    document.body.innerHTML = '<div id="not-a-feed"><div><div>Promoted post</div></div></div>'
+
+    doFeed(neverTrigger, true, 'hide', { ...baseConfig, 'hide-promoted': true })
+    vi.advanceTimersByTime(350)
+
+    // No known container — no posts should be processed
+    expect(window.alert).not.toHaveBeenCalled()
   })
 })

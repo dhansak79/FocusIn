@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+/* eslint-env node */
 // Reads reports/mutation/mutation.json and writes a compact markdown summary
 // that can be read directly by Claude for test-gap analysis.
 
-import { readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -18,6 +19,12 @@ const EQUIVALENT_PATTERNS = [
 ]
 
 const isEquivalent = (m) => EQUIVALENT_PATTERNS.some((fn) => fn(m))
+
+if (!existsSync(INPUT)) {
+  console.error(`Error: Mutation report not found at ${INPUT}`)
+  console.error('Run "npm run mutate" first to generate the report.')
+  process.exit(1)
+}
 
 const data = JSON.parse(readFileSync(INPUT, 'utf8'))
 
