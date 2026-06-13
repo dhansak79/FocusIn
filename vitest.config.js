@@ -8,9 +8,11 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       include: [
         'src/index.js',
+        'src/service_worker.js',
         'src/features/feed-keywords.js',
         'src/features/job-keywords.js',
         'src/features/jobs.js',
+        'src/features/misc.js',
         'src/features/slop-detector.js',
         'src/features/feed.js',
         'src/features/message.js',

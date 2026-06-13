@@ -100,24 +100,21 @@ const handleAll = (checkNeedUpdate, mode) => {
 }
 
 export const unfollowAll = async () => {
-  let buttons = document.querySelectorAll(UNFOLLOW_ALL_BUTTON_SELECTOR) || []
-
-  if (!buttons.length) console.log('LinkOff: Successfully unfollowed all')
-
-  for (let button of buttons) {
-    window.scrollTo(0, button.offsetTop - 260)
-    button.click()
-
-    await new Promise((resolve) => setTimeout(resolve, 100))
+  const MAX_ROUNDS = 10
+  for (let round = 0; round < MAX_ROUNDS; round++) {
+    const buttons = document.querySelectorAll(UNFOLLOW_ALL_BUTTON_SELECTOR)
+    if (!buttons.length) {
+      console.log('LinkOff: Successfully unfollowed all')
+      return
+    }
+    for (const button of buttons) {
+      window.scrollTo(0, button.offsetTop - 260)
+      button.click()
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+    window.scrollTo(0, document.body.scrollHeight)
+    await new Promise((resolve) => setTimeout(resolve, 1000))
   }
-
-  window.scrollTo(0, document.body.scrollHeight)
-
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  buttons = document.querySelectorAll(UNFOLLOW_ALL_BUTTON_SELECTOR) || []
-
-  if (buttons.length) unfollowAll()
 }
 
 export default (checkNeedUpdate, enabled, mode) => {

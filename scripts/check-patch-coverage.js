@@ -49,8 +49,14 @@ for (const line of diff.split('\n')) {
 // Report any added lines with zero hits
 let failed = false
 for (const [f, lines] of Object.entries(added)) {
+  if (!f.startsWith('src/') || !f.endsWith('.js')) continue
+
   const fileCov = coverage[f]
-  if (!fileCov) continue // file not in coverage scope — skip
+  if (!fileCov) {
+    console.error(`  NOT IN COVERAGE SCOPE  ${f} — add it to vitest.config.js include`)
+    failed = true
+    continue
+  }
 
   for (const ln of lines) {
     if (ln in fileCov && fileCov[ln] === 0) {

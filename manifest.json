@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "LinkOff - Filter and Customizer for LinkedIn™",
   "short_name": "LinkOff",
-  "author": "Noah Jelich",
-  "version": "1.13.0",
+  "author": "Daniel Webb",
+  "version": "1.0.0",
   "description": "LinkOff cleans and customizes LinkedIn. It filters out the junk, leaving behind the posts and page elements that you want to see.",
   "browser_specific_settings": {
     "gecko": {
@@ -51,8 +51,7 @@
         "src/features/feed-keywords.js",
         "src/features/slop-detector.js",
         "src/features/slop-keywords.js",
-        "src/features/general.js",
-        "src/features/jobs.js",
+"src/features/jobs.js",
         "src/features/job-keywords.js",
         "src/features/misc.js",
         "src/features/message.js"
