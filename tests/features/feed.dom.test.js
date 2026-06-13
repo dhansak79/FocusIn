@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { MIN_POST_COUNT } from '../../src/constants.js'
 
 // Current LinkedIn DOM uses data-testid="mainFeed" + data-lazy-mount-id children.
 // Legacy DOM used componentkey + data-display-contents="true" children.

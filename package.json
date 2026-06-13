@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "css-build": "sass --no-source-map src/popup/popup.scss src/popup/popup.css",
     "css-watch": "npm run css-build -- --watch",
     "start": "npm run css-watch",
