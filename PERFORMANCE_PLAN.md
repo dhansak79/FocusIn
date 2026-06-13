@@ -44,24 +44,14 @@ first matching mutation, then disconnects. 5 s timeout prevents hangs. `checkEle
 
 ---
 
-## 5. Replace URL polling with the Navigation API
+## ~~5. Replace URL polling with the Navigation API~~ ✅ Done
 
-**Branch**: `perf/navigation-api-url-detection`
+**Branch**: `perf/navigation-api-url-detection` — merged 2026-06-13
 
-**Problem**: `index.js` polls `window.location.href` every 500ms to detect LinkedIn SPA
-navigation. The Navigation API (`navigation.addEventListener('navigate', ...)`) has been
-available in Chrome since v102 and fires synchronously on every pushState/replaceState —
-no polling needed.
-
-**Change**:
-- In `index.js`, replace the 500ms `setInterval` URL check with a `navigation.navigate` event
-  listener.
-- Keep the `visibilitychange` and `pagehide` cleanup hooks — they still make sense.
-- Add a feature-detect guard: `if ('navigation' in window)` use the API, else fall back to the
-  existing interval (for any edge cases or older Chrome versions).
-- The interval can be set to 2 000ms in the fallback path since it's now genuinely a fallback.
-
-**Files**: `src/index.js`
+**Result**: 500ms `setInterval` replaced with `window.navigation.addEventListener('navigate')`
+which fires synchronously on every SPA navigation with zero idle CPU cost. `handleNavigation`
+also called on load so the current page initialises immediately. Fallback interval kept at
+2000ms behind a `typeof` guard. `src/index.js` added to vitest coverage scope with 18 tests.
 
 ---
 
@@ -95,6 +85,6 @@ jank on every feed visit.
 2 ✅ textContent keyword match      (independent)
 3 ✅ remove reset timer             (after 1 ✅)
 4 ✅ waitForSelector observer       (independent)
-5 → Navigation API URL detection   (independent)
+5 ✅ Navigation API URL detection   (independent)
 6 → reactive auto-scroll           (after 1 ✅)
 ```
