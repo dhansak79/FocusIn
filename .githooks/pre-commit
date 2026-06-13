@@ -1,2 +1,2 @@
 #!/bin/sh
-npm run lint && npm run coverage
+npm run lint && npm run coverage && node scripts/check-patch-coverage.js
