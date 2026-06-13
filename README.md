@@ -86,3 +86,7 @@ CI enforces two quality gates on every PR:
 
 The latest [mutation report](https://dhansak79.github.io/FocusIn/) is published to GitHub Pages on each merge to `main`.
 
+## How It Started
+
+![How it started](assets/how-it-started.png)
+
