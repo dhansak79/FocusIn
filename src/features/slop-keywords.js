@@ -210,6 +210,40 @@ export const SLOP_PHRASES = [
   'the next 12 months',
   'in 6 months ai will',
 
+  // Current AI trend vocabulary
+  'vibe coding',
+  'vibecoding',
+  'vibe-coding',
+
+  // "Atomic habits" / 1% better genre
+  '1% better',
+  'compound effect',
+  'compound interest of',
+  'small consistent',
+  'tiny habits',
+  'atomic habits',
+
+  // Hustle origin story
+  'nights and weekends',
+  'from zero to',
+  'zero to one',
+  'from nothing to',
+  'built from scratch',
+
+  // "Went viral" hype posts
+  'went viral',
+  'this went viral',
+  'is going viral',
+
+  // Clichés we missed
+  'sky is the limit',
+  'the world is your oyster',
+  '80/20 rule',
+  'pareto principle',
+  'think outside the box',
+  'outside the box',
+  'hit the ground running',
+
   // Fake reluctance — manufactured vulnerability before oversharing
   "i almost didn't post this",
   "i almost didn't share this",
@@ -607,4 +641,6 @@ export const SLOP_PATTERNS = [
   /^\d+\/ /m,
   // Quote attribution — "As X once said:" / "As my mentor put it:"
   /\bas .{3,40} (once |always )?(said|put it)[,:.]/i,
+  // Numbered listicle format — "5 things successful people do" / "7 habits that changed my life"
+  /\b(3|4|5|6|7|8|9|10|11|12|15|20|25|50|100) (things|ways|habits|reasons|tips|mistakes|secrets|rules|lessons|principles|steps|skills)\b/i,
 ]

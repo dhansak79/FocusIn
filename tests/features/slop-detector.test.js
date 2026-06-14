@@ -524,6 +524,69 @@ describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
   })
 })
 
+describe('getSlopScore - numbered listicle pattern', () => {
+  it('flags "5 things successful people do"', () => {
+    expect(isSlop('5 things successful people do differently that most ignore.')).toBe(true)
+  })
+
+  it('flags "7 habits that changed my life"', () => {
+    expect(isSlop('7 habits that changed my life and how you can adopt them today.')).toBe(true)
+  })
+
+  it('flags "10 mistakes every new manager makes"', () => {
+    expect(isSlop('10 mistakes every new manager makes in their first 90 days.')).toBe(true)
+  })
+
+  it('does not flag a genuine technical bullet count', () => {
+    expect(getSlopScore('We fixed 3 bugs today: the race condition in the auth flow, the timeout in the API, and the broken redirect.')).toBe(0)
+  })
+})
+
+
+describe('getSlopScore - AI trend vocabulary', () => {
+  it('detects "vibe coding"', () => {
+    expect(getSlopScore('Vibe coding is the future and I am here for it.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - atomic habits and 1% better genre', () => {
+  it('detects "1% better"', () => {
+    expect(getSlopScore('Get 1% better every day. That is all it takes.')).toBeGreaterThan(0)
+  })
+
+  it('detects "compound effect"', () => {
+    expect(getSlopScore('The compound effect of small daily habits is more powerful than any big leap.')).toBeGreaterThan(0)
+  })
+
+  it('detects "atomic habits"', () => {
+    expect(getSlopScore('Atomic habits teaches us that identity-based change is more durable.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - hustle origin story', () => {
+  it('detects "nights and weekends"', () => {
+    expect(getSlopScore('I built this product nights and weekends for two years before quitting my job.')).toBeGreaterThan(0)
+  })
+
+  it('detects "from zero to"', () => {
+    expect(getSlopScore('From zero to one million users in eighteen months. Here is what we learned.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - missed clichés', () => {
+  it('detects "think outside the box"', () => {
+    expect(getSlopScore('Great leaders do not just think outside the box. They redesign the box.')).toBeGreaterThan(0)
+  })
+
+  it('detects "80/20 rule"', () => {
+    expect(getSlopScore('Apply the 80/20 rule to everything and watch your output double.')).toBeGreaterThan(0)
+  })
+
+  it('detects "went viral"', () => {
+    expect(getSlopScore('My post went viral last week and the response has been overwhelming.')).toBeGreaterThan(0)
+  })
+})
+
 describe('getSlopScore - fake reluctance posts', () => {
   it('detects "i almost didn\'t post this"', () => {
     expect(getSlopScore("I almost didn't post this. But I think someone needs to hear it.")).toBeGreaterThan(0)
