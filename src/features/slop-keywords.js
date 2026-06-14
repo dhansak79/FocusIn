@@ -47,6 +47,33 @@ export const SLOP_PHRASES = [
   'usher in a new era',
   'holistic approach',
 
+  // Filler hooks that signal obvious reveal (via Dustin Andrews)
+  'the fix:',
+  'the solution:',
+  "here's how:",
+  'the secret:',
+  'what you need to do:',
+  'the key insight:',
+  'why this works:',
+  'the bottom line:',
+
+  // Filler phrases that precede obvious statements (via Dustin Andrews)
+  'the brutal truth',
+  'the honest truth',
+  "here's the thing",
+  "but here's the thing",
+  'long story short',
+  'when all is said and done',
+  'make no mistake',
+  'you cannot unsee it',
+  "let's be real",
+  'the uncomfortable truth',
+  'what it comes down to',
+
+  // AI buzzword bingo (via Dustin Andrews)
+  'agentic',
+  'game-changing',
+
   // LinkedIn engagement bait
   'drop a comment',
   'comment below',
@@ -173,8 +200,11 @@ export const SLOP_PHRASES = [
 ]
 
 export const SLOP_PATTERNS = [
-  // "It’s not X. It’s Y." — short contrasting clauses, classic AI-ghostwritten LinkedIn structure
+  // "It’s not X. It’s Y." / "This isn’t X. This is Y." / "That’s not X. That’s Y."
+  // Short contrasting clauses — classic AI-ghostwritten LinkedIn structure (via Dustin Andrews)
   /it['‘’]s not [^.!?\n]{1,60}[.!?][ \t\n]+it['‘’]s /i,
+  /this isn['‘’]t [^.!?\n]{1,60}[.!?][ \t\n]+this is /i,
+  /that['‘’]s not [^.!?\n]{1,60}[.!?][ \t\n]+that['‘’]s /i,
   // Em dash — almost never typed manually; heavily used by LLMs
   /—/,
 ]
