@@ -210,6 +210,39 @@ export const SLOP_PHRASES = [
   'the next 12 months',
   'in 6 months ai will',
 
+  // Chapter and season metaphors — life reframed as a Netflix series
+  'new chapter',
+  'next chapter',
+  'closing this chapter',
+  'a new season',
+  'this season of my life',
+  'in this season',
+
+  // "Protect your energy" wellbeing slop
+  'protect your energy',
+  'match my energy',
+  'good energy',
+  'low energy people',
+
+  // Boundary posts
+  'set boundaries',
+  'healthy boundaries',
+  'boundary setting',
+  'learn to say no',
+
+  // "30-day challenge" format posts
+  '30-day challenge',
+  '100-day',
+  'day 1 of',
+  'day 30',
+
+  // More corporate jargon
+  'pain points',
+  'open kimono',
+  'peel back the onion',
+  'drink from the firehose',
+  'move the goalposts',
+
   // Mindset genre — LinkedIn's most reliable content category
   'growth mindset',
   'mindset shift',
@@ -485,4 +518,6 @@ export const SLOP_PATTERNS = [
   /^→ .+\n.*^→ /ms,
   // Twitter thread format on LinkedIn — "1/" "2/" "3/" numbered items
   /^\d+\/ /m,
+  // Quote attribution — "As X once said:" / "As my mentor put it:"
+  /\bas .{3,40} (once |always )?(said|put it)[,:.]/i,
 ]

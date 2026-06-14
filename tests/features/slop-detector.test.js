@@ -524,6 +524,76 @@ describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
   })
 })
 
+describe('getSlopScore - quote attribution pattern', () => {
+  it('flags "As [person] once said:"', () => {
+    expect(isSlop('As Steve Jobs once said: stay hungry, stay foolish.')).toBe(true)
+  })
+
+  it('flags "As my mentor always put it,"', () => {
+    expect(isSlop('As my mentor always put it, the best time to start was yesterday.')).toBe(true)
+  })
+
+  it('flags "As Warren Buffett said,"', () => {
+    expect(isSlop('As Warren Buffett said, price is what you pay, value is what you get.')).toBe(true)
+  })
+
+  it('does not flag a natural sentence containing "as"', () => {
+    expect(getSlopScore('We approached this problem as a team and found a clean solution.')).toBe(0)
+  })
+})
+
+describe('getSlopScore - chapter and season metaphors', () => {
+  it('detects "new chapter"', () => {
+    expect(getSlopScore('Excited to share that I am starting a new chapter in my career.')).toBeGreaterThan(0)
+  })
+
+  it('detects "next chapter"', () => {
+    expect(getSlopScore('Ready for the next chapter. Grateful for everything I have learned.')).toBeGreaterThan(0)
+  })
+
+  it('detects "this season of my life"', () => {
+    expect(getSlopScore('In this season of my life I am choosing peace over hustle.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - protect your energy posts', () => {
+  it('detects "protect your energy"', () => {
+    expect(getSlopScore('Protect your energy. Not everyone deserves access to you.')).toBeGreaterThan(0)
+  })
+
+  it('detects "set boundaries"', () => {
+    expect(getSlopScore('The most underrated leadership skill is learning to set boundaries.')).toBeGreaterThan(0)
+  })
+
+  it('detects "learn to say no"', () => {
+    expect(getSlopScore('The most powerful word in your vocabulary is no. Learn to say no.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - 30-day challenge format', () => {
+  it('detects "30-day challenge"', () => {
+    expect(getSlopScore('I just completed a 30-day challenge of writing every single day.')).toBeGreaterThan(0)
+  })
+
+  it('detects "day 1 of"', () => {
+    expect(getSlopScore('Day 1 of posting every day for a year. Holding myself accountable.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - more corporate jargon', () => {
+  it('detects "pain points"', () => {
+    expect(getSlopScore('We identified the three biggest pain points our customers face.')).toBeGreaterThan(0)
+  })
+
+  it('detects "peel back the onion"', () => {
+    expect(getSlopScore('When you peel back the onion on this problem, the root cause is culture.')).toBeGreaterThan(0)
+  })
+
+  it('detects "drink from the firehose"', () => {
+    expect(getSlopScore('Week one at any new job: drink from the firehose and try not to drown.')).toBeGreaterThan(0)
+  })
+})
+
 describe('getSlopScore - mindset genre', () => {
   it('detects "growth mindset"', () => {
     expect(getSlopScore('The one thing that separates top performers is a growth mindset.')).toBeGreaterThan(0)
