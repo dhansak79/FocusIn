@@ -1339,6 +1339,74 @@ describe('getSlopScore - new contrasting clause patterns', () => {
 // Real-world post tests — catches obvious slop, spares genuine posts
 // ---------------------------------------------------------------------------
 
+describe('getSlopScore - B2B lead generation empathy hooks', () => {
+  it('flags "you are not alone"', () => {
+    expect(getSlopScore('You are not alone. Most leaders struggle with this exact problem.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "you are not the only one"', () => {
+    expect(getSlopScore('You are not the only one feeling overwhelmed by the pace of change.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "the good news"', () => {
+    expect(getSlopScore('The good news. You do not need to code to lead well.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "the good news is"', () => {
+    expect(getSlopScore('The good news is there is a simpler way to approach this.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "if this sounds familiar"', () => {
+    expect(getSlopScore('If this sounds familiar, keep reading. I built a framework just for this.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "does this sound familiar"', () => {
+    expect(getSlopScore('Does this sound familiar? You are stuck on strategy but unclear on execution.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "sound familiar?"', () => {
+    expect(getSlopScore('Spending more time in meetings than doing actual work? Sound familiar?')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "you need a clear"', () => {
+    expect(getSlopScore('You need a clear framework to lead AI adoption effectively.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "practical guidance"', () => {
+    expect(getSlopScore('Follow along for practical guidance built for non-technical leaders.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('scores 2+ when two B2B empathy hooks appear together', () => {
+    expect(getSlopScore('You are not alone. The good news is there is a better way.')).toBeGreaterThanOrEqual(2)
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - corporate poison phrases (Dustin Andrews)', () => {
+  it('flags "framework"', () => {
+    expect(getSlopScore('You need a clear business framework to navigate this transition.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "methodology"', () => {
+    expect(getSlopScore('Our proprietary methodology has helped hundreds of teams scale faster.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "optimization"', () => {
+    expect(getSlopScore('Optimization is the key to unlocking sustainable growth in any organisation.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('flags "systematic approach"', () => {
+    expect(getSlopScore('Success comes from taking a systematic approach to every challenge.')).toBeGreaterThanOrEqual(1)
+  })
+
+  it('scores 2+ when two corporate poison phrases appear together', () => {
+    expect(getSlopScore('Our methodology and framework will transform your systematic approach to leadership.')).toBeGreaterThanOrEqual(2)
+  })
+})
+
+// ---------------------------------------------------------------------------
+
 describe('isSlop - real-world slop posts', () => {
   it('flags a classic AI ghostwritten LinkedIn post', () => {
     const post = [
@@ -1355,6 +1423,20 @@ describe('isSlop - real-world slop posts', () => {
       'Agentic workflows are game-changing.',
       '',
       'Long story short: start before you are ready.',
+    ].join('\n')
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('flags a B2B AI lead generation post (AI Learning School pattern)', () => {
+    const post = [
+      'Leading AI adoption feels bigger than your role?',
+      '',
+      'You are not alone. Most business leaders are not stuck on strategy, they are stuck on jargon, unclear use cases, and risk questions.',
+      '',
+      'The good news. You do not need to code to lead well.',
+      'You need a clear business framework and the confidence to ask better questions.',
+      '',
+      'If this sounds familiar, follow AI Learning School and get ready for practical AI leadership guidance built for non-technical leaders.',
     ].join('\n')
     expect(isSlop(post)).toBe(true)
   })

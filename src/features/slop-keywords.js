@@ -244,6 +244,23 @@ export const SLOP_PHRASES = [
   'outside the box',
   'hit the ground running',
 
+  // B2B lead generation copy — empathy hooks and pitch setups
+  'you are not alone',
+  'you are not the only one',
+  'the good news',
+  'the good news is',
+  'if this sounds familiar',
+  'does this sound familiar',
+  'sound familiar?',
+  'you need a clear',
+  'practical guidance',
+
+  // Corporate poison from Dustin Andrews — missed in original pass
+  'framework',
+  'methodology',
+  'optimization',
+  'systematic approach',
+
   // Fake reluctance — manufactured vulnerability before oversharing
   "i almost didn't post this",
   "i almost didn't share this",
