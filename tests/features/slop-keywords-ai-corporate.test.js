@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getSlopScore, isSlop } from '../../src/features/slop-detector.js'
+import { getSlopScore } from '../../src/features/slop-detector.js'
 
 // ---------------------------------------------------------------------------
 // AI and tech vocabulary

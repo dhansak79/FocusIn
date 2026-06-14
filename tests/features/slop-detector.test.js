@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getSlopScore, getSlopSignals, isSlop, SLOP_THRESHOLD } from '../../src/features/slop-detector.js'
+import { getSlopScore, getSlopSignals, isSlop } from '../../src/features/slop-detector.js'
 
 // ---------------------------------------------------------------------------
 // Phrase signal — weighted: 1 phrase scores 1, 2+ score 2, threshold is 2
