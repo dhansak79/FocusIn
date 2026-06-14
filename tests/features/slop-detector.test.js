@@ -524,6 +524,31 @@ describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
   })
 })
 
+describe('getSlopScore - emoji bullet lists', () => {
+  it('scores above 0 for two or more emoji-prefixed bullet lines', () => {
+    const post = '5 habits of high performers:\n🎯 Set clear goals\n💡 Think creatively\n🔑 Unlock your potential'
+    expect(getSlopScore(post)).toBeGreaterThan(0)
+  })
+
+  it('flags a post with emoji bullets combined with a slop phrase', () => {
+    const post = 'Growth mindset in practice:\n🎯 Set clear goals\n💡 Think creatively\n🔑 Unlock your potential'
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('does not flag a single emoji used naturally in a sentence', () => {
+    expect(getSlopScore('Shipped the feature today 🎉 and the team is happy with the result.')).toBe(0)
+  })
+
+  it('does not flag emoji on single line without bullet structure', () => {
+    expect(getSlopScore('Big news 🎉 - we just hit a million users 🚀')).toBe(0)
+  })
+
+  it('reports "emoji bullets" in signals', () => {
+    const post = '🎯 Set goals\n💡 Think big\n🔑 Unlock success'
+    expect(getSlopSignals(post)).toContain('emoji bullets')
+  })
+})
+
 describe('getSlopScore - deserve motivational posts', () => {
   it('detects "you deserve"', () => {
     expect(getSlopScore('You deserve a manager who actually invests in your growth.')).toBeGreaterThan(0)
