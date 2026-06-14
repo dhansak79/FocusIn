@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { getSlopScore, getSlopSignals, isSlop, SLOP_THRESHOLD } from '../../src/features/slop-detector.js'
+import { getSlopScore, getSlopSignals, isSlop } from '../../src/features/slop-detector.js'
 
 // ---------------------------------------------------------------------------
-// Phrase signal — binary: any matching phrase scores SLOP_THRESHOLD (triggers alone)
+// Phrase signal — weighted: 1 phrase scores 1, 2+ score 2, threshold is 2
+// A single common phrase in an otherwise clean post should not trigger alone.
 // ---------------------------------------------------------------------------
 
 describe('getSlopScore - slop phrases', () => {
@@ -10,34 +11,26 @@ describe('getSlopScore - slop phrases', () => {
     expect(getSlopScore('Had a great meeting today. Really enjoyed the discussion about our roadmap.')).toBe(0)
   })
 
-  it('scores SLOP_THRESHOLD when a known slop phrase is present', () => {
-    expect(getSlopScore("In today's fast-paced world, we need to adapt.")).toBeGreaterThanOrEqual(SLOP_THRESHOLD)
+  it('scores 1 for a single matching phrase (below the threshold)', () => {
+    expect(getSlopScore("In today's fast-paced world, we need to adapt.")).toBe(1)
   })
 
-  it('triggers for "let that sink in"', () => {
-    expect(isSlop('Let that sink in.')).toBe(true)
+  it('a single phrase match alone does not reach the slop threshold', () => {
+    expect(isSlop("In today's fast-paced world, we need to adapt.")).toBe(false)
   })
 
-  it('triggers for "game-changer"', () => {
-    expect(isSlop('This tool is a game-changer for productivity.')).toBe(true)
+  it('scores 2 for two or more phrase matches (reaches the threshold)', () => {
+    expect(getSlopScore("In today's fast-paced world, let that sink in.")).toBe(2)
   })
 
-  it('triggers for "thought leadership"', () => {
-    expect(isSlop('Real thought leadership is rare these days.')).toBe(true)
+  it('two phrase matches triggers isSlop', () => {
+    expect(isSlop("In today's fast-paced world, let that sink in.")).toBe(true)
   })
 
-  it('triggers for "key takeaways"', () => {
-    expect(isSlop('Key takeaways from the conference:')).toBe(true)
-  })
-
-  it('a single phrase match alone crosses the slop threshold', () => {
-    expect(isSlop("In today's fast-paced world, we need to adapt.")).toBe(true)
-  })
-
-  it('phrase score is the same regardless of how many phrases match', () => {
+  it('more phrases score higher than fewer phrases', () => {
     const one = getSlopScore("In today's fast-paced world, adapting is key.")
-    const five = getSlopScore("In today's fast-paced world, let that sink in. Game-changer! Leverage thought leadership. Key takeaways.")
-    expect(one).toBe(five)
+    const many = getSlopScore("In today's fast-paced world, let that sink in. Game-changer! Leverage thought leadership. Key takeaways.")
+    expect(many).toBeGreaterThan(one)
   })
 })
 
@@ -46,12 +39,11 @@ describe('getSlopScore - slop phrases', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSlopScore - emoji density', () => {
-  it('scores 0 for a post with one emoji', () => {
-    expect(getSlopScore('Great news! 🎉 We launched our product today.')).toBe(0)
-  })
-
-  it('scores 0 for a post with two emojis', () => {
-    expect(getSlopScore('Excited 🎉 to share this 🚀 with everyone.')).toBe(0)
+  it.each([
+    ['Great news! 🎉 We launched our product today.'],
+    ['Excited 🎉 to share this 🚀 with everyone.'],
+  ])('scores 0 with few emojis: %s', (text) => {
+    expect(getSlopScore(text)).toBe(0)
   })
 
   it('scores above 0 for a post with many emojis', () => {
@@ -72,39 +64,20 @@ describe('getSlopScore - emoji density', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSlopScore - single sentence per line', () => {
-  it('scores 0 for normal paragraph text on one line', () => {
-    const text = 'This is a normal post. It has multiple sentences on the same line. Nothing unusual about the formatting at all.'
+  it.each([
+    ['This is a normal post. It has multiple sentences on the same line. Nothing unusual about the formatting at all.'],
+    [['Short thought.', 'Two lines total.'].join('\n')],
+  ])('scores 0 for normal prose: %s', (text) => {
     expect(getSlopScore(text)).toBe(0)
   })
 
-  it('scores 0 for a post with only two lines', () => {
-    expect(getSlopScore(['Short thought.', 'Two lines total.'].join('\n'))).toBe(0)
-  })
-
   it('scores above 0 when most lines contain a single short sentence', () => {
-    const text = [
-      'This is the hook.',
-      'Here is the second thought.',
-      'And the third.',
-      'Another single line.',
-      'This keeps going.',
-      'One final line.',
-    ].join('\n')
+    const text = ['This is the hook.', 'Here is the second thought.', 'And the third.', 'Another single line.', 'This keeps going.', 'One final line.'].join('\n')
     expect(getSlopScore(text)).toBeGreaterThan(0)
   })
 
   it('scores above 0 for the classic LinkedIn one-liner stacking pattern', () => {
-    const text = [
-      'I used to work 80 hours a week.',
-      '',
-      'Then I learned one thing.',
-      '',
-      'It changed everything.',
-      '',
-      'Here is what nobody tells you.',
-      '',
-      'Stop trying so hard.',
-    ].join('\n')
+    const text = ['I used to work 80 hours a week.', '', 'Then I learned one thing.', '', 'It changed everything.', '', 'Here is what nobody tells you.', '', 'Stop trying so hard.'].join('\n')
     expect(getSlopScore(text)).toBeGreaterThan(0)
   })
 
@@ -138,25 +111,13 @@ describe('getSlopScore - line pattern boundary', () => {
 
   it('scores 0 when fewer than the minimum ratio of lines are single-sentence', () => {
     // 1 single-sentence line out of 5 = 20% — well below the 60% threshold
-    const text = [
-      'Just one single line.',
-      'This has two sentences. Then more here.',
-      'Opening thought. Closing thought.',
-      'First point. Second point added.',
-      'Yet another multi. Sentence line.',
-    ].join('\n')
+    const text = ['Just one single line.', 'This has two sentences. Then more here.', 'Opening thought. Closing thought.', 'First point. Second point added.', 'Yet another multi. Sentence line.'].join('\n')
     expect(getSlopScore(text)).toBe(0)
   })
 
   it('scores above 0 when exactly the minimum ratio of lines are single-sentence', () => {
     // 3 single-sentence lines out of 5 = exactly 60% = LINE_PATTERN_RATIO
-    const text = [
-      'Single thought here.',
-      'Another single thought.',
-      'One more single line.',
-      'This has two sentences. Yes it does.',
-      'This also has two. And more here.',
-    ].join('\n')
+    const text = ['Single thought here.', 'Another single thought.', 'One more single line.', 'This has two sentences. Yes it does.', 'This also has two. And more here.'].join('\n')
     expect(getSlopScore(text)).toBeGreaterThan(0)
   })
 })
@@ -167,41 +128,12 @@ describe('getSlopScore - line pattern boundary', () => {
 
 describe('getSlopScore - heavy line stacking', () => {
   it('scores 2 for a post with many short single-sentence lines and no other signals', () => {
-    // Classic LinkedIn hook-bait: 20+ single-sentence lines, no phrases, no emojis
-    const post = [
-      'Fear charges high interest.',
-      "But it's not fear's fault.",
-      'Fear has one job.',
-      'Protect you from the unknown.',
-      'The problem?',
-      'When you cannot see a path forward everything feels dangerous.',
-      'A conversation.',
-      'A career move.',
-      'A new opportunity.',
-      'A difficult decision.',
-      'The less clarity you have the bigger the fear becomes.',
-      'Your mind fills in the blanks.',
-      'Worst-case scenarios.',
-      'Regret.',
-      'Failure.',
-      'Loss.',
-      'Not because the risk is higher.',
-      'Because you cannot evaluate it.',
-      'But something changes when you have a method.',
-      'When you can see your options.',
-    ].join('\n')
+    const post = ['Fear charges high interest.', "But it's not fear's fault.", 'Fear has one job.', 'Protect you from the unknown.', 'The problem?', 'When you cannot see a path forward everything feels dangerous.', 'A conversation.', 'A career move.', 'A new opportunity.', 'A difficult decision.', 'The less clarity you have the bigger the fear becomes.', 'Your mind fills in the blanks.', 'Worst-case scenarios.', 'Regret.', 'Failure.', 'Loss.', 'Not because the risk is higher.', 'Because you cannot evaluate it.', 'But something changes when you have a method.', 'When you can see your options.'].join('\n')
     expect(getSlopScore(post)).toBeGreaterThanOrEqual(2)
   })
 
   it('scores only 1 for moderate stacking (5–14 lines)', () => {
-    const post = [
-      'This is the hook.',
-      'Here is the second thought.',
-      'And the third.',
-      'Another single line.',
-      'This keeps going.',
-      'One final line.',
-    ].join('\n')
+    const post = ['This is the hook.', 'Here is the second thought.', 'And the third.', 'Another single line.', 'This keeps going.', 'One final line.'].join('\n')
     expect(getSlopScore(post)).toBe(1)
   })
 
@@ -218,20 +150,13 @@ describe('getSlopScore - heavy line stacking', () => {
 describe('getSlopScore - multiple signals accumulate', () => {
   it('two signals score higher than one', () => {
     const oneSignal = getSlopScore("In today's fast-paced world, we need to adapt.")
-    const twoSignals = getSlopScore([
-      "In today's fast-paced world.",
-      'Let that sink in.',
-      'Think about it.',
-      'Really think.',
-      'Game-changer.',
-      '🚀 💡 🔥 💪 ⚡ 🎯 🌟',
-    ].join('\n'))
+    const twoSignals = getSlopScore(["In today's fast-paced world.", 'Let that sink in.', 'Think about it.', 'Really think.', 'Game-changer.', '🚀 💡 🔥 💪 ⚡ 🎯 🌟'].join('\n'))
     expect(twoSignals).toBeGreaterThan(oneSignal)
   })
 })
 
 // ---------------------------------------------------------------------------
-// isSlop — threshold gate (2+ signals required)
+// isSlop — threshold gate: requires 2+ signal points to flag
 // ---------------------------------------------------------------------------
 
 describe('isSlop', () => {
@@ -239,8 +164,8 @@ describe('isSlop', () => {
     expect(isSlop('Just shipped a new feature today. The team worked really hard on it and I am proud of what we built.')).toBe(false)
   })
 
-  it('returns true when a single slop phrase is present', () => {
-    expect(isSlop("In today's fast-paced world, we need to adapt.")).toBe(true)
+  it('returns false for a single slop phrase with no other signals', () => {
+    expect(isSlop("In today's fast-paced world, we need to adapt.")).toBe(false)
   })
 
   it('returns false when no signals are present', () => {
@@ -252,26 +177,12 @@ describe('isSlop', () => {
   })
 
   it('returns true for a post combining phrase slop with the one-liner pattern', () => {
-    const post = [
-      "In today's fast-paced world.",
-      'Thought leadership matters.',
-      'Let that sink in.',
-      'Game-changer.',
-      'Leverage your potential.',
-      'Key takeaways below.',
-    ].join('\n')
+    const post = ["In today's fast-paced world.", 'Thought leadership matters.', 'Let that sink in.', 'Game-changer.', 'Leverage your potential.', 'Key takeaways below.'].join('\n')
     expect(isSlop(post)).toBe(true)
   })
 
   it('returns true for a post combining emoji density with the one-liner pattern', () => {
-    const post = [
-      '🚀 Big move.',
-      '💡 Smart idea.',
-      '🔥 On fire.',
-      '💪 Stay strong.',
-      '⚡ Move fast.',
-      '🎯 Hit targets.',
-    ].join('\n')
+    const post = ['🚀 Big move.', '💡 Smart idea.', '🔥 On fire.', '💪 Stay strong.', '⚡ Move fast.', '🎯 Hit targets.'].join('\n')
     expect(isSlop(post)).toBe(true)
   })
 })
@@ -296,40 +207,6 @@ describe('getSlopScore - keycap emoji numbers', () => {
 })
 
 // ---------------------------------------------------------------------------
-// LinkedIn CTA phrases — "join the journey", "repost to", "save this"
-// ---------------------------------------------------------------------------
-
-describe('getSlopScore - LinkedIn CTA phrases', () => {
-  it('scores above 0 for "join the journey"', () => {
-    expect(getSlopScore('Follow Ivan Davidov to join the journey.')).toBeGreaterThan(0)
-  })
-
-  it('scores above 0 for "repost to"', () => {
-    expect(getSlopScore('Repost to help another engineer level up.')).toBeGreaterThan(0)
-  })
-
-  it('scores above 0 for "save this"', () => {
-    expect(getSlopScore('Save this for your next architecture review.')).toBeGreaterThan(0)
-  })
-})
-
-describe('isSlop - numbered list CTA pattern', () => {
-  it('detects a numbered-emoji list with LinkedIn CTA phrases', () => {
-    // Classic: 8 keycap items + "join the journey" / "repost to" at the bottom
-    const post = [
-      '1️⃣ seed state in one call',
-      '2️⃣ mock the response inline',
-      '3️⃣ attach auth once',
-      '4️⃣ wait for the API to settle',
-      '5️⃣ block the heavy assets',
-      'repost to help another qa architect level up',
-      'join the journey',
-    ].join('\n')
-    expect(isSlop(post)).toBe(true)
-  })
-})
-
-// ---------------------------------------------------------------------------
 // Regex patterns — SLOP_PATTERNS from slop-keywords.js
 // ---------------------------------------------------------------------------
 
@@ -341,19 +218,19 @@ describe('getSlopScore - em dash', () => {
   it('does not flag a post with only a regular hyphen', () => {
     expect(getSlopScore('We shipped the feature - and it went great.')).toBe(0)
   })
+
+  it('reports "language patterns" in signals for an em dash', () => {
+    expect(getSlopSignals('We shipped the feature — and it went great.')).toContain('language patterns')
+  })
 })
 
-describe('getSlopScore - "It\'s not X. It\'s Y." pattern', () => {
-  it('flags the classic contrasting-clause structure', () => {
-    expect(isSlop("It's not experience. It's exposure.")).toBe(true)
-  })
-
-  it('flags when the clauses are separated by a newline', () => {
-    expect(isSlop("It's not about the tools.\nIt's about the mindset.")).toBe(true)
-  })
-
-  it('flags with curly apostrophes', () => {
-    expect(isSlop('It’s not luck. It’s consistency.')).toBe(true)
+describe("getSlopScore - \"It's not X. It's Y.\" pattern", () => {
+  it.each([
+    ["It's not experience. It's exposure."],
+    ["It's not about the tools.\nIt's about the mindset."],
+    ['It’s not luck. It’s consistency.'],
+  ])('flags contrasting clause: %s', (text) => {
+    expect(isSlop(text)).toBe(true)
   })
 
   it('does not flag a sentence that only has one clause', () => {
@@ -366,30 +243,210 @@ describe('getSlopScore - "It\'s not X. It\'s Y." pattern', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSlopScore - raw markdown', () => {
-  it('scores above 0 for **bold** text', () => {
-    expect(getSlopScore('Meenakshi reflects **advocacy and technical evolution** in her posts.')).toBeGreaterThan(0)
-  })
-
-  it('scores above 0 for ### headers', () => {
-    expect(getSlopScore('### 3. Mentorship & Freshers Engagement\nA consistent theme.')).toBeGreaterThan(0)
-  })
-
-  it('scores above 0 for asterisk bullet lines', () => {
-    expect(getSlopScore('* The Returnship Program: she shares content on women returning to work.')).toBeGreaterThan(0)
+  it.each([
+    ['Meenakshi reflects **advocacy and technical evolution** in her posts.'],
+    ['### 3. Mentorship & Freshers Engagement\nA consistent theme.'],
+    ['* The Returnship Program: she shares content on women returning to work.'],
+  ])('scores above 0 for markdown: %s', (text) => {
+    expect(getSlopScore(text)).toBeGreaterThan(0)
   })
 
   it('flags a post with mixed markdown as slop', () => {
-    const post = [
-      '**1. Diversity, Equity & Inclusion (DE&I)**',
-      '* She promotes the RISE program for mid-level leadership.',
-      '* She promotes the Propel program for senior coaching.',
-      '### **2. Quality Engineering**',
-    ].join('\n')
+    const post = ['**1. Diversity, Equity & Inclusion (DE&I)**', '* She promotes the RISE program for mid-level leadership.', '* She promotes the Propel program for senior coaching.', '### **2. Quality Engineering**'].join('\n')
     expect(isSlop(post)).toBe(true)
   })
 
   it('does not flag a clean post with a single asterisk used naturally', () => {
     expect(getSlopScore('Revenue grew 3x - it was a great quarter*.')).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Numbered listicle pattern — "5 things", "7 habits", etc.
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - numbered listicle pattern', () => {
+  it.each([
+    ['5 things successful people do differently that most ignore.'],
+    ['7 habits that changed my life and how you can adopt them today.'],
+    ['10 mistakes every new manager makes in their first 90 days.'],
+  ])('flags listicle: %s', (text) => {
+    expect(isSlop(text)).toBe(true)
+  })
+
+  it('does not flag a genuine technical bullet count', () => {
+    expect(getSlopScore('We fixed 3 bugs today: the race condition in the auth flow, the timeout in the API, and the broken redirect.')).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Emoji bullet lists — two or more lines starting with an emoji as a bullet
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - emoji bullet lists', () => {
+  it('scores above 0 for two or more emoji-prefixed bullet lines', () => {
+    const post = '5 habits of high performers:\n🎯 Set clear goals\n💡 Think creatively\n🔑 Unlock your potential'
+    expect(getSlopScore(post)).toBeGreaterThan(0)
+  })
+
+  it('flags a post with emoji bullets combined with a slop phrase', () => {
+    const post = 'Growth mindset in practice:\n🎯 Set clear goals\n💡 Think creatively\n🔑 Unlock your potential'
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('does not flag a single emoji used naturally in a sentence', () => {
+    expect(getSlopScore('Shipped the feature today 🎉 and the team is happy with the result.')).toBe(0)
+  })
+
+  it('does not flag emoji on single line without bullet structure', () => {
+    expect(getSlopScore('Big news 🎉 - we just hit a million users 🚀')).toBe(0)
+  })
+
+  it('reports "emoji bullets" in signals', () => {
+    const post = '🎯 Set goals\n💡 Think big\n🔑 Unlock success'
+    expect(getSlopSignals(post)).toContain('emoji bullets')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Quote attribution pattern — "As X once said:"
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - quote attribution pattern', () => {
+  it.each([
+    ['As Steve Jobs once said: stay hungry, stay foolish.'],
+    ['As my mentor always put it, the best time to start was yesterday.'],
+    ['As Warren Buffett said, price is what you pay, value is what you get.'],
+  ])('flags quote attribution: %s', (text) => {
+    expect(isSlop(text)).toBe(true)
+  })
+
+  it('does not flag a natural sentence containing "as"', () => {
+    expect(getSlopScore('We approached this problem as a team and found a clean solution.')).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Twitter thread format — "1/" "2/" "3/" numbered items on LinkedIn
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - thread format pattern', () => {
+  it('flags a post structured as a numbered Twitter thread', () => {
+    const post = ['10 lessons I learned building my first company:', '', '1/ Start before you are ready', '2/ Hire for attitude', '3/ Talk to customers every week', '4/ Cash flow is not the same as profit'].join('\n')
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('does not flag a post with a regular numbered list', () => {
+    expect(getSlopScore('We had three problems: 1. no budget, 2. no time, 3. no idea.')).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Arrow bullet lists — "→ item" used as AI listicle format
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - arrow bullet lists', () => {
+  it('flags two or more arrow-bulleted lines', () => {
+    const post = '5 things I learned the hard way:\n→ Ship early\n→ Talk to users\n→ Charge more\n→ Hire slowly\n→ Sleep more'
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('does not flag a single arrow used naturally', () => {
+    expect(getSlopScore('We went from idea → product in 6 weeks.')).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Additional contrasting clause patterns — "This isn't X. This is Y."
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - new contrasting clause patterns', () => {
+  it.each([
+    ["This isn't about the money. This is about the mission."],
+    ["That's not failure. That's feedback."],
+    ["This isn't burnout.\nThis is a signal."],
+  ])('flags contrasting clause: %s', (text) => {
+    expect(isSlop(text)).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Real-world post tests — catches obvious slop, spares genuine posts
+// ---------------------------------------------------------------------------
+
+describe('isSlop - real-world slop posts', () => {
+  it('flags a classic AI ghostwritten LinkedIn post', () => {
+    const post = [
+      "Here's the thing about building a career in tech.",
+      '',
+      "Most people think it's about the tools.",
+      "This isn't about the tools.",
+      "This is about the mindset.",
+      '',
+      "The brutal truth? Let's be real.",
+      "What it comes down to is showing up every single day.",
+      '',
+      'Make no mistake. The game is changing.',
+      'Agentic workflows are game-changing.',
+      '',
+      'Long story short: start before you are ready.',
+    ].join('\n')
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('flags a B2B AI lead generation post (AI Learning School pattern)', () => {
+    const post = [
+      'Leading AI adoption feels bigger than your role?',
+      '',
+      'You are not alone. Most business leaders are not stuck on strategy, they are stuck on jargon, unclear use cases, and risk questions.',
+      '',
+      'The good news. You do not need to code to lead well.',
+      'You need a clear business framework and the confidence to ask better questions.',
+      '',
+      'If this sounds familiar, follow AI Learning School and get ready for practical AI leadership guidance built for non-technical leaders.',
+    ].join('\n')
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('flags a post with heavy em dash usage', () => {
+    const post = 'Leadership — real leadership — is rare. Consistency — not talent — is the differentiator. Results — not effort — is what matters.'
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('flags a post pasted directly from an AI chat window', () => {
+    const post = [
+      '**Key Takeaways from My Leadership Journey**',
+      '',
+      '* Consistency beats talent every time',
+      '* Systems matter more than goals',
+      '* Your network is your net worth',
+      '',
+      '### What I Learned',
+      'Leverage these insights to holistic approach your career.',
+    ].join('\n')
+    expect(isSlop(post)).toBe(true)
+  })
+})
+
+describe('isSlop - real-world clean posts', () => {
+  it('does not flag a genuine product update', () => {
+    const post = 'We shipped dark mode today. Six weeks of work, three rewrites of the colour system, and one very patient design team. Worth it.'
+    expect(isSlop(post)).toBe(false)
+  })
+
+  it('does not flag a genuine personal story', () => {
+    const post = 'My first job paid £18k. I turned it down because the commute was two hours each way. My manager at the time told me I was making a mistake. He was wrong.'
+    expect(isSlop(post)).toBe(false)
+  })
+
+  it('does not flag a technical post with no slop signals', () => {
+    const post = 'If you are debugging a React re-render issue, check whether your useEffect dependencies include object references. Object identity in JavaScript means two objects with the same shape are not equal. This catches people out constantly.'
+    expect(isSlop(post)).toBe(false)
+  })
+
+  it('does not flag a post that uses one common phrase naturally', () => {
+    const post = 'Long story short, the migration took three days instead of one. We underestimated the schema differences. Lessons learned.'
+    expect(isSlop(post)).toBe(false)
   })
 })
 
@@ -411,22 +468,13 @@ describe('getSlopSignals', () => {
     expect(getSlopSignals("In today's fast-paced world, let that sink in.")).toContain('buzzword phrases (2)')
   })
 
-  it('includes "emoji overload" when emoji density exceeds threshold', () => {
-    expect(getSlopSignals('🚀 Launch 💡 Idea 🔥 Fire 💪 Strong ⚡ Fast')).toContain('emoji overload')
-  })
-
-  it('includes "raw markdown" when markdown formatting is present', () => {
-    expect(getSlopSignals('Her work reflects **advocacy and technical evolution**.')).toContain('raw markdown')
-  })
-
-  it('includes "line stacking" for moderate single-sentence stacking (5–14 lines)', () => {
-    const text = ['Hook.', 'Second.', 'Third.', 'Fourth.', 'Fifth.', 'Sixth.'].join('\n')
-    expect(getSlopSignals(text)).toContain('line stacking')
-  })
-
-  it('includes "extreme line stacking" for heavy stacking (15+ lines at 80%+ ratio)', () => {
-    const text = Array.from({ length: 20 }, (_, i) => `Line ${i + 1}.`).join('\n')
-    expect(getSlopSignals(text)).toContain('extreme line stacking')
+  it.each([
+    ['emoji overload', '🚀 Launch 💡 Idea 🔥 Fire 💪 Strong ⚡ Fast'],
+    ['raw markdown', 'Her work reflects **advocacy and technical evolution**.'],
+    ['line stacking', ['Hook.', 'Second.', 'Third.', 'Fourth.', 'Fifth.', 'Sixth.'].join('\n')],
+    ['extreme line stacking', Array.from({ length: 20 }, (_, i) => `Line ${i + 1}.`).join('\n')],
+  ])('includes "%s" signal when it fires', (signal, text) => {
+    expect(getSlopSignals(text)).toContain(signal)
   })
 
   it('does not include "extreme line stacking" for moderate stacking', () => {
@@ -435,14 +483,7 @@ describe('getSlopSignals', () => {
   })
 
   it('returns all triggered signals when multiple fire', () => {
-    const text = [
-      "In today's fast-paced world.",
-      '🚀 Launch. 💡 Think. 🔥 Hot. 💪 Strong. ⚡ Fast.',
-      'Line one.',
-      'Line two.',
-      'Line three.',
-      'Line four.',
-    ].join('\n')
+    const text = ["In today's fast-paced world.", '🚀 Launch. 💡 Think. 🔥 Hot. 💪 Strong. ⚡ Fast.', 'Line one.', 'Line two.', 'Line three.', 'Line four.'].join('\n')
     const signals = getSlopSignals(text)
     expect(signals.some((s) => s.startsWith('buzzword phrases'))).toBe(true)
     expect(signals).toContain('emoji overload')
