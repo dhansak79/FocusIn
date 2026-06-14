@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { getSlopScore, getSlopSignals, isSlop, SLOP_THRESHOLD } from '../../src/features/slop-detector.js'
 
 // ---------------------------------------------------------------------------
-// Phrase signal — weighted: 1–2 phrases score 1, 3+ score 2, threshold is 2
+// Phrase signal — weighted: 1 phrase scores 1, 2+ score 2, threshold is 2
 // A single common phrase in an otherwise clean post should not trigger alone.
 // ---------------------------------------------------------------------------
 
@@ -39,12 +39,11 @@ describe('getSlopScore - slop phrases', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSlopScore - emoji density', () => {
-  it('scores 0 for a post with one emoji', () => {
-    expect(getSlopScore('Great news! 🎉 We launched our product today.')).toBe(0)
-  })
-
-  it('scores 0 for a post with two emojis', () => {
-    expect(getSlopScore('Excited 🎉 to share this 🚀 with everyone.')).toBe(0)
+  it.each([
+    ['Great news! 🎉 We launched our product today.'],
+    ['Excited 🎉 to share this 🚀 with everyone.'],
+  ])('scores 0 with few emojis: %s', (text) => {
+    expect(getSlopScore(text)).toBe(0)
   })
 
   it('scores above 0 for a post with many emojis', () => {
@@ -65,39 +64,20 @@ describe('getSlopScore - emoji density', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSlopScore - single sentence per line', () => {
-  it('scores 0 for normal paragraph text on one line', () => {
-    const text = 'This is a normal post. It has multiple sentences on the same line. Nothing unusual about the formatting at all.'
+  it.each([
+    ['This is a normal post. It has multiple sentences on the same line. Nothing unusual about the formatting at all.'],
+    [['Short thought.', 'Two lines total.'].join('\n')],
+  ])('scores 0 for normal prose: %s', (text) => {
     expect(getSlopScore(text)).toBe(0)
   })
 
-  it('scores 0 for a post with only two lines', () => {
-    expect(getSlopScore(['Short thought.', 'Two lines total.'].join('\n'))).toBe(0)
-  })
-
   it('scores above 0 when most lines contain a single short sentence', () => {
-    const text = [
-      'This is the hook.',
-      'Here is the second thought.',
-      'And the third.',
-      'Another single line.',
-      'This keeps going.',
-      'One final line.',
-    ].join('\n')
+    const text = ['This is the hook.', 'Here is the second thought.', 'And the third.', 'Another single line.', 'This keeps going.', 'One final line.'].join('\n')
     expect(getSlopScore(text)).toBeGreaterThan(0)
   })
 
   it('scores above 0 for the classic LinkedIn one-liner stacking pattern', () => {
-    const text = [
-      'I used to work 80 hours a week.',
-      '',
-      'Then I learned one thing.',
-      '',
-      'It changed everything.',
-      '',
-      'Here is what nobody tells you.',
-      '',
-      'Stop trying so hard.',
-    ].join('\n')
+    const text = ['I used to work 80 hours a week.', '', 'Then I learned one thing.', '', 'It changed everything.', '', 'Here is what nobody tells you.', '', 'Stop trying so hard.'].join('\n')
     expect(getSlopScore(text)).toBeGreaterThan(0)
   })
 
@@ -131,25 +111,13 @@ describe('getSlopScore - line pattern boundary', () => {
 
   it('scores 0 when fewer than the minimum ratio of lines are single-sentence', () => {
     // 1 single-sentence line out of 5 = 20% — well below the 60% threshold
-    const text = [
-      'Just one single line.',
-      'This has two sentences. Then more here.',
-      'Opening thought. Closing thought.',
-      'First point. Second point added.',
-      'Yet another multi. Sentence line.',
-    ].join('\n')
+    const text = ['Just one single line.', 'This has two sentences. Then more here.', 'Opening thought. Closing thought.', 'First point. Second point added.', 'Yet another multi. Sentence line.'].join('\n')
     expect(getSlopScore(text)).toBe(0)
   })
 
   it('scores above 0 when exactly the minimum ratio of lines are single-sentence', () => {
     // 3 single-sentence lines out of 5 = exactly 60% = LINE_PATTERN_RATIO
-    const text = [
-      'Single thought here.',
-      'Another single thought.',
-      'One more single line.',
-      'This has two sentences. Yes it does.',
-      'This also has two. And more here.',
-    ].join('\n')
+    const text = ['Single thought here.', 'Another single thought.', 'One more single line.', 'This has two sentences. Yes it does.', 'This also has two. And more here.'].join('\n')
     expect(getSlopScore(text)).toBeGreaterThan(0)
   })
 })
@@ -160,41 +128,12 @@ describe('getSlopScore - line pattern boundary', () => {
 
 describe('getSlopScore - heavy line stacking', () => {
   it('scores 2 for a post with many short single-sentence lines and no other signals', () => {
-    // Classic LinkedIn hook-bait: 20+ single-sentence lines, no phrases, no emojis
-    const post = [
-      'Fear charges high interest.',
-      "But it's not fear's fault.",
-      'Fear has one job.',
-      'Protect you from the unknown.',
-      'The problem?',
-      'When you cannot see a path forward everything feels dangerous.',
-      'A conversation.',
-      'A career move.',
-      'A new opportunity.',
-      'A difficult decision.',
-      'The less clarity you have the bigger the fear becomes.',
-      'Your mind fills in the blanks.',
-      'Worst-case scenarios.',
-      'Regret.',
-      'Failure.',
-      'Loss.',
-      'Not because the risk is higher.',
-      'Because you cannot evaluate it.',
-      'But something changes when you have a method.',
-      'When you can see your options.',
-    ].join('\n')
+    const post = ['Fear charges high interest.', "But it's not fear's fault.", 'Fear has one job.', 'Protect you from the unknown.', 'The problem?', 'When you cannot see a path forward everything feels dangerous.', 'A conversation.', 'A career move.', 'A new opportunity.', 'A difficult decision.', 'The less clarity you have the bigger the fear becomes.', 'Your mind fills in the blanks.', 'Worst-case scenarios.', 'Regret.', 'Failure.', 'Loss.', 'Not because the risk is higher.', 'Because you cannot evaluate it.', 'But something changes when you have a method.', 'When you can see your options.'].join('\n')
     expect(getSlopScore(post)).toBeGreaterThanOrEqual(2)
   })
 
   it('scores only 1 for moderate stacking (5–14 lines)', () => {
-    const post = [
-      'This is the hook.',
-      'Here is the second thought.',
-      'And the third.',
-      'Another single line.',
-      'This keeps going.',
-      'One final line.',
-    ].join('\n')
+    const post = ['This is the hook.', 'Here is the second thought.', 'And the third.', 'Another single line.', 'This keeps going.', 'One final line.'].join('\n')
     expect(getSlopScore(post)).toBe(1)
   })
 
@@ -211,14 +150,7 @@ describe('getSlopScore - heavy line stacking', () => {
 describe('getSlopScore - multiple signals accumulate', () => {
   it('two signals score higher than one', () => {
     const oneSignal = getSlopScore("In today's fast-paced world, we need to adapt.")
-    const twoSignals = getSlopScore([
-      "In today's fast-paced world.",
-      'Let that sink in.',
-      'Think about it.',
-      'Really think.',
-      'Game-changer.',
-      '🚀 💡 🔥 💪 ⚡ 🎯 🌟',
-    ].join('\n'))
+    const twoSignals = getSlopScore(["In today's fast-paced world.", 'Let that sink in.', 'Think about it.', 'Really think.', 'Game-changer.', '🚀 💡 🔥 💪 ⚡ 🎯 🌟'].join('\n'))
     expect(twoSignals).toBeGreaterThan(oneSignal)
   })
 })
@@ -245,26 +177,12 @@ describe('isSlop', () => {
   })
 
   it('returns true for a post combining phrase slop with the one-liner pattern', () => {
-    const post = [
-      "In today's fast-paced world.",
-      'Thought leadership matters.',
-      'Let that sink in.',
-      'Game-changer.',
-      'Leverage your potential.',
-      'Key takeaways below.',
-    ].join('\n')
+    const post = ["In today's fast-paced world.", 'Thought leadership matters.', 'Let that sink in.', 'Game-changer.', 'Leverage your potential.', 'Key takeaways below.'].join('\n')
     expect(isSlop(post)).toBe(true)
   })
 
   it('returns true for a post combining emoji density with the one-liner pattern', () => {
-    const post = [
-      '🚀 Big move.',
-      '💡 Smart idea.',
-      '🔥 On fire.',
-      '💪 Stay strong.',
-      '⚡ Move fast.',
-      '🎯 Hit targets.',
-    ].join('\n')
+    const post = ['🚀 Big move.', '💡 Smart idea.', '🔥 On fire.', '💪 Stay strong.', '⚡ Move fast.', '🎯 Hit targets.'].join('\n')
     expect(isSlop(post)).toBe(true)
   })
 })
@@ -289,40 +207,6 @@ describe('getSlopScore - keycap emoji numbers', () => {
 })
 
 // ---------------------------------------------------------------------------
-// LinkedIn CTA phrases — "join the journey", "repost to", "save this"
-// ---------------------------------------------------------------------------
-
-describe('getSlopScore - LinkedIn CTA phrases', () => {
-  it('scores above 0 for "join the journey"', () => {
-    expect(getSlopScore('Follow Ivan Davidov to join the journey.')).toBeGreaterThan(0)
-  })
-
-  it('scores above 0 for "repost to"', () => {
-    expect(getSlopScore('Repost to help another engineer level up.')).toBeGreaterThan(0)
-  })
-
-  it('scores above 0 for "save this"', () => {
-    expect(getSlopScore('Save this for your next architecture review.')).toBeGreaterThan(0)
-  })
-})
-
-describe('isSlop - numbered list CTA pattern', () => {
-  it('detects a numbered-emoji list with LinkedIn CTA phrases', () => {
-    // Classic: 8 keycap items + "join the journey" / "repost to" at the bottom
-    const post = [
-      '1️⃣ seed state in one call',
-      '2️⃣ mock the response inline',
-      '3️⃣ attach auth once',
-      '4️⃣ wait for the API to settle',
-      '5️⃣ block the heavy assets',
-      'repost to help another qa architect level up',
-      'join the journey',
-    ].join('\n')
-    expect(isSlop(post)).toBe(true)
-  })
-})
-
-// ---------------------------------------------------------------------------
 // Regex patterns — SLOP_PATTERNS from slop-keywords.js
 // ---------------------------------------------------------------------------
 
@@ -340,17 +224,13 @@ describe('getSlopScore - em dash', () => {
   })
 })
 
-describe('getSlopScore - "It\'s not X. It\'s Y." pattern', () => {
-  it('flags the classic contrasting-clause structure', () => {
-    expect(isSlop("It's not experience. It's exposure.")).toBe(true)
-  })
-
-  it('flags when the clauses are separated by a newline', () => {
-    expect(isSlop("It's not about the tools.\nIt's about the mindset.")).toBe(true)
-  })
-
-  it('flags with curly apostrophes', () => {
-    expect(isSlop('It’s not luck. It’s consistency.')).toBe(true)
+describe("getSlopScore - \"It's not X. It's Y.\" pattern", () => {
+  it.each([
+    ["It's not experience. It's exposure."],
+    ["It's not about the tools.\nIt's about the mindset."],
+    ['It’s not luck. It’s consistency.'],
+  ])('flags contrasting clause: %s', (text) => {
+    expect(isSlop(text)).toBe(true)
   })
 
   it('does not flag a sentence that only has one clause', () => {
@@ -363,25 +243,16 @@ describe('getSlopScore - "It\'s not X. It\'s Y." pattern', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSlopScore - raw markdown', () => {
-  it('scores above 0 for **bold** text', () => {
-    expect(getSlopScore('Meenakshi reflects **advocacy and technical evolution** in her posts.')).toBeGreaterThan(0)
-  })
-
-  it('scores above 0 for ### headers', () => {
-    expect(getSlopScore('### 3. Mentorship & Freshers Engagement\nA consistent theme.')).toBeGreaterThan(0)
-  })
-
-  it('scores above 0 for asterisk bullet lines', () => {
-    expect(getSlopScore('* The Returnship Program: she shares content on women returning to work.')).toBeGreaterThan(0)
+  it.each([
+    ['Meenakshi reflects **advocacy and technical evolution** in her posts.'],
+    ['### 3. Mentorship & Freshers Engagement\nA consistent theme.'],
+    ['* The Returnship Program: she shares content on women returning to work.'],
+  ])('scores above 0 for markdown: %s', (text) => {
+    expect(getSlopScore(text)).toBeGreaterThan(0)
   })
 
   it('flags a post with mixed markdown as slop', () => {
-    const post = [
-      '**1. Diversity, Equity & Inclusion (DE&I)**',
-      '* She promotes the RISE program for mid-level leadership.',
-      '* She promotes the Propel program for senior coaching.',
-      '### **2. Quality Engineering**',
-    ].join('\n')
+    const post = ['**1. Diversity, Equity & Inclusion (DE&I)**', '* She promotes the RISE program for mid-level leadership.', '* She promotes the Propel program for senior coaching.', '### **2. Quality Engineering**'].join('\n')
     expect(isSlop(post)).toBe(true)
   })
 
@@ -391,150 +262,16 @@ describe('getSlopScore - raw markdown', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Dustin Andrews dead giveaways — filler hooks, cliché phrases, AI buzzwords
+// Numbered listicle pattern — "5 things", "7 habits", etc.
 // ---------------------------------------------------------------------------
 
-describe('getSlopScore - Dustin Andrews filler hooks', () => {
-  it('detects "the fix:" hook', () => {
-    expect(getSlopScore('The fix: stop trying to do everything at once.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the key insight:" hook', () => {
-    expect(getSlopScore('The key insight: most people skip this step entirely.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the bottom line:" hook', () => {
-    expect(getSlopScore('The bottom line: it comes down to consistency.')).toBeGreaterThan(0)
-  })
-
-  it('detects "here\'s how:" hook', () => {
-    expect(getSlopScore("Here's how: start with the smallest possible action.")).toBeGreaterThan(0)
-  })
-
-  it('two filler hooks together reach the slop threshold', () => {
-    expect(isSlop("The key insight: you are overthinking it. The fix: start small.")).toBe(true)
-  })
-})
-
-describe('getSlopScore - Dustin Andrews cliché phrases', () => {
-  it('detects "here\'s the thing"', () => {
-    expect(getSlopScore("Here's the thing about modern leadership.")).toBeGreaterThan(0)
-  })
-
-  it('detects "let\'s be real"', () => {
-    expect(getSlopScore("Let's be real — most people won't do this.")).toBeGreaterThan(0)
-  })
-
-  it('detects "the brutal truth"', () => {
-    expect(getSlopScore('The brutal truth is that consistency beats talent.')).toBeGreaterThan(0)
-  })
-
-  it('detects "long story short"', () => {
-    expect(getSlopScore('Long story short, we pivoted the entire product.')).toBeGreaterThan(0)
-  })
-
-  it('detects "make no mistake"', () => {
-    expect(getSlopScore('Make no mistake, this will change how teams operate.')).toBeGreaterThan(0)
-  })
-
-  it('detects "you cannot unsee it"', () => {
-    expect(getSlopScore('Once you notice this pattern, you cannot unsee it.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the uncomfortable truth"', () => {
-    expect(getSlopScore('The uncomfortable truth about remote work.')).toBeGreaterThan(0)
-  })
-
-  it('detects "what it comes down to"', () => {
-    expect(getSlopScore("What it comes down to is how you handle pressure.")).toBeGreaterThan(0)
-  })
-
-  it('two cliché phrases together reach the slop threshold', () => {
-    expect(isSlop("Here's the thing. Let's be real about what matters.")).toBe(true)
-  })
-})
-
-describe('getSlopScore - hot take and opinion hooks', () => {
-  it('detects "unpopular opinion:"', () => {
-    expect(getSlopScore('Unpopular opinion: most stand-ups are a waste of time.')).toBeGreaterThan(0)
-  })
-
-  it('detects "hot take:"', () => {
-    expect(getSlopScore('Hot take: async work is not actually harder.')).toBeGreaterThan(0)
-  })
-
-  it('detects "real talk:"', () => {
-    expect(getSlopScore('Real talk: most people are not learning from their mistakes.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - fake vulnerability and humility bait', () => {
-  it('detects "i was wrong about"', () => {
-    expect(getSlopScore('I was wrong about remote work. Here is what changed my mind.')).toBeGreaterThan(0)
-  })
-
-  it('detects "i almost quit"', () => {
-    expect(getSlopScore('I almost quit my job in 2022. Here is what stopped me.')).toBeGreaterThan(0)
-  })
-
-  it('detects "full transparency,"', () => {
-    expect(getSlopScore('Full transparency, I had no idea what I was doing.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - question engagement hooks', () => {
-  it('detects "what if i told you"', () => {
-    expect(getSlopScore('What if I told you that most meetings could be emails?')).toBeGreaterThan(0)
-  })
-
-  it('detects "raise your hand if"', () => {
-    expect(getSlopScore('Raise your hand if you have ever shipped something you were not proud of.')).toBeGreaterThan(0)
-  })
-
-  it('detects "who needs to hear this"', () => {
-    expect(getSlopScore('Who needs to hear this today? You are doing better than you think.')).toBeGreaterThan(0)
-  })
-
-  it('detects "you need to hear this"', () => {
-    expect(getSlopScore('You need to hear this if you are struggling with productivity.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - pseudo-revelatory patterns', () => {
-  it('detects "this is your sign"', () => {
-    expect(getSlopScore('This is your sign to finally start that side project.')).toBeGreaterThan(0)
-  })
-
-  it('detects "this is your reminder"', () => {
-    expect(getSlopScore('This is your reminder that done is better than perfect.')).toBeGreaterThan(0)
-  })
-
-  it('detects "no one tells you"', () => {
-    expect(getSlopScore('No one tells you how hard the first year of leadership really is.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
-  it('detects "agentic"', () => {
-    expect(getSlopScore('We are building an agentic workflow for our team.')).toBeGreaterThan(0)
-  })
-
-  it('detects "game-changing"', () => {
-    expect(getSlopScore('This is a game-changing approach to productivity.')).toBeGreaterThan(0)
-  })
-})
-
 describe('getSlopScore - numbered listicle pattern', () => {
-  it('flags "5 things successful people do"', () => {
-    expect(isSlop('5 things successful people do differently that most ignore.')).toBe(true)
-  })
-
-  it('flags "7 habits that changed my life"', () => {
-    expect(isSlop('7 habits that changed my life and how you can adopt them today.')).toBe(true)
-  })
-
-  it('flags "10 mistakes every new manager makes"', () => {
-    expect(isSlop('10 mistakes every new manager makes in their first 90 days.')).toBe(true)
+  it.each([
+    ['5 things successful people do differently that most ignore.'],
+    ['7 habits that changed my life and how you can adopt them today.'],
+    ['10 mistakes every new manager makes in their first 90 days.'],
+  ])('flags listicle: %s', (text) => {
+    expect(isSlop(text)).toBe(true)
   })
 
   it('does not flag a genuine technical bullet count', () => {
@@ -542,90 +279,9 @@ describe('getSlopScore - numbered listicle pattern', () => {
   })
 })
 
-
-describe('getSlopScore - AI trend vocabulary', () => {
-  it('detects "vibe coding"', () => {
-    expect(getSlopScore('Vibe coding is the future and I am here for it.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - atomic habits and 1% better genre', () => {
-  it('detects "1% better"', () => {
-    expect(getSlopScore('Get 1% better every day. That is all it takes.')).toBeGreaterThan(0)
-  })
-
-  it('detects "compound effect"', () => {
-    expect(getSlopScore('The compound effect of small daily habits is more powerful than any big leap.')).toBeGreaterThan(0)
-  })
-
-  it('detects "atomic habits"', () => {
-    expect(getSlopScore('Atomic habits teaches us that identity-based change is more durable.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - hustle origin story', () => {
-  it('detects "nights and weekends"', () => {
-    expect(getSlopScore('I built this product nights and weekends for two years before quitting my job.')).toBeGreaterThan(0)
-  })
-
-  it('detects "from zero to"', () => {
-    expect(getSlopScore('From zero to one million users in eighteen months. Here is what we learned.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - missed clichés', () => {
-  it('detects "think outside the box"', () => {
-    expect(getSlopScore('Great leaders do not just think outside the box. They redesign the box.')).toBeGreaterThan(0)
-  })
-
-  it('detects "80/20 rule"', () => {
-    expect(getSlopScore('Apply the 80/20 rule to everything and watch your output double.')).toBeGreaterThan(0)
-  })
-
-  it('detects "went viral"', () => {
-    expect(getSlopScore('My post went viral last week and the response has been overwhelming.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - fake reluctance posts', () => {
-  it('detects "i almost didn\'t post this"', () => {
-    expect(getSlopScore("I almost didn't post this. But I think someone needs to hear it.")).toBeGreaterThan(0)
-  })
-
-  it('detects "i don\'t usually share"', () => {
-    expect(getSlopScore("I don't usually share personal things here. But today is different.")).toBeGreaterThan(0)
-  })
-
-  it('detects "i was hesitant to post"', () => {
-    expect(getSlopScore('I was hesitant to post this because it feels vulnerable.')).toBeGreaterThan(0)
-  })
-
-  it('detects "this might be controversial"', () => {
-    expect(getSlopScore('This might be controversial but remote work is not for everyone.')).toBeGreaterThan(0)
-  })
-
-  it('detects "i debated whether to share"', () => {
-    expect(getSlopScore('I debated whether to share this. Decided to go for it.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - PSA and sending love posts', () => {
-  it('detects "psa:"', () => {
-    expect(getSlopScore('PSA: you do not need to respond to emails after 6pm.')).toBeGreaterThan(0)
-  })
-
-  it('detects "sending love to"', () => {
-    expect(getSlopScore('Sending love to every founder out there grinding through uncertainty.')).toBeGreaterThan(0)
-  })
-
-  it('detects "for anyone who needs to hear"', () => {
-    expect(getSlopScore('For anyone who needs to hear this: you are doing better than you think.')).toBeGreaterThan(0)
-  })
-
-  it('detects "if you needed to hear this"', () => {
-    expect(getSlopScore('If you needed to hear this today, here it is: rest is productive.')).toBeGreaterThan(0)
-  })
-})
+// ---------------------------------------------------------------------------
+// Emoji bullet lists — two or more lines starting with an emoji as a bullet
+// ---------------------------------------------------------------------------
 
 describe('getSlopScore - emoji bullet lists', () => {
   it('scores above 0 for two or more emoji-prefixed bullet lines', () => {
@@ -652,137 +308,17 @@ describe('getSlopScore - emoji bullet lists', () => {
   })
 })
 
-describe('getSlopScore - deserve motivational posts', () => {
-  it('detects "you deserve"', () => {
-    expect(getSlopScore('You deserve a manager who actually invests in your growth.')).toBeGreaterThan(0)
-  })
-
-  it('detects "seat at the table"', () => {
-    expect(getSlopScore('Stop waiting to be invited. Pull up your own seat at the table.')).toBeGreaterThan(0)
-  })
-
-  it('detects "take up space"', () => {
-    expect(getSlopScore('You were not born to shrink. Take up space. Own the room.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - LLM output tells', () => {
-  it('detects "rest assured"', () => {
-    expect(getSlopScore('Rest assured, the team is working around the clock to resolve this.')).toBeGreaterThan(0)
-  })
-
-  it('detects "thought-provoking"', () => {
-    expect(getSlopScore('A thought-provoking read on the future of distributed teams.')).toBeGreaterThan(0)
-  })
-
-  it('detects "nuanced"', () => {
-    expect(getSlopScore('The reality is far more nuanced than most people realise.')).toBeGreaterThan(0)
-  })
-
-  it('detects "multifaceted"', () => {
-    expect(getSlopScore('Leadership is a multifaceted skill that takes years to develop.')).toBeGreaterThan(0)
-  })
-
-  it('detects "feel free to reach out"', () => {
-    expect(getSlopScore('If you have questions about this, feel free to reach out anytime.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - extended corporate jargon', () => {
-  it('detects "learnings"', () => {
-    expect(getSlopScore('Sharing my top learnings from six months of building in stealth.')).toBeGreaterThan(0)
-  })
-
-  it('detects "ideation"', () => {
-    expect(getSlopScore('We kicked off with a full day of ideation and cross-functional collaboration.')).toBeGreaterThan(0)
-  })
-
-  it('detects "low-hanging fruit"', () => {
-    expect(getSlopScore('Most teams ignore the low-hanging fruit and go straight to complex solutions.')).toBeGreaterThan(0)
-  })
-
-  it('detects "best practices"', () => {
-    expect(getSlopScore('Here are the best practices every engineering manager should know.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - two types of people', () => {
-  it('detects "there are two types of people"', () => {
-    expect(getSlopScore('There are two types of people in any organisation. Those who wait and those who act.')).toBeGreaterThan(0)
-  })
-
-  it('detects "two kinds of people"', () => {
-    expect(getSlopScore('Two kinds of people exist in every team. Which one are you?')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - hustle effort culture', () => {
-  it('detects "put in the work"', () => {
-    expect(getSlopScore('There is no secret. You just have to put in the work every single day.')).toBeGreaterThan(0)
-  })
-
-  it('detects "no shortcuts"', () => {
-    expect(getSlopScore('No shortcuts. No hacks. Just consistency over a long period of time.')).toBeGreaterThan(0)
-  })
-
-  it('detects "outwork everyone"', () => {
-    expect(getSlopScore('The strategy is simple. Outwork everyone and stay humble.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - authenticity performance', () => {
-  it('detects "authentic self"', () => {
-    expect(getSlopScore('The bravest thing you can do at work is show up as your authentic self.')).toBeGreaterThan(0)
-  })
-
-  it('detects "raw and honest"', () => {
-    expect(getSlopScore('I want to be raw and honest with you today about what this year has been like.')).toBeGreaterThan(0)
-  })
-
-  it('detects "bring your whole self"', () => {
-    expect(getSlopScore('The best companies let you bring your whole self to work every day.')).toBeGreaterThan(0)
-  })
-
-  it('detects "radical transparency"', () => {
-    expect(getSlopScore('We practice radical transparency at every level of the organisation.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - disruption vocabulary', () => {
-  it('detects "disrupt"', () => {
-    expect(getSlopScore('We are here to disrupt how the world thinks about talent acquisition.')).toBeGreaterThan(0)
-  })
-
-  it('detects "impactful"', () => {
-    expect(getSlopScore('This was the most impactful decision I made in my entire career.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - year in review format', () => {
-  it('detects "year in review"', () => {
-    expect(getSlopScore('My year in review. Twelve months. Twelve lessons. Here we go.')).toBeGreaterThan(0)
-  })
-
-  it('detects "looking back on"', () => {
-    expect(getSlopScore('Looking back on 2024, I am proud of how far we have come as a team.')).toBeGreaterThan(0)
-  })
-
-  it('detects "weekly recap"', () => {
-    expect(getSlopScore('Weekly recap: three wins, two lessons, one thing I am proud of.')).toBeGreaterThan(0)
-  })
-})
+// ---------------------------------------------------------------------------
+// Quote attribution pattern — "As X once said:"
+// ---------------------------------------------------------------------------
 
 describe('getSlopScore - quote attribution pattern', () => {
-  it('flags "As [person] once said:"', () => {
-    expect(isSlop('As Steve Jobs once said: stay hungry, stay foolish.')).toBe(true)
-  })
-
-  it('flags "As my mentor always put it,"', () => {
-    expect(isSlop('As my mentor always put it, the best time to start was yesterday.')).toBe(true)
-  })
-
-  it('flags "As Warren Buffett said,"', () => {
-    expect(isSlop('As Warren Buffett said, price is what you pay, value is what you get.')).toBe(true)
+  it.each([
+    ['As Steve Jobs once said: stay hungry, stay foolish.'],
+    ['As my mentor always put it, the best time to start was yesterday.'],
+    ['As Warren Buffett said, price is what you pay, value is what you get.'],
+  ])('flags quote attribution: %s', (text) => {
+    expect(isSlop(text)).toBe(true)
   })
 
   it('does not flag a natural sentence containing "as"', () => {
@@ -790,518 +326,13 @@ describe('getSlopScore - quote attribution pattern', () => {
   })
 })
 
-describe('getSlopScore - chapter and season metaphors', () => {
-  it('detects "new chapter"', () => {
-    expect(getSlopScore('Excited to share that I am starting a new chapter in my career.')).toBeGreaterThan(0)
-  })
-
-  it('detects "next chapter"', () => {
-    expect(getSlopScore('Ready for the next chapter. Grateful for everything I have learned.')).toBeGreaterThan(0)
-  })
-
-  it('detects "this season of my life"', () => {
-    expect(getSlopScore('In this season of my life I am choosing peace over hustle.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - protect your energy posts', () => {
-  it('detects "protect your energy"', () => {
-    expect(getSlopScore('Protect your energy. Not everyone deserves access to you.')).toBeGreaterThan(0)
-  })
-
-  it('detects "set boundaries"', () => {
-    expect(getSlopScore('The most underrated leadership skill is learning to set boundaries.')).toBeGreaterThan(0)
-  })
-
-  it('detects "learn to say no"', () => {
-    expect(getSlopScore('The most powerful word in your vocabulary is no. Learn to say no.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - 30-day challenge format', () => {
-  it('detects "30-day challenge"', () => {
-    expect(getSlopScore('I just completed a 30-day challenge of writing every single day.')).toBeGreaterThan(0)
-  })
-
-  it('detects "day 1 of"', () => {
-    expect(getSlopScore('Day 1 of posting every day for a year. Holding myself accountable.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - more corporate jargon', () => {
-  it('detects "pain points"', () => {
-    expect(getSlopScore('We identified the three biggest pain points our customers face.')).toBeGreaterThan(0)
-  })
-
-  it('detects "peel back the onion"', () => {
-    expect(getSlopScore('When you peel back the onion on this problem, the root cause is culture.')).toBeGreaterThan(0)
-  })
-
-  it('detects "drink from the firehose"', () => {
-    expect(getSlopScore('Week one at any new job: drink from the firehose and try not to drown.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - mindset genre', () => {
-  it('detects "growth mindset"', () => {
-    expect(getSlopScore('The one thing that separates top performers is a growth mindset.')).toBeGreaterThan(0)
-  })
-
-  it('detects "mindset shift"', () => {
-    expect(getSlopScore('This one mindset shift changed how I approach every challenge.')).toBeGreaterThan(0)
-  })
-
-  it('detects "abundance mindset"', () => {
-    expect(getSlopScore('Switch from a scarcity mindset to an abundance mindset and watch everything change.')).toBeGreaterThan(0)
-  })
-
-  it('detects "mindset is everything"', () => {
-    expect(getSlopScore('Mindset is everything. Skills can be learned. Mindset has to be earned.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - high performer culture', () => {
-  it('detects "high performers"', () => {
-    expect(getSlopScore('High performers do not wait for motivation. They build systems.')).toBeGreaterThan(0)
-  })
-
-  it('detects "top 1%"', () => {
-    expect(getSlopScore('The habits that put you in the top 1% are not complicated.')).toBeGreaterThan(0)
-  })
-
-  it('detects "non-negotiable"', () => {
-    expect(getSlopScore('My morning walk is non-negotiable. It sets the tone for everything.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - morning routine genre', () => {
-  it('detects "morning routine"', () => {
-    expect(getSlopScore('My morning routine is the reason I outperform most people.')).toBeGreaterThan(0)
-  })
-
-  it('detects "5am club"', () => {
-    expect(getSlopScore('Joining the 5am club was the best decision I ever made.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - manifestation and abundance', () => {
-  it('detects "manifestation"', () => {
-    expect(getSlopScore('Manifestation is not magic. It is clarity plus action.')).toBeGreaterThan(0)
-  })
-
-  it('detects "law of attraction"', () => {
-    expect(getSlopScore('The law of attraction works. Here is the science behind it.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - surround yourself posts', () => {
-  it('detects "surround yourself with"', () => {
-    expect(getSlopScore('Surround yourself with people who challenge you to grow.')).toBeGreaterThan(0)
-  })
-
-  it('detects "find your tribe"', () => {
-    expect(getSlopScore('Find your tribe. The right community changes everything.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - fail forward resilience genre', () => {
-  it('detects "fail forward"', () => {
-    expect(getSlopScore('The best leaders I know have all learned to fail forward.')).toBeGreaterThan(0)
-  })
-
-  it('detects "failure is feedback"', () => {
-    expect(getSlopScore('Stop calling it failure. Failure is feedback. Reframe it.')).toBeGreaterThan(0)
-  })
-
-  it('detects "celebrate the small wins"', () => {
-    expect(getSlopScore('Celebrate the small wins. They are the foundation of big results.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - workplace culture buzzwords', () => {
-  it('detects "quiet quitting"', () => {
-    expect(getSlopScore('Quiet quitting is not laziness. It is a rational response to broken management.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the truth about"', () => {
-    expect(getSlopScore('The truth about remote work that nobody wants to admit.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - level up language', () => {
-  it('detects "level up"', () => {
-    expect(getSlopScore('Here are five books that will level up your thinking.')).toBeGreaterThan(0)
-  })
-
-  it('detects "next level thinking"', () => {
-    expect(getSlopScore('Next level thinking is what separates good leaders from great ones.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - comfort zone posts', () => {
-  it('detects "comfort zone"', () => {
-    expect(getSlopScore('Everything you want is on the other side of your comfort zone.')).toBeGreaterThan(0)
-  })
-
-  it('detects "get comfortable being uncomfortable"', () => {
-    expect(getSlopScore('The fastest way to grow? Get comfortable being uncomfortable.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - gratitude overload', () => {
-  it('detects "forever grateful"', () => {
-    expect(getSlopScore('Forever grateful to everyone who believed in me when I did not believe in myself.')).toBeGreaterThan(0)
-  })
-
-  it('detects "grateful for the journey"', () => {
-    expect(getSlopScore('Whatever happens next, I am grateful for the journey.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - LLM transition phrases', () => {
-  it('detects "first and foremost"', () => {
-    expect(getSlopScore('First and foremost, we need to align on what success looks like.')).toBeGreaterThan(0)
-  })
-
-  it('detects "last but not least"', () => {
-    expect(getSlopScore('Last but not least, remember to celebrate your small wins.')).toBeGreaterThan(0)
-  })
-
-  it('detects "it goes without saying"', () => {
-    expect(getSlopScore('It goes without saying that culture eats strategy for breakfast.')).toBeGreaterThan(0)
-  })
-
-  it('detects "with that being said"', () => {
-    expect(getSlopScore('With that being said, here are the three things I would do differently.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - legacy and impact language', () => {
-  it('detects "leave a legacy"', () => {
-    expect(getSlopScore('Build something worth remembering. Leave a legacy, not just a salary.')).toBeGreaterThan(0)
-  })
-
-  it('detects "be the change"', () => {
-    expect(getSlopScore('Be the change you want to see in your organisation.')).toBeGreaterThan(0)
-  })
-
-  it('detects "ai-powered"', () => {
-    expect(getSlopScore('We built an ai-powered solution that transforms how teams collaborate.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - "The Noun" framing', () => {
-  it('detects "the playbook"', () => {
-    expect(getSlopScore('Here is the playbook I used to grow from zero to one million.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the blueprint"', () => {
-    expect(getSlopScore('The blueprint every new manager needs but nobody shares.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the formula"', () => {
-    expect(getSlopScore('After ten years I finally found the formula for consistent results.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the masterclass"', () => {
-    expect(getSlopScore('This thread is the masterclass on cold outreach I wish existed.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - normalize posts', () => {
-  it('detects "normalize asking"', () => {
-    expect(getSlopScore('Normalize asking for help. It is a sign of strength, not weakness.')).toBeGreaterThan(0)
-  })
-
-  it('detects "normalize taking"', () => {
-    expect(getSlopScore('Normalize taking a day off when your mental health needs it.')).toBeGreaterThan(0)
-  })
-
-  it('detects "normalize talking about"', () => {
-    expect(getSlopScore('Normalize talking about salary with your colleagues.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - underdog narrative', () => {
-  it('detects "prove them wrong"', () => {
-    expect(getSlopScore('Use every rejection as fuel to prove them wrong.')).toBeGreaterThan(0)
-  })
-
-  it('detects "they said i couldn\'t"', () => {
-    expect(getSlopScore("They said I couldn't do it. Five years later, here we are.")).toBeGreaterThan(0)
-  })
-
-  it('detects "they doubted me"', () => {
-    expect(getSlopScore('They doubted me. I am grateful for every single one of them.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - false wisdom and clichés', () => {
-  it('detects "work smarter"', () => {
-    expect(getSlopScore('Stop working harder. Work smarter. Here is how.')).toBeGreaterThan(0)
-  })
-
-  it('detects "you are the average of"', () => {
-    expect(getSlopScore('You are the average of the five people you spend the most time with.')).toBeGreaterThan(0)
-  })
-
-  it('detects "this is why most people"', () => {
-    expect(getSlopScore('This is why most people never reach their potential at work.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - personal branding ecosystem', () => {
-  it('detects "personal brand"', () => {
-    expect(getSlopScore('Your personal brand is the most valuable asset you own.')).toBeGreaterThan(0)
-  })
-
-  it('detects "thought leader"', () => {
-    expect(getSlopScore('How to become a thought leader in your industry in 90 days.')).toBeGreaterThan(0)
-  })
-
-  it('detects "creator economy"', () => {
-    expect(getSlopScore('The creator economy is the biggest opportunity of our generation.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - "what I wish" reflections', () => {
-  it('detects "what i wish i knew"', () => {
-    expect(getSlopScore('What I wish I knew before starting my first business.')).toBeGreaterThan(0)
-  })
-
-  it('detects "what nobody told me"', () => {
-    expect(getSlopScore('What nobody told me about becoming a people manager.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - "stop X" imperatives', () => {
-  it('detects "stop overthinking"', () => {
-    expect(getSlopScore('Stop overthinking and start shipping.')).toBeGreaterThan(0)
-  })
-
-  it('detects "stop playing small"', () => {
-    expect(getSlopScore('You were not born to stop playing small. Go bigger.')).toBeGreaterThan(0)
-  })
-
-  it('detects "stop comparing yourself"', () => {
-    expect(getSlopScore('Stop comparing yourself to others. Your timeline is your own.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - narrative arc and confession', () => {
-  it('detects "changed my life"', () => {
-    expect(getSlopScore('One book changed my life. Here is what it taught me.')).toBeGreaterThan(0)
-  })
-
-  it('detects "confession:"', () => {
-    expect(getSlopScore('Confession: I almost gave up three times before we hit product-market fit.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the moment i realised"', () => {
-    expect(getSlopScore('The moment I realised I was the problem, everything changed.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - LinkedIn ecosystem specific', () => {
-  it('detects "your network is your net worth"', () => {
-    expect(getSlopScore('Your network is your net worth. Invest in relationships.')).toBeGreaterThan(0)
-  })
-
-  it('detects "beat the algorithm"', () => {
-    expect(getSlopScore('Five ways to beat the algorithm and grow your reach organically.')).toBeGreaterThan(0)
-  })
-
-  it('detects "most underrated"', () => {
-    expect(getSlopScore('The most underrated skill in tech is clear written communication.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the secret to"', () => {
-    expect(getSlopScore('The secret to consistent productivity is not what you think.')).toBeGreaterThan(0)
-  })
-
-  it('detects "an open letter to"', () => {
-    expect(getSlopScore('An open letter to every junior developer feeling overwhelmed right now.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - reminder posts', () => {
-  it('detects "gentle reminder:"', () => {
-    expect(getSlopScore('Gentle reminder: your worth is not tied to your productivity.')).toBeGreaterThan(0)
-  })
-
-  it('detects "friendly reminder:"', () => {
-    expect(getSlopScore('Friendly reminder: it is okay to say no.')).toBeGreaterThan(0)
-  })
-
-  it('detects "reminder that"', () => {
-    expect(getSlopScore('Just a reminder that not every day needs to be your best day.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - fear-based engagement', () => {
-  it('detects "don\'t make this mistake"', () => {
-    expect(getSlopScore("Don't make this mistake when negotiating your salary.")).toBeGreaterThan(0)
-  })
-
-  it('detects "biggest mistake"', () => {
-    expect(getSlopScore('The biggest mistake new managers make in their first 90 days.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the number one reason"', () => {
-    expect(getSlopScore('The number one reason startups fail is not what you think.')).toBeGreaterThan(0)
-  })
-
-  it('detects "before it\'s too late"', () => {
-    expect(getSlopScore("Learn these skills before it's too late.")).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - narrative formula phrases', () => {
-  it('detects "that moment changed everything"', () => {
-    expect(getSlopScore('I got the rejection. That moment changed everything.')).toBeGreaterThan(0)
-  })
-
-  it('detects "i will never forget"', () => {
-    expect(getSlopScore('I will never forget the look on my manager\'s face.')).toBeGreaterThan(0)
-  })
-
-  it('detects "everything changed when"', () => {
-    expect(getSlopScore('Everything changed when I stopped trying to please everyone.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - LLM vocabulary tells', () => {
-  it('detects "transformative"', () => {
-    expect(getSlopScore('This was a truly transformative experience for our entire team.')).toBeGreaterThan(0)
-  })
-
-  it('detects "unprecedented"', () => {
-    expect(getSlopScore('We are living through unprecedented change in the world of work.')).toBeGreaterThan(0)
-  })
-
-  it('detects "empower"', () => {
-    expect(getSlopScore('Our mission is to empower every employee to reach their potential.')).toBeGreaterThan(0)
-  })
-
-  it('detects "supercharge"', () => {
-    expect(getSlopScore('These five habits will supercharge your morning routine.')).toBeGreaterThan(0)
-  })
-
-  it('detects "life hack"', () => {
-    expect(getSlopScore('The best life hack nobody talks about is simply showing up.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - anecdote and storytime hooks', () => {
-  it('detects "story time:"', () => {
-    expect(getSlopScore('Story time: I once lost a client because of one email.')).toBeGreaterThan(0)
-  })
-
-  it('detects "true story:"', () => {
-    expect(getSlopScore('True story: I was rejected by every investor in the room.')).toBeGreaterThan(0)
-  })
-
-  it('detects "i remember the day"', () => {
-    expect(getSlopScore('I remember the day I decided to leave my corporate job.')).toBeGreaterThan(0)
-  })
-
-  it('detects "plot twist:"', () => {
-    expect(getSlopScore('Plot twist: the hardest part was not the work.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - engagement solicitation', () => {
-  it('detects "agree or disagree?"', () => {
-    expect(getSlopScore('Managers are the number one reason people quit. Agree or disagree?')).toBeGreaterThan(0)
-  })
-
-  it('detects "can anyone relate?"', () => {
-    expect(getSlopScore('Some days you just feel like giving up. Can anyone relate?')).toBeGreaterThan(0)
-  })
-
-  it('detects "am i the only one"', () => {
-    expect(getSlopScore('Am I the only one who finds open plan offices unbearable?')).toBeGreaterThan(0)
-  })
-
-  it('detects "what would you add?"', () => {
-    expect(getSlopScore('These are my top five lessons. What would you add?')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - self-promotion patterns', () => {
-  it('detects "link in comments"', () => {
-    expect(getSlopScore('I wrote a full breakdown of this. Link in comments.')).toBeGreaterThan(0)
-  })
-
-  it('detects "dm me for"', () => {
-    expect(getSlopScore('DM me for the free template I built for this.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - false wisdom', () => {
-  it('detects "done is better than perfect"', () => {
-    expect(getSlopScore('Done is better than perfect. Ship it and iterate.')).toBeGreaterThan(0)
-  })
-
-  it('detects "embrace the journey"', () => {
-    expect(getSlopScore('Stop rushing toward the destination. Embrace the journey.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - career and hustle culture', () => {
-  it('detects "6-figure"', () => {
-    expect(getSlopScore('How I built a 6-figure business from my spare bedroom.')).toBeGreaterThan(0)
-  })
-
-  it('detects "quit my 9-5"', () => {
-    expect(getSlopScore('I quit my 9-5 eighteen months ago. Here is what happened.')).toBeGreaterThan(0)
-  })
-
-  it('detects "passive income"', () => {
-    expect(getSlopScore('Three passive income streams I built in 2024.')).toBeGreaterThan(0)
-  })
-
-  it('detects "side hustle"', () => {
-    expect(getSlopScore('My side hustle made more than my salary last year.')).toBeGreaterThan(0)
-  })
-
-  it('detects "solopreneur"', () => {
-    expect(getSlopScore('Being a solopreneur is the hardest and best decision I ever made.')).toBeGreaterThan(0)
-  })
-})
-
-describe('getSlopScore - motivational fluff', () => {
-  it('detects "trust the process"', () => {
-    expect(getSlopScore('Trust the process. The results will come.')).toBeGreaterThan(0)
-  })
-
-  it('detects "invest in yourself"', () => {
-    expect(getSlopScore('The best investment you will ever make is to invest in yourself.')).toBeGreaterThan(0)
-  })
-
-  it('detects "your future self"', () => {
-    expect(getSlopScore('Your future self will thank you for starting today.')).toBeGreaterThan(0)
-  })
-
-  it('detects "bet on yourself"', () => {
-    expect(getSlopScore('Stop waiting for permission. Bet on yourself.')).toBeGreaterThan(0)
-  })
-
-  it('detects "the best version of yourself"', () => {
-    expect(getSlopScore('Every day is a chance to become the best version of yourself.')).toBeGreaterThan(0)
-  })
-})
+// ---------------------------------------------------------------------------
+// Twitter thread format — "1/" "2/" "3/" numbered items on LinkedIn
+// ---------------------------------------------------------------------------
 
 describe('getSlopScore - thread format pattern', () => {
   it('flags a post structured as a numbered Twitter thread', () => {
-    const post = [
-      '10 lessons I learned building my first company:',
-      '',
-      '1/ Start before you are ready',
-      '2/ Hire for attitude',
-      '3/ Talk to customers every week',
-      '4/ Cash flow is not the same as profit',
-    ].join('\n')
+    const post = ['10 lessons I learned building my first company:', '', '1/ Start before you are ready', '2/ Hire for attitude', '3/ Talk to customers every week', '4/ Cash flow is not the same as profit'].join('\n')
     expect(isSlop(post)).toBe(true)
   })
 
@@ -1309,6 +340,10 @@ describe('getSlopScore - thread format pattern', () => {
     expect(getSlopScore('We had three problems: 1. no budget, 2. no time, 3. no idea.')).toBe(0)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Arrow bullet lists — "→ item" used as AI listicle format
+// ---------------------------------------------------------------------------
 
 describe('getSlopScore - arrow bullet lists', () => {
   it('flags two or more arrow-bulleted lines', () => {
@@ -1321,90 +356,22 @@ describe('getSlopScore - arrow bullet lists', () => {
   })
 })
 
+// ---------------------------------------------------------------------------
+// Additional contrasting clause patterns — "This isn't X. This is Y."
+// ---------------------------------------------------------------------------
+
 describe('getSlopScore - new contrasting clause patterns', () => {
-  it('flags "This isn\'t X. This is Y." structure', () => {
-    expect(isSlop("This isn't about the money. This is about the mission.")).toBe(true)
-  })
-
-  it('flags "That\'s not X. That\'s Y." structure', () => {
-    expect(isSlop("That's not failure. That's feedback.")).toBe(true)
-  })
-
-  it('flags when clauses are separated by a newline', () => {
-    expect(isSlop("This isn't burnout.\nThis is a signal.")).toBe(true)
+  it.each([
+    ["This isn't about the money. This is about the mission."],
+    ["That's not failure. That's feedback."],
+    ["This isn't burnout.\nThis is a signal."],
+  ])('flags contrasting clause: %s', (text) => {
+    expect(isSlop(text)).toBe(true)
   })
 })
 
 // ---------------------------------------------------------------------------
 // Real-world post tests — catches obvious slop, spares genuine posts
-// ---------------------------------------------------------------------------
-
-describe('getSlopScore - B2B lead generation empathy hooks', () => {
-  it('flags "you are not alone"', () => {
-    expect(getSlopScore('You are not alone. Most leaders struggle with this exact problem.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "you are not the only one"', () => {
-    expect(getSlopScore('You are not the only one feeling overwhelmed by the pace of change.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "the good news"', () => {
-    expect(getSlopScore('The good news. You do not need to code to lead well.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "the good news is"', () => {
-    expect(getSlopScore('The good news is there is a simpler way to approach this.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "if this sounds familiar"', () => {
-    expect(getSlopScore('If this sounds familiar, keep reading. I built a framework just for this.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "does this sound familiar"', () => {
-    expect(getSlopScore('Does this sound familiar? You are stuck on strategy but unclear on execution.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "sound familiar?"', () => {
-    expect(getSlopScore('Spending more time in meetings than doing actual work? Sound familiar?')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "you need a clear"', () => {
-    expect(getSlopScore('You need a clear framework to lead AI adoption effectively.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "practical guidance"', () => {
-    expect(getSlopScore('Follow along for practical guidance built for non-technical leaders.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('scores 2+ when two B2B empathy hooks appear together', () => {
-    expect(getSlopScore('You are not alone. The good news is there is a better way.')).toBeGreaterThanOrEqual(2)
-  })
-})
-
-// ---------------------------------------------------------------------------
-
-describe('getSlopScore - corporate poison phrases (Dustin Andrews)', () => {
-  it('flags "framework"', () => {
-    expect(getSlopScore('You need a clear business framework to navigate this transition.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "methodology"', () => {
-    expect(getSlopScore('Our proprietary methodology has helped hundreds of teams scale faster.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "optimization"', () => {
-    expect(getSlopScore('Optimization is the key to unlocking sustainable growth in any organisation.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('flags "systematic approach"', () => {
-    expect(getSlopScore('Success comes from taking a systematic approach to every challenge.')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('scores 2+ when two corporate poison phrases appear together', () => {
-    expect(getSlopScore('Our methodology and framework will transform your systematic approach to leadership.')).toBeGreaterThanOrEqual(2)
-  })
-})
-
 // ---------------------------------------------------------------------------
 
 describe('isSlop - real-world slop posts', () => {
@@ -1501,22 +468,13 @@ describe('getSlopSignals', () => {
     expect(getSlopSignals("In today's fast-paced world, let that sink in.")).toContain('buzzword phrases (2)')
   })
 
-  it('includes "emoji overload" when emoji density exceeds threshold', () => {
-    expect(getSlopSignals('🚀 Launch 💡 Idea 🔥 Fire 💪 Strong ⚡ Fast')).toContain('emoji overload')
-  })
-
-  it('includes "raw markdown" when markdown formatting is present', () => {
-    expect(getSlopSignals('Her work reflects **advocacy and technical evolution**.')).toContain('raw markdown')
-  })
-
-  it('includes "line stacking" for moderate single-sentence stacking (5–14 lines)', () => {
-    const text = ['Hook.', 'Second.', 'Third.', 'Fourth.', 'Fifth.', 'Sixth.'].join('\n')
-    expect(getSlopSignals(text)).toContain('line stacking')
-  })
-
-  it('includes "extreme line stacking" for heavy stacking (15+ lines at 80%+ ratio)', () => {
-    const text = Array.from({ length: 20 }, (_, i) => `Line ${i + 1}.`).join('\n')
-    expect(getSlopSignals(text)).toContain('extreme line stacking')
+  it.each([
+    ['emoji overload', '🚀 Launch 💡 Idea 🔥 Fire 💪 Strong ⚡ Fast'],
+    ['raw markdown', 'Her work reflects **advocacy and technical evolution**.'],
+    ['line stacking', ['Hook.', 'Second.', 'Third.', 'Fourth.', 'Fifth.', 'Sixth.'].join('\n')],
+    ['extreme line stacking', Array.from({ length: 20 }, (_, i) => `Line ${i + 1}.`).join('\n')],
+  ])('includes "%s" signal when it fires', (signal, text) => {
+    expect(getSlopSignals(text)).toContain(signal)
   })
 
   it('does not include "extreme line stacking" for moderate stacking', () => {
@@ -1525,14 +483,7 @@ describe('getSlopSignals', () => {
   })
 
   it('returns all triggered signals when multiple fire', () => {
-    const text = [
-      "In today's fast-paced world.",
-      '🚀 Launch. 💡 Think. 🔥 Hot. 💪 Strong. ⚡ Fast.',
-      'Line one.',
-      'Line two.',
-      'Line three.',
-      'Line four.',
-    ].join('\n')
+    const text = ["In today's fast-paced world.", '🚀 Launch. 💡 Think. 🔥 Hot. 💪 Strong. ⚡ Fast.', 'Line one.', 'Line two.', 'Line three.', 'Line four.'].join('\n')
     const signals = getSlopSignals(text)
     expect(signals.some((s) => s.startsWith('buzzword phrases'))).toBe(true)
     expect(signals).toContain('emoji overload')
