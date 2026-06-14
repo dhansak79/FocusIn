@@ -210,6 +210,109 @@ export const SLOP_PHRASES = [
   'the next 12 months',
   'in 6 months ai will',
 
+  // "The [Noun]" framing — presenting ordinary advice as a proprietary system
+  'the playbook',
+  'the blueprint',
+  'the formula',
+  'the masterclass',
+  'the cheat code',
+  'the shortcut',
+  'the roadmap to',
+
+  // "Normalize" virtue signalling — uniquely LinkedIn
+  'normalize asking',
+  'normalize taking',
+  'normalize saying',
+  'normalize talking about',
+  'normalize being',
+
+  // "Prove them wrong" underdog narrative
+  'prove them wrong',
+  'they said i couldn\'t',
+  'everyone said it couldn\'t',
+  'they laughed at me',
+  'they doubted me',
+
+  // More false wisdom clichés
+  'work smarter',
+  'if you\'re the smartest person in the room',
+  'you are the average of',
+  'iron sharpens iron',
+  'fall seven times',
+
+  // "This is why" clickbait hooks
+  'this is why most people',
+  'this is why you\'re not',
+  'this is why i left',
+  'this is why i quit',
+
+  // Personal branding ecosystem
+  'personal brand',
+  'build your brand',
+  'thought leader',
+  'content creator',
+  'creator economy',
+
+  // "What I wish" reflections — formulaic wisdom posts
+  'what i wish i knew',
+  'what i wish someone told me',
+  'what i wish i had known',
+  'what nobody told me',
+
+  // "Stop X" imperatives — motivation slop
+  'stop overthinking',
+  'stop waiting for',
+  'stop comparing yourself',
+  'stop playing small',
+  'stop shrinking',
+
+  // More narrative arc phrases
+  'changed my life',
+  'wake-up call',
+  'i have a confession',
+  'confession:',
+  'the moment i realised',
+  'the moment i realized',
+
+  // LinkedIn ecosystem specific
+  'your network is your net worth',
+  'beat the algorithm',
+  'most underrated',
+  'most overlooked',
+  'an open letter to',
+  'the secret to',
+
+  // Reminder posts — a whole LinkedIn genre unto itself
+  'gentle reminder:',
+  'gentle reminder,',
+  'friendly reminder:',
+  'reminder that',
+  'reminder:',
+
+  // Fear-based engagement
+  'before it\'s too late',
+  'don\'t make this mistake',
+  'avoid this mistake',
+  'biggest mistake',
+  'the number one reason',
+  'number one mistake',
+
+  // Narrative formula phrases
+  'fast forward',
+  'that moment changed everything',
+  'i will never forget',
+  'everything changed when',
+  'it all changed when',
+
+  // LLM vocabulary tells
+  'transformative',
+  'unprecedented',
+  'empower',
+  'supercharge',
+  'game plan',
+  'life hack',
+  'tl;dr',
+
   // Anecdote / storytime hooks
   'story time:',
   'storytime:',

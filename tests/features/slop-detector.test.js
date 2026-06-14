@@ -524,6 +524,208 @@ describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
   })
 })
 
+describe('getSlopScore - "The Noun" framing', () => {
+  it('detects "the playbook"', () => {
+    expect(getSlopScore('Here is the playbook I used to grow from zero to one million.')).toBeGreaterThan(0)
+  })
+
+  it('detects "the blueprint"', () => {
+    expect(getSlopScore('The blueprint every new manager needs but nobody shares.')).toBeGreaterThan(0)
+  })
+
+  it('detects "the formula"', () => {
+    expect(getSlopScore('After ten years I finally found the formula for consistent results.')).toBeGreaterThan(0)
+  })
+
+  it('detects "the masterclass"', () => {
+    expect(getSlopScore('This thread is the masterclass on cold outreach I wish existed.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - normalize posts', () => {
+  it('detects "normalize asking"', () => {
+    expect(getSlopScore('Normalize asking for help. It is a sign of strength, not weakness.')).toBeGreaterThan(0)
+  })
+
+  it('detects "normalize taking"', () => {
+    expect(getSlopScore('Normalize taking a day off when your mental health needs it.')).toBeGreaterThan(0)
+  })
+
+  it('detects "normalize talking about"', () => {
+    expect(getSlopScore('Normalize talking about salary with your colleagues.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - underdog narrative', () => {
+  it('detects "prove them wrong"', () => {
+    expect(getSlopScore('Use every rejection as fuel to prove them wrong.')).toBeGreaterThan(0)
+  })
+
+  it('detects "they said i couldn\'t"', () => {
+    expect(getSlopScore("They said I couldn't do it. Five years later, here we are.")).toBeGreaterThan(0)
+  })
+
+  it('detects "they doubted me"', () => {
+    expect(getSlopScore('They doubted me. I am grateful for every single one of them.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - false wisdom and clichés', () => {
+  it('detects "work smarter"', () => {
+    expect(getSlopScore('Stop working harder. Work smarter. Here is how.')).toBeGreaterThan(0)
+  })
+
+  it('detects "you are the average of"', () => {
+    expect(getSlopScore('You are the average of the five people you spend the most time with.')).toBeGreaterThan(0)
+  })
+
+  it('detects "this is why most people"', () => {
+    expect(getSlopScore('This is why most people never reach their potential at work.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - personal branding ecosystem', () => {
+  it('detects "personal brand"', () => {
+    expect(getSlopScore('Your personal brand is the most valuable asset you own.')).toBeGreaterThan(0)
+  })
+
+  it('detects "thought leader"', () => {
+    expect(getSlopScore('How to become a thought leader in your industry in 90 days.')).toBeGreaterThan(0)
+  })
+
+  it('detects "creator economy"', () => {
+    expect(getSlopScore('The creator economy is the biggest opportunity of our generation.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - "what I wish" reflections', () => {
+  it('detects "what i wish i knew"', () => {
+    expect(getSlopScore('What I wish I knew before starting my first business.')).toBeGreaterThan(0)
+  })
+
+  it('detects "what nobody told me"', () => {
+    expect(getSlopScore('What nobody told me about becoming a people manager.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - "stop X" imperatives', () => {
+  it('detects "stop overthinking"', () => {
+    expect(getSlopScore('Stop overthinking and start shipping.')).toBeGreaterThan(0)
+  })
+
+  it('detects "stop playing small"', () => {
+    expect(getSlopScore('You were not born to stop playing small. Go bigger.')).toBeGreaterThan(0)
+  })
+
+  it('detects "stop comparing yourself"', () => {
+    expect(getSlopScore('Stop comparing yourself to others. Your timeline is your own.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - narrative arc and confession', () => {
+  it('detects "changed my life"', () => {
+    expect(getSlopScore('One book changed my life. Here is what it taught me.')).toBeGreaterThan(0)
+  })
+
+  it('detects "confession:"', () => {
+    expect(getSlopScore('Confession: I almost gave up three times before we hit product-market fit.')).toBeGreaterThan(0)
+  })
+
+  it('detects "the moment i realised"', () => {
+    expect(getSlopScore('The moment I realised I was the problem, everything changed.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - LinkedIn ecosystem specific', () => {
+  it('detects "your network is your net worth"', () => {
+    expect(getSlopScore('Your network is your net worth. Invest in relationships.')).toBeGreaterThan(0)
+  })
+
+  it('detects "beat the algorithm"', () => {
+    expect(getSlopScore('Five ways to beat the algorithm and grow your reach organically.')).toBeGreaterThan(0)
+  })
+
+  it('detects "most underrated"', () => {
+    expect(getSlopScore('The most underrated skill in tech is clear written communication.')).toBeGreaterThan(0)
+  })
+
+  it('detects "the secret to"', () => {
+    expect(getSlopScore('The secret to consistent productivity is not what you think.')).toBeGreaterThan(0)
+  })
+
+  it('detects "an open letter to"', () => {
+    expect(getSlopScore('An open letter to every junior developer feeling overwhelmed right now.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - reminder posts', () => {
+  it('detects "gentle reminder:"', () => {
+    expect(getSlopScore('Gentle reminder: your worth is not tied to your productivity.')).toBeGreaterThan(0)
+  })
+
+  it('detects "friendly reminder:"', () => {
+    expect(getSlopScore('Friendly reminder: it is okay to say no.')).toBeGreaterThan(0)
+  })
+
+  it('detects "reminder that"', () => {
+    expect(getSlopScore('Just a reminder that not every day needs to be your best day.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - fear-based engagement', () => {
+  it('detects "don\'t make this mistake"', () => {
+    expect(getSlopScore("Don't make this mistake when negotiating your salary.")).toBeGreaterThan(0)
+  })
+
+  it('detects "biggest mistake"', () => {
+    expect(getSlopScore('The biggest mistake new managers make in their first 90 days.')).toBeGreaterThan(0)
+  })
+
+  it('detects "the number one reason"', () => {
+    expect(getSlopScore('The number one reason startups fail is not what you think.')).toBeGreaterThan(0)
+  })
+
+  it('detects "before it\'s too late"', () => {
+    expect(getSlopScore("Learn these skills before it's too late.")).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - narrative formula phrases', () => {
+  it('detects "that moment changed everything"', () => {
+    expect(getSlopScore('I got the rejection. That moment changed everything.')).toBeGreaterThan(0)
+  })
+
+  it('detects "i will never forget"', () => {
+    expect(getSlopScore('I will never forget the look on my manager\'s face.')).toBeGreaterThan(0)
+  })
+
+  it('detects "everything changed when"', () => {
+    expect(getSlopScore('Everything changed when I stopped trying to please everyone.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - LLM vocabulary tells', () => {
+  it('detects "transformative"', () => {
+    expect(getSlopScore('This was a truly transformative experience for our entire team.')).toBeGreaterThan(0)
+  })
+
+  it('detects "unprecedented"', () => {
+    expect(getSlopScore('We are living through unprecedented change in the world of work.')).toBeGreaterThan(0)
+  })
+
+  it('detects "empower"', () => {
+    expect(getSlopScore('Our mission is to empower every employee to reach their potential.')).toBeGreaterThan(0)
+  })
+
+  it('detects "supercharge"', () => {
+    expect(getSlopScore('These five habits will supercharge your morning routine.')).toBeGreaterThan(0)
+  })
+
+  it('detects "life hack"', () => {
+    expect(getSlopScore('The best life hack nobody talks about is simply showing up.')).toBeGreaterThan(0)
+  })
+})
+
 describe('getSlopScore - anecdote and storytime hooks', () => {
   it('detects "story time:"', () => {
     expect(getSlopScore('Story time: I once lost a client because of one email.')).toBeGreaterThan(0)
