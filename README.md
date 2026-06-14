@@ -2,13 +2,11 @@
 
 # FocusIn - LinkedIn Attention Filter
 
-FocusIn cuts through LinkedIn's engagement bait, leaving behind the signal you actually care about.
+LinkedIn is doing real damage. Millions of people spend hours every day scrolling through AI-generated slop, engagement bait, and corporate noise dressed up as insight. Attention is finite. We are here to protect it.
+
+FocusIn gives you back control of your LinkedIn feed — filtering out the garbage so the things that actually matter can get through.
 
 > Forked from [njelich/LinkOff](https://github.com/njelich/LinkOff)
-
-Make your LinkedIn experience better, instantly. Fewer distractions, better filtered content — your feed works for you, not against your attention.
-
-No more seeing unwanted likes and comments by your connections. Block the feed or filter it using custom keywords and find the connections and posts you want more easily. Clean up your inbox too — mass deletion built in.
 
 <details markdown="1">
 <summary>Click for preview</summary>
@@ -30,9 +28,7 @@ No more seeing unwanted likes and comments by your connections. Block the feed o
 - Hide posts shown due to interactions (comments, reactions, followed by connections)
 - Hide irrelevant old posts (older than an hour, day, week, month)
 - Select messages for mass deletion (clean your inbox)
-- Message filters (COMING SOON)
 - Unfollow all collections
-- Job filtering (COMING SOON)
 - Block ads on LinkedIn (banners and sidebar)
 - Hide LinkedIn learning and course recommendations
 - Hide community panel and follow recommendations
@@ -40,23 +36,11 @@ No more seeing unwanted likes and comments by your connections. Block the feed o
 - Fully configurable to suit your need!
 - Completely FREE and with NO ADS
 
-## Frequently Asked Questions
+### AI Slop Detection
 
-> Are you going to make a Tampermonkey/Greasemonkey script?
+Collapse or completely hide posts that read like AI-generated content — buzzword phrases, filler hooks, emoji overload, raw markdown, contrasting clause structures, and wall-to-wall single-sentence line stacking. Posts that trip enough signals are either collapsed (with a reveal button) or hidden entirely, depending on your settings.
 
-Not currently planned — the browser extension approach covers the main use cases well.
-
-> What about Vivaldi/Brave/Edge/Opera and other browsers?
-
-The extension can be natively installed on all Chromium browsers.
-
-> What about Safari and macOS?
-
-The App Store charges $100/year to post apps, which makes this impractical for a free extension.
-
-> How can I use this on mobile?
-
-Since neither Chrome nor Firefox allow extensions in mobile browsers, you need a Chromium distribution that does — Kiwi Browser works well (please report any issues).
+FocusIn will be available in every browser on every device.
 
 **Firefox**
 
