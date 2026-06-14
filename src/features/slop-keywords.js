@@ -210,6 +210,32 @@ export const SLOP_PHRASES = [
   'the next 12 months',
   'in 6 months ai will',
 
+  // Career and hustle culture porn
+  '6-figure',
+  'quit my 9-5',
+  'quit my job',
+  'passive income',
+  'financial freedom',
+  'escape the rat race',
+  'side hustle',
+  'multiple streams',
+  'build in public',
+  'solopreneur',
+
+  // Motivational fluff
+  'trust the process',
+  'fall in love with the process',
+  'you are enough',
+  'you got this',
+  'protect your peace',
+  'choose yourself',
+  'bet on yourself',
+  'back yourself',
+  'give yourself permission',
+  'your future self',
+  'the best version of yourself',
+  'invest in yourself',
+
   // Listicle bait
   'ai tools you need',
   'tools that feel illegal',
@@ -232,4 +258,6 @@ export const SLOP_PATTERNS = [
   /—/,
   // Arrow bullet lists — AI listicle format, rarely used by genuine writers
   /^→ .+\n.*^→ /ms,
+  // Twitter thread format on LinkedIn — "1/" "2/" "3/" numbered items
+  /^\d+\/ /m,
 ]

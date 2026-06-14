@@ -524,6 +524,68 @@ describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
   })
 })
 
+describe('getSlopScore - career and hustle culture', () => {
+  it('detects "6-figure"', () => {
+    expect(getSlopScore('How I built a 6-figure business from my spare bedroom.')).toBeGreaterThan(0)
+  })
+
+  it('detects "quit my 9-5"', () => {
+    expect(getSlopScore('I quit my 9-5 eighteen months ago. Here is what happened.')).toBeGreaterThan(0)
+  })
+
+  it('detects "passive income"', () => {
+    expect(getSlopScore('Three passive income streams I built in 2024.')).toBeGreaterThan(0)
+  })
+
+  it('detects "side hustle"', () => {
+    expect(getSlopScore('My side hustle made more than my salary last year.')).toBeGreaterThan(0)
+  })
+
+  it('detects "solopreneur"', () => {
+    expect(getSlopScore('Being a solopreneur is the hardest and best decision I ever made.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - motivational fluff', () => {
+  it('detects "trust the process"', () => {
+    expect(getSlopScore('Trust the process. The results will come.')).toBeGreaterThan(0)
+  })
+
+  it('detects "invest in yourself"', () => {
+    expect(getSlopScore('The best investment you will ever make is to invest in yourself.')).toBeGreaterThan(0)
+  })
+
+  it('detects "your future self"', () => {
+    expect(getSlopScore('Your future self will thank you for starting today.')).toBeGreaterThan(0)
+  })
+
+  it('detects "bet on yourself"', () => {
+    expect(getSlopScore('Stop waiting for permission. Bet on yourself.')).toBeGreaterThan(0)
+  })
+
+  it('detects "the best version of yourself"', () => {
+    expect(getSlopScore('Every day is a chance to become the best version of yourself.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - thread format pattern', () => {
+  it('flags a post structured as a numbered Twitter thread', () => {
+    const post = [
+      '10 lessons I learned building my first company:',
+      '',
+      '1/ Start before you are ready',
+      '2/ Hire for attitude',
+      '3/ Talk to customers every week',
+      '4/ Cash flow is not the same as profit',
+    ].join('\n')
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('does not flag a post with a regular numbered list', () => {
+    expect(getSlopScore('We had three problems: 1. no budget, 2. no time, 3. no idea.')).toBe(0)
+  })
+})
+
 describe('getSlopScore - arrow bullet lists', () => {
   it('flags two or more arrow-bulleted lines', () => {
     const post = '5 things I learned the hard way:\n→ Ship early\n→ Talk to users\n→ Charge more\n→ Hire slowly\n→ Sleep more'
