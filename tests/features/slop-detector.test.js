@@ -524,6 +524,46 @@ describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
   })
 })
 
+describe('getSlopScore - fake reluctance posts', () => {
+  it('detects "i almost didn\'t post this"', () => {
+    expect(getSlopScore("I almost didn't post this. But I think someone needs to hear it.")).toBeGreaterThan(0)
+  })
+
+  it('detects "i don\'t usually share"', () => {
+    expect(getSlopScore("I don't usually share personal things here. But today is different.")).toBeGreaterThan(0)
+  })
+
+  it('detects "i was hesitant to post"', () => {
+    expect(getSlopScore('I was hesitant to post this because it feels vulnerable.')).toBeGreaterThan(0)
+  })
+
+  it('detects "this might be controversial"', () => {
+    expect(getSlopScore('This might be controversial but remote work is not for everyone.')).toBeGreaterThan(0)
+  })
+
+  it('detects "i debated whether to share"', () => {
+    expect(getSlopScore('I debated whether to share this. Decided to go for it.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - PSA and sending love posts', () => {
+  it('detects "psa:"', () => {
+    expect(getSlopScore('PSA: you do not need to respond to emails after 6pm.')).toBeGreaterThan(0)
+  })
+
+  it('detects "sending love to"', () => {
+    expect(getSlopScore('Sending love to every founder out there grinding through uncertainty.')).toBeGreaterThan(0)
+  })
+
+  it('detects "for anyone who needs to hear"', () => {
+    expect(getSlopScore('For anyone who needs to hear this: you are doing better than you think.')).toBeGreaterThan(0)
+  })
+
+  it('detects "if you needed to hear this"', () => {
+    expect(getSlopScore('If you needed to hear this today, here it is: rest is productive.')).toBeGreaterThan(0)
+  })
+})
+
 describe('getSlopScore - emoji bullet lists', () => {
   it('scores above 0 for two or more emoji-prefixed bullet lines', () => {
     const post = '5 habits of high performers:\n🎯 Set clear goals\n💡 Think creatively\n🔑 Unlock your potential'

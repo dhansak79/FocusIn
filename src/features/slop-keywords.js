@@ -210,6 +210,28 @@ export const SLOP_PHRASES = [
   'the next 12 months',
   'in 6 months ai will',
 
+  // Fake reluctance — manufactured vulnerability before oversharing
+  "i almost didn't post this",
+  "i almost didn't share this",
+  "i don't usually share",
+  "i don't usually post",
+  'i debated whether to share',
+  'i was hesitant to post',
+  'this might be controversial',
+  'this will be controversial',
+  'i know this is unpopular',
+
+  // "PSA" posts — unsolicited public service announcements
+  'psa:',
+  'public service announcement',
+
+  // Sending love / emotional performance
+  'sending love to',
+  'sending this to',
+  'this is for everyone who',
+  'if you needed to hear this',
+  'for anyone who needs to hear',
+
   // "Deserve" motivational posts
   'you deserve',
   'you deserve better',
