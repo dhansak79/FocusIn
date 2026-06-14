@@ -74,6 +74,29 @@ export const SLOP_PHRASES = [
   'agentic',
   'game-changing',
 
+  // "Unpopular opinion" / hot take hooks — very specific to slop
+  'unpopular opinion:',
+  'unpopular opinion,',
+  'hot take:',
+  'real talk:',
+
+  // Fake vulnerability and humility bait
+  'i was wrong about',
+  'i almost quit',
+  'full transparency,',
+  'full transparency:',
+
+  // Question engagement hooks
+  'what if i told you',
+  'raise your hand if',
+  'who needs to hear this',
+  'you need to hear this',
+
+  // Pseudo-revelatory patterns
+  'this is your sign',
+  'this is your reminder',
+  'no one tells you',
+
   // LinkedIn engagement bait
   'drop a comment',
   'comment below',
@@ -207,4 +230,6 @@ export const SLOP_PATTERNS = [
   /that['‘’]s not [^.!?\n]{1,60}[.!?][ \t\n]+that['‘’]s /i,
   // Em dash — almost never typed manually; heavily used by LLMs
   /—/,
+  // Arrow bullet lists — AI listicle format, rarely used by genuine writers
+  /^→ .+\n.*^→ /ms,
 ]

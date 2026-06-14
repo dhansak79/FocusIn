@@ -454,6 +454,66 @@ describe('getSlopScore - Dustin Andrews cliché phrases', () => {
   })
 })
 
+describe('getSlopScore - hot take and opinion hooks', () => {
+  it('detects "unpopular opinion:"', () => {
+    expect(getSlopScore('Unpopular opinion: most stand-ups are a waste of time.')).toBeGreaterThan(0)
+  })
+
+  it('detects "hot take:"', () => {
+    expect(getSlopScore('Hot take: async work is not actually harder.')).toBeGreaterThan(0)
+  })
+
+  it('detects "real talk:"', () => {
+    expect(getSlopScore('Real talk: most people are not learning from their mistakes.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - fake vulnerability and humility bait', () => {
+  it('detects "i was wrong about"', () => {
+    expect(getSlopScore('I was wrong about remote work. Here is what changed my mind.')).toBeGreaterThan(0)
+  })
+
+  it('detects "i almost quit"', () => {
+    expect(getSlopScore('I almost quit my job in 2022. Here is what stopped me.')).toBeGreaterThan(0)
+  })
+
+  it('detects "full transparency,"', () => {
+    expect(getSlopScore('Full transparency, I had no idea what I was doing.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - question engagement hooks', () => {
+  it('detects "what if i told you"', () => {
+    expect(getSlopScore('What if I told you that most meetings could be emails?')).toBeGreaterThan(0)
+  })
+
+  it('detects "raise your hand if"', () => {
+    expect(getSlopScore('Raise your hand if you have ever shipped something you were not proud of.')).toBeGreaterThan(0)
+  })
+
+  it('detects "who needs to hear this"', () => {
+    expect(getSlopScore('Who needs to hear this today? You are doing better than you think.')).toBeGreaterThan(0)
+  })
+
+  it('detects "you need to hear this"', () => {
+    expect(getSlopScore('You need to hear this if you are struggling with productivity.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - pseudo-revelatory patterns', () => {
+  it('detects "this is your sign"', () => {
+    expect(getSlopScore('This is your sign to finally start that side project.')).toBeGreaterThan(0)
+  })
+
+  it('detects "this is your reminder"', () => {
+    expect(getSlopScore('This is your reminder that done is better than perfect.')).toBeGreaterThan(0)
+  })
+
+  it('detects "no one tells you"', () => {
+    expect(getSlopScore('No one tells you how hard the first year of leadership really is.')).toBeGreaterThan(0)
+  })
+})
+
 describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
   it('detects "agentic"', () => {
     expect(getSlopScore('We are building an agentic workflow for our team.')).toBeGreaterThan(0)
@@ -461,6 +521,17 @@ describe('getSlopScore - Dustin Andrews AI buzzwords', () => {
 
   it('detects "game-changing"', () => {
     expect(getSlopScore('This is a game-changing approach to productivity.')).toBeGreaterThan(0)
+  })
+})
+
+describe('getSlopScore - arrow bullet lists', () => {
+  it('flags two or more arrow-bulleted lines', () => {
+    const post = '5 things I learned the hard way:\n→ Ship early\n→ Talk to users\n→ Charge more\n→ Hire slowly\n→ Sleep more'
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('does not flag a single arrow used naturally', () => {
+    expect(getSlopScore('We went from idea → product in 6 weeks.')).toBe(0)
   })
 })
 
