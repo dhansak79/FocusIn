@@ -241,10 +241,14 @@ export const applyClassificationDecision = (post, { label, score }) => {
 }
 
 const sendClassifyRequest = (post, text) => {
-  chrome.runtime.sendMessage({ 'classify-post': text }, (response) => {
-    if (chrome.runtime.lastError || !response?.result) return
-    applyClassificationDecision(post, response.result)
-  })
+  try {
+    chrome.runtime.sendMessage({ 'classify-post': text }, (response) => {
+      if (chrome.runtime.lastError || !response?.result) return
+      applyClassificationDecision(post, response.result)
+    })
+  } catch {
+    // Extension context invalidated after reload — silently discard
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -642,6 +642,18 @@ describe('classify-posts integration', () => {
     expect(document.querySelector('[data-classification-badge]')).toBeNull()
   })
 
+  it('does not throw when sendMessage throws Extension context invalidated', () => {
+    sendMessageSpy = vi.fn(() => { throw new Error('Extension context invalidated.') })
+    vi.stubGlobal('chrome', {
+      runtime: { lastError: null, sendMessage: sendMessageSpy },
+    })
+    buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    expect(() => {
+      doFeed({ ...baseConfig, 'classify-posts': true })
+      vi.advanceTimersByTime(350)
+    }).not.toThrow()
+  })
+
   it('does not re-classify a post when doFeed re-runs', () => {
     buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
     doFeed({ ...baseConfig, 'classify-posts': true })
