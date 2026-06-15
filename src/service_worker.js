@@ -12,7 +12,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     'hide-liked': true,
     'hide-suggested': true,
     'sort-by-recent': true,
-    'detect-slop': false,
+    'detect-slop': true,
     'hide-slop': false,
     'hide-premium': true,
     'hide-advertisements': true,
