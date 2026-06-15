@@ -645,7 +645,7 @@ export const SLOP_PHRASES = [
 ]
 
 export const SLOP_PATTERNS = [
-  // "It’s not X. It’s Y." / "This isn’t X. This is Y." / "That’s not X. That’s Y."
+  // "It's not X. It's Y." / "This isn't X. This is Y." / "That's not X. That's Y."
   // Short contrasting clauses — classic AI-ghostwritten LinkedIn structure (via Dustin Andrews)
   /it['‘’]s not [^.!?\n]{1,60}[.!?][ \t\n]+it['‘’]s /i,
   /this isn['‘’]t [^.!?\n]{1,60}[.!?][ \t\n]+this is /i,
@@ -660,4 +660,16 @@ export const SLOP_PATTERNS = [
   /\bas .{3,40} (once |always )?(said|put it)[,:.]/i,
   // Numbered listicle format — "5 things successful people do" / "7 habits that changed my life"
   /\b(3|4|5|6|7|8|9|10|11|12|15|20|25|50|100) (things|ways|habits|reasons|tips|mistakes|secrets|rules|lessons|principles|steps|skills)\b/i,
+]
+
+// Human-readable label for each pattern — must stay in the same order as SLOP_PATTERNS
+export const SLOP_PATTERN_LABELS = [
+  "it's not X, it's Y",
+  "this isn't X, this is Y",
+  "that's not X, that's Y",
+  "em dash",
+  "arrow bullets",
+  "thread format",
+  "quote attribution",
+  "numbered listicle",
 ]

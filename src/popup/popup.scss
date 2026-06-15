@@ -235,6 +235,68 @@ body {
   border-bottom: none !important;
 }
 
+// ── Damage report ──────────────────────────────────────────────────────────
+#damage-report {
+  background-color: $raised;
+  border-bottom: 1px solid $border-col;
+  padding: 1rem 1.5rem 0.75rem;
+
+  .damage-header {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: $muted;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.damage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.damage-stat {
+  text-align: center;
+}
+
+.damage-count {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: $accent;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.damage-label {
+  font-size: 0.68rem;
+  color: $muted;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.signal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+  padding: 0.25rem 0;
+  border-top: 1px solid $border-col;
+
+  .signal-name {
+    color: $text;
+  }
+
+  .signal-count {
+    color: $accent;
+    font-weight: 600;
+    font-size: 0.72rem;
+  }
+}
+
 // ── Age filter row ─────────────────────────────────────────────────────────
 .age-filter-row {
   display: flex;

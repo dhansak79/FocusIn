@@ -138,7 +138,12 @@ export const resetShownPosts = () => {
 
 export const resetBlockedPosts = () => {
   console.log('FocusedIn: Resetting blocked posts')
-  resetBySelector(POST_SELECTOR.map((s) => `${s}[data-hidden=true]`).join(','))
+  document.querySelectorAll(POST_SELECTOR.map((s) => `${s}[data-hidden=true]`).join(',')).forEach((el) => {
+    removeHideClasses(el)
+    delete el.dataset.hidden
+    delete el.dataset.focusinBanner
+  })
+  document.querySelectorAll('.focusedin-slop-collapsed, .focusedin-slop-tag').forEach((el) => el.remove())
 }
 
 export const resetJobs = () => {

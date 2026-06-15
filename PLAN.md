@@ -34,9 +34,9 @@ The extension currently requires setup. The best version works immediately on in
 
 Make the damage visible. Show people what FocusIn filtered and why. Not to second-guess the decision — to make the scale of the problem undeniable.
 
-- [ ] Session counter — posts hidden, slop detected
-- [ ] Signal breakdown — show why a post was flagged (emoji overload, buzzwords, etc.)
-- [ ] Popup summary — "In this session, 34 AI-generated posts were hidden"
+- [x] Session counter — posts hidden, slop detected
+- [x] Signal breakdown — show why a post was flagged (emoji overload, buzzwords, etc.)
+- [x] Popup summary — "In this session, 34 AI-generated posts were hidden"
 
 **Branch:** `show-the-damage`
 

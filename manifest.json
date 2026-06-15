@@ -51,6 +51,7 @@
         "src/features/feed-keywords.js",
         "src/features/slop-detector.js",
         "src/features/slop-keywords.js",
+        "src/stats.js",
 "src/features/jobs.js",
         "src/features/job-keywords.js",
         "src/features/misc.js",

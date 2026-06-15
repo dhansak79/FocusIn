@@ -219,8 +219,8 @@ describe('getSlopScore - em dash', () => {
     expect(getSlopScore('We shipped the feature - and it went great.')).toBe(0)
   })
 
-  it('reports "language patterns" in signals for an em dash', () => {
-    expect(getSlopSignals('We shipped the feature — and it went great.')).toContain('language patterns')
+  it('reports "em dash" in signals for an em dash', () => {
+    expect(getSlopSignals('We shipped the feature — and it went great.')).toContain('em dash')
   })
 })
 
@@ -459,16 +459,26 @@ describe('getSlopSignals', () => {
     expect(getSlopSignals('We shipped a new feature. The team worked hard on it.')).toEqual([])
   })
 
-  it('includes "buzzword phrases (n)" when a slop phrase matches', () => {
+  it('includes the actual matched phrase quoted when a slop phrase matches', () => {
     const signals = getSlopSignals("In today's fast-paced world, we need to adapt.")
-    expect(signals.some((s) => s.startsWith('buzzword phrases'))).toBe(true)
+    expect(signals).toContain('"in today\'s fast-paced"')
   })
 
-  it('includes the phrase count in the buzzword signal label', () => {
-    expect(getSlopSignals("In today's fast-paced world, let that sink in.")).toContain('buzzword phrases (2)')
+  it('includes up to 3 quoted phrases when multiple match', () => {
+    const signals = getSlopSignals("In today's fast-paced world, let that sink in.")
+    const quoted = signals.filter((s) => s.startsWith('"'))
+    expect(quoted.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('caps matched phrases at 3 even when more than 3 match', () => {
+    const text = "In today's fast-paced world, let that sink in. Game-changer! Leverage thought leadership. Key takeaways."
+    const signals = getSlopSignals(text)
+    const quoted = signals.filter((s) => s.startsWith('"'))
+    expect(quoted.length).toBeLessThanOrEqual(3)
   })
 
   it.each([
+    ['em dash', 'We shipped the feature — and it went great.'],
     ['emoji overload', '🚀 Launch 💡 Idea 🔥 Fire 💪 Strong ⚡ Fast'],
     ['raw markdown', 'Her work reflects **advocacy and technical evolution**.'],
     ['line stacking', ['Hook.', 'Second.', 'Third.', 'Fourth.', 'Fifth.', 'Sixth.'].join('\n')],
@@ -485,8 +495,14 @@ describe('getSlopSignals', () => {
   it('returns all triggered signals when multiple fire', () => {
     const text = ["In today's fast-paced world.", '🚀 Launch. 💡 Think. 🔥 Hot. 💪 Strong. ⚡ Fast.', 'Line one.', 'Line two.', 'Line three.', 'Line four.'].join('\n')
     const signals = getSlopSignals(text)
-    expect(signals.some((s) => s.startsWith('buzzword phrases'))).toBe(true)
+    expect(signals.some((s) => s.startsWith('"'))).toBe(true)
     expect(signals).toContain('emoji overload')
     expect(signals).toContain('line stacking')
+  })
+
+  it('reports specific pattern labels for regex matches', () => {
+    expect(getSlopSignals("It's not experience. It's exposure.")).toContain("it's not X, it's Y")
+    expect(getSlopSignals('5 things successful people do differently.')).toContain('numbered listicle')
+    expect(getSlopSignals('As Steve Jobs once said: stay hungry.')).toContain('quote attribution')
   })
 })

@@ -16,6 +16,7 @@ import {
   waitForSelector,
 } from '../utils.js'
 import { getSlopSignals, isSlop } from './slop-detector.js'
+import { trackPostFiltered, trackSlopCollapsed, trackSlopHidden } from '../stats.js'
 
 let feedObserver = null
 let scrollTimerId = null
@@ -120,20 +121,40 @@ const extractAuthorName = (post) => {
   return null
 }
 
+// Tracks post text prefixes the user has explicitly revealed, persists for the page lifetime.
+// Prevents re-collapsing when LinkedIn replaces the DOM element for an already-revealed post.
+const revealedTexts = new Set()
+
+const collapseToTag = (banner, author) => {
+  banner.className = 'focusedin-slop-tag'
+  while (banner.firstChild) banner.removeChild(banner.firstChild)
+  const text = document.createElement('span')
+  text.textContent = `🤖 AI post${author ? `  ·  ${author}` : ''}`
+  banner.append(text)
+}
+
 const addRevealBanner = (post, signals) => {
-  if (post.previousElementSibling?.classList.contains('focusedin-slop-collapsed')) return
+  if (post.dataset.focusinBanner) return
+  if (post.dataset.slopRevealed) return
+  const postText = extractPostText(post).trim().slice(0, 150)
+  if (revealedTexts.has(postText)) return
+  post.dataset.focusinBanner = '1'
   const author = extractAuthorName(post)
   const banner = document.createElement('div')
   banner.className = 'focusedin-slop-collapsed'
-  banner.onclick = () => {
-    post.classList.remove('hide', 'focusedin-slop-soft-hide')
-    post.dataset.slopRevealed = true
-    banner.remove()
-  }
+  banner.dataset.focusinInjected = '1'
 
-  const label = document.createElement('div')
-  label.textContent = `🤖 AI slop hidden (${signals.join(', ')})`
-  banner.append(label)
+  const headline = document.createElement('div')
+  headline.className = 'focusedin-slop-headline'
+  headline.textContent = '🤖 AI-generated post'
+  banner.append(headline)
+
+  if (signals.length) {
+    const signalRow = document.createElement('div')
+    signalRow.className = 'focusedin-slop-signals'
+    signalRow.textContent = signals.join('  ·  ')
+    banner.append(signalRow)
+  }
 
   if (author) {
     const authorEl = document.createElement('div')
@@ -141,6 +162,20 @@ const addRevealBanner = (post, signals) => {
     authorEl.textContent = author
     banner.append(authorEl)
   }
+
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.className = 'focusedin-slop-reveal-btn'
+  btn.textContent = 'Show anyway'
+  btn.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    post.classList.remove('hide', 'focusedin-slop-soft-hide')
+    post.dataset.slopRevealed = true
+    revealedTexts.add(postText)
+    collapseToTag(banner, author)
+  })
+  banner.append(btn)
 
   post.before(banner)
 }
@@ -152,6 +187,7 @@ const addRevealBanner = (post, signals) => {
 // Returns true if a DOM node is a feed post (not an intermediate container or non-element)
 const isPostNode = (node) => {
   if (node.nodeType !== Node.ELEMENT_NODE) return false
+  if (node.dataset?.focusinInjected) return false
   const parent = node.parentElement
   return (
     node.matches('[role="listitem"]') ||
@@ -163,26 +199,45 @@ const isPostNode = (node) => {
 const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop) => {
   let postsProcessed = 0
 
-  const applyKeywordToPost = (post) => {
-    postsProcessed++
-    const postText = post.textContent
-    const isKeywordMatch = keywords.some((keyword) => postText.indexOf(keyword) !== -1)
-    let slopSignals = null
-    const shouldCheckSlop = (detectSlop || hideSlop) && !post.dataset.slopRevealed
-    if (shouldCheckSlop) {
-      const text = extractPostText(post)
-      if (isSlop(text)) slopSignals = getSlopSignals(text)
+  const countOnce = (post, fn, signals) => {
+    if (post.dataset.focusinCounted) return
+    signals ? fn(signals) : fn()
+    post.dataset.focusinCounted = '1'
+  }
+
+  const checkSlop = (post) => {
+    if (!(detectSlop || hideSlop)) return null
+    if (post.dataset.slopRevealed || post.querySelector('[data-slop-revealed]')) return null
+    const text = extractPostText(post)
+    if (revealedTexts.has(text.trim().slice(0, 150))) return null
+    return isSlop(text) ? getSlopSignals(text) : null
+  }
+
+  const applySlopDecision = (post, slopSignals) => {
+    if (hideSlop) {
+      hidePost(post, mode)
+      countOnce(post, trackSlopHidden, slopSignals)
+    } else {
+      post.classList.add('focusedin-slop-soft-hide')
+      post.dataset.hidden = true
+      addRevealBanner(post, slopSignals)
+      countOnce(post, trackSlopCollapsed, slopSignals)
     }
+  }
+
+  const applyKeywordToPost = (post) => {
+    // LinkedIn nests an outer wrapper (> data-lazy-mount-id > div) AND an inner
+    // div[role="listitem"] — both match POST_SELECTOR. Skip if an ancestor has
+    // already been processed so we don't double-banner the same post.
+    if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner]')) return
+    postsProcessed++
+    const isKeywordMatch = keywords.some((keyword) => post.textContent.indexOf(keyword) !== -1)
+    const slopSignals = checkSlop(post)
     if (isKeywordMatch) {
       hidePost(post, mode)
+      countOnce(post, trackPostFiltered)
     } else if (slopSignals) {
-      if (hideSlop) {
-        hidePost(post, mode)
-      } else {
-        post.classList.add('focusedin-slop-soft-hide')
-        post.dataset.hidden = true
-        addRevealBanner(post, slopSignals)
-      }
+      applySlopDecision(post, slopSignals)
     } else {
       removeHideClasses(post)
       post.classList.remove('focusedin-slop-soft-hide')

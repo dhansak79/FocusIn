@@ -1,3 +1,6 @@
+import { readStats } from '../stats.js'
+import { renderDamageReport } from '../stats-renderer.js'
+
 // Tab functionality
 
 const openTab = (tabName) => (event) => {
@@ -168,4 +171,12 @@ window.onload = function () {
   chrome.storage.local.get('job-keywords', function (res) {
     jobTagify.addTags(res['job-keywords'])
   })
+
+  readStats((stats) =>
+    renderDamageReport(stats, {
+      slopEl: document.getElementById('stat-slop'),
+      filteredEl: document.getElementById('stat-filtered'),
+      signalsEl: document.getElementById('top-signals'),
+    })
+  )
 }

@@ -89,17 +89,18 @@ describe('detect-slop - collapse with reveal banner', () => {
     expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-collapsed')).toBe(true)
   })
 
-  it('clicking the banner removes soft-hide class and removes the banner', () => {
+  it('clicking the reveal button removes soft-hide class and transforms banner to tag', () => {
     const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
 
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
 
-    posts[0].previousElementSibling.click()
+    posts[0].previousElementSibling.querySelector('button').click()
 
     expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
     expect(posts[0].classList.contains('hide')).toBe(false)
     expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-collapsed')).toBeFalsy()
+    expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-tag')).toBe(true)
   })
 
   it('does not re-collapse the post after the user reveals it', () => {
@@ -107,7 +108,7 @@ describe('detect-slop - collapse with reveal banner', () => {
 
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
-    posts[0].previousElementSibling.click()
+    posts[0].previousElementSibling.querySelector('button').click()
 
     vi.advanceTimersByTime(350)
     vi.advanceTimersByTime(350)
@@ -138,6 +139,134 @@ describe('detect-slop - collapse with reveal banner', () => {
     expect(posts[0].classList.contains('hide')).toBe(false)
   })
 
+  it('does not re-process the reveal banner as a post (prevents infinite loop)', () => {
+    // The banner is inserted as a sibling of the post (same parent: div[data-lazy-mount-id]).
+    // The MutationObserver would see it and, without the focusinInjected guard, call
+    // applyKeywordToPost on it. The banner text contains slop-signal names like "game-changer",
+    // which would match the slop detector and insert another banner, creating an infinite loop.
+    buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
+  })
+
+  it('does not re-add a banner after reveal when doFeed runs again (double-tag fix)', () => {
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    posts[0].previousElementSibling.querySelector('button').click()
+
+    // Simulate a settings change re-triggering doFeed
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(0)
+    expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
+  })
+
+  it('does not add a banner to a wrapper node whose child post was already revealed', () => {
+    // Simulates LinkedIn wrapping a revealed post inside a new container node.
+    // The MutationObserver sees the wrapper as a new addedNode; isPostNode returns true
+    // (parent has data-lazy-mount-id). Without the descendant guard, checkSlop would
+    // run on the wrapper's text content (which contains the original slop text) and
+    // add a second banner.
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    posts[0].previousElementSibling.querySelector('button').click()
+
+    // Move the revealed post inside a new wrapper in the same feed mount
+    const feedMount = document.querySelector('[data-lazy-mount-id]')
+    const wrapper = document.createElement('div')
+    feedMount.insertBefore(wrapper, posts[0])
+    wrapper.appendChild(posts[0])
+    vi.advanceTimersByTime(50)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(0)
+    expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
+  })
+
+  it('does not add a banner to a fresh element with the same content as a revealed post', () => {
+    // Simulates LinkedIn replacing the post element with a fresh DOM node (its common
+    // lazy-load behaviour after the post becomes visible). The new element has no
+    // slopRevealed attribute, but its text prefix matches the revealedTexts Set, so
+    // checkSlop returns null and no second banner is added.
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    posts[0].previousElementSibling.querySelector('button').click()
+
+    // LinkedIn removes the old element and inserts a fresh one with identical content
+    const feedMount = document.querySelector('[data-lazy-mount-id]')
+    const freshPost = document.createElement('div')
+    freshPost.innerHTML = SLOP_POST
+    feedMount.insertBefore(freshPost, posts[0])
+    posts[0].remove()
+    vi.advanceTimersByTime(50)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(0)
+  })
+
+  it('adds exactly one banner when outer wrapper and inner listitem both match POST_SELECTOR', () => {
+    // Matches the real LinkedIn DOM: div[data-display-contents] (outer) is matched by
+    // "> data-lazy-mount-id > div", and the nested div[role="listitem"] is matched by
+    // "FEED_SELECTOR div[role="listitem"]". Without the ancestor guard, both get banners.
+    document.body.innerHTML = `
+      <div data-testid="mainFeed" componentkey="container-update-list_mainFeed-lazy-container">
+        <div data-lazy-mount-id="test-mount" style="display:contents">
+          <div data-display-contents="true"><div><div role="listitem">${SLOP_POST}</div></div></div>
+          <div>${CLEAN_POST}</div>
+          <div>${CLEAN_POST}</div>
+          <div>${CLEAN_POST}</div>
+          <div>${CLEAN_POST}</div>
+          <div>${CLEAN_POST}</div>
+        </div>
+      </div>`
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
+  })
+
+  it('adds exactly one banner on re-scan after LinkedIn lazily fills the outer wrapper with a listitem', () => {
+    // Outer container is in DOM at initial scan (empty content), processed as clean.
+    // LinkedIn then injects div[role="listitem"] with slop content. A settings change
+    // (second doFeed) re-scans — outer now has content and gets a banner; the inner
+    // listitem finds the outer's data-focusin-banner ancestor and is skipped.
+    document.body.innerHTML = `
+      <div data-testid="mainFeed" componentkey="container-update-list_mainFeed-lazy-container">
+        <div data-lazy-mount-id="test-mount" style="display:contents">
+          <div data-display-contents="true"><div id="inner-mount"></div></div>
+          <div>${CLEAN_POST}</div>
+          <div>${CLEAN_POST}</div>
+          <div>${CLEAN_POST}</div>
+          <div>${CLEAN_POST}</div>
+          <div>${CLEAN_POST}</div>
+        </div>
+      </div>`
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    // LinkedIn lazily injects the actual post content
+    const listitem = document.createElement('div')
+    listitem.setAttribute('role', 'listitem')
+    listitem.innerHTML = SLOP_POST
+    document.getElementById('inner-mount').appendChild(listitem)
+
+    // Settings change triggers a re-scan
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
+  })
+
   it('injects exactly one reveal banner even when the interval fires multiple times', () => {
     buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
 
@@ -147,6 +276,22 @@ describe('detect-slop - collapse with reveal banner', () => {
     vi.advanceTimersByTime(350)
 
     expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
+  })
+
+  it('does not re-count a post when settings change and blockPostsByKeywords re-runs', () => {
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    expect(posts[0].dataset.focusinCounted).toBe('1')
+
+    // Second doFeed simulates a settings toggle — resets hidden state but not focusinCounted
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    // Still '1' — countOnce guard fired for the second scan
+    expect(posts[0].dataset.focusinCounted).toBe('1')
   })
 
   it('runs without any keyword filters active', () => {
@@ -220,6 +365,19 @@ describe('detect-slop - collapse with reveal banner', () => {
     vi.advanceTimersByTime(350)
 
     expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-collapsed')).toBe(true)
+  })
+
+  it('transforms to tag without author when no author link is present and reveal is clicked', () => {
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    posts[0].previousElementSibling.querySelector('button').click()
+
+    const tag = posts[0].previousElementSibling
+    expect(tag?.classList.contains('focusedin-slop-tag')).toBe(true)
+    expect(tag?.textContent).toBe('🤖 AI post')
   })
 
   it('does not show the scroll-down alert when only detect-slop is active', () => {

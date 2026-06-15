@@ -332,6 +332,28 @@ describe('resetBlockedPosts', () => {
     expect(post.classList.contains('hide')).toBe(true)
     expect(post.dataset.hidden).toBe('false')
   })
+
+  it('clears focusinBanner flag from blocked posts', () => {
+    const post = buildFeedPost('true')
+    post.dataset.focusinBanner = '1'
+    resetBlockedPosts()
+    expect(post.dataset.focusinBanner).toBeUndefined()
+  })
+
+  it('removes banner elements from the DOM', () => {
+    buildFeedPost('true')
+    const banner = document.createElement('div')
+    banner.className = 'focusedin-slop-collapsed'
+    document.body.appendChild(banner)
+    const tag = document.createElement('div')
+    tag.className = 'focusedin-slop-tag'
+    document.body.appendChild(tag)
+
+    resetBlockedPosts()
+
+    expect(document.querySelector('.focusedin-slop-collapsed')).toBeNull()
+    expect(document.querySelector('.focusedin-slop-tag')).toBeNull()
+  })
 })
 
 // ---------------------------------------------------------------------------

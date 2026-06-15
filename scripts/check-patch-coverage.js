@@ -50,10 +50,10 @@ for (const line of diff.split('\n')) {
 let failed = false
 for (const [f, lines] of Object.entries(added)) {
   // Only enforce coverage on unit-testable source files.
-  // src/content/ contains browser-only bootstrap code (dynamic import, self guard)
-  // that cannot be exercised in a jsdom unit test.
+  // src/content/ and src/popup/ contain browser/extension-only code that
+  // cannot be exercised in a jsdom unit test.
   if (!f.startsWith('src/') || !f.endsWith('.js')) continue
-  if (f.startsWith('src/content/')) continue
+  if (f.startsWith('src/content/') || f.startsWith('src/popup/')) continue
 
   const fileCov = coverage[f]
   if (!fileCov) {
