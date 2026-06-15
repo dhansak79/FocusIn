@@ -131,6 +131,7 @@ const collapseToTag = (banner, author) => {
 
 const addRevealBanner = (post, signals) => {
   if (post.dataset.focusinBanner) return
+  if (post.dataset.slopRevealed) return
   post.dataset.focusinBanner = '1'
   const author = extractAuthorName(post)
   const banner = document.createElement('div')
@@ -198,7 +199,8 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop) => {
   }
 
   const checkSlop = (post) => {
-    if (!(detectSlop || hideSlop) || post.dataset.slopRevealed) return null
+    if (!(detectSlop || hideSlop)) return null
+    if (post.dataset.slopRevealed || post.querySelector('[data-slop-revealed]')) return null
     const text = extractPostText(post)
     return isSlop(text) ? getSlopSignals(text) : null
   }

@@ -152,6 +152,44 @@ describe('detect-slop - collapse with reveal banner', () => {
     expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
   })
 
+  it('does not re-add a banner after reveal when doFeed runs again (double-tag fix)', () => {
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    posts[0].previousElementSibling.querySelector('button').click()
+
+    // Simulate a settings change re-triggering doFeed
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(0)
+    expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
+  })
+
+  it('does not add a banner to a wrapper node whose child post was already revealed', () => {
+    // Simulates LinkedIn wrapping a revealed post inside a new container node.
+    // The MutationObserver sees the wrapper as a new addedNode; isPostNode returns true
+    // (parent has data-lazy-mount-id). Without the descendant guard, checkSlop would
+    // run on the wrapper's text content (which contains the original slop text) and
+    // add a second banner.
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    posts[0].previousElementSibling.querySelector('button').click()
+
+    // Move the revealed post inside a new wrapper in the same feed mount
+    const feedMount = document.querySelector('[data-lazy-mount-id]')
+    const wrapper = document.createElement('div')
+    feedMount.insertBefore(wrapper, posts[0])
+    wrapper.appendChild(posts[0])
+    vi.advanceTimersByTime(50)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(0)
+    expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
+  })
+
   it('injects exactly one reveal banner even when the interval fires multiple times', () => {
     buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
 
