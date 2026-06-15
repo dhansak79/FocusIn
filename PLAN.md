@@ -21,10 +21,10 @@ The slop detector is the heart of this. Right now it's a static keyword list. Ma
 
 The extension currently requires setup. The best version works immediately on install with defaults that protect you from 90% of the damage.
 
-- [ ] Audit current defaults — what is off by default that should be on
-- [ ] Turn on slop detection by default
-- [ ] Turn on ad blocking by default
-- [ ] Remove any feature that requires explanation to use
+- [x] Audit current defaults — what is off by default that should be on
+- [x] Turn on slop detection by default
+- [x] Turn on ad blocking by default
+- [x] Remove any feature that requires explanation to use
 
 **Branch:** `better-defaults`
 
