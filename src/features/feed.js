@@ -135,6 +135,7 @@ const addRevealBanner = (post, signals) => {
   const author = extractAuthorName(post)
   const banner = document.createElement('div')
   banner.className = 'focusedin-slop-collapsed'
+  banner.dataset.focusinInjected = '1'
 
   const headline = document.createElement('div')
   headline.className = 'focusedin-slop-headline'
@@ -178,6 +179,7 @@ const addRevealBanner = (post, signals) => {
 // Returns true if a DOM node is a feed post (not an intermediate container or non-element)
 const isPostNode = (node) => {
   if (node.nodeType !== Node.ELEMENT_NODE) return false
+  if (node.dataset?.focusinInjected) return false
   const parent = node.parentElement
   return (
     node.matches('[role="listitem"]') ||

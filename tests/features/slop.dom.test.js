@@ -139,6 +139,19 @@ describe('detect-slop - collapse with reveal banner', () => {
     expect(posts[0].classList.contains('hide')).toBe(false)
   })
 
+  it('does not re-process the reveal banner as a post (prevents infinite loop)', () => {
+    // The banner is inserted as a sibling of the post (same parent: div[data-lazy-mount-id]).
+    // The MutationObserver would see it and, without the focusinInjected guard, call
+    // applyKeywordToPost on it. The banner text contains slop-signal names like "game-changer",
+    // which would match the slop detector and insert another banner, creating an infinite loop.
+    buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
+  })
+
   it('injects exactly one reveal banner even when the interval fires multiple times', () => {
     buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
 
