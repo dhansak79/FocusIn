@@ -20,6 +20,7 @@ export default defineConfig({
         'src/utils.js',
         'src/stats.js',
         'src/stats-renderer.js',
+        'src/popup/popup.js',
       ],
       thresholds: {
         lines: 90,
