@@ -28,14 +28,15 @@ const embed = async (text) => {
 
 const cosineSimilarity = (a, b) => a.reduce((sum, v, i) => sum + v * b[i], 0)
 
-let cachedQuery = null
-let cachedQueryEmbedding = null
+let cachedQueriesKey = null
+let cachedQueryEmbeddings = []
 
-export const semanticCheck = async (query, postText) => {
-  if (query !== cachedQuery) {
-    cachedQuery = query
-    cachedQueryEmbedding = await embed(query)
+export const semanticCheck = async (queries, postText) => {
+  const key = queries.join('|')
+  if (key !== cachedQueriesKey) {
+    cachedQueriesKey = key
+    cachedQueryEmbeddings = await Promise.all(queries.map(embed))
   }
   const postEmbedding = await embed(postText)
-  return cosineSimilarity(cachedQueryEmbedding, postEmbedding)
+  return Math.max(...cachedQueryEmbeddings.map((qe) => cosineSimilarity(qe, postEmbedding)))
 }

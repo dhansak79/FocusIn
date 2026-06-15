@@ -100,8 +100,8 @@ describe('popup', () => {
     expect(mockSet).toHaveBeenCalledWith({ 'job-keywords': '' }, expect.any(Function))
   })
 
-  it('saves semantic filter to storage on each keystroke', () => {
-    document.getElementById('semantic-filter').dispatchEvent(new Event('input'))
+  it('saves semantic filter to storage when topics change', () => {
+    document.getElementById('semantic-filter').dispatchEvent(new Event('change'))
     expect(mockSet).toHaveBeenCalledWith({ 'semantic-filter': '' }, expect.any(Function))
   })
 })

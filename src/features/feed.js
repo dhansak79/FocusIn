@@ -286,6 +286,10 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     sendClassifyRequest(post, extractPostText(post))
   }
 
+  const semanticTopics = semanticQuery
+    ? semanticQuery.split(',').map((q) => q.trim()).filter(Boolean)
+    : []
+
   const applySemanticResult = (post, response) => {
     if (chrome.runtime.lastError || response?.score == null) return
     if (response.score >= SEMANTIC_THRESHOLD) {
@@ -295,7 +299,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
   }
 
   const semanticCheckEnabled = (post) =>
-    !!semanticQuery && !post.dataset.semanticChecked &&
+    semanticTopics.length > 0 && !post.dataset.semanticChecked &&
     typeof chrome !== 'undefined' && !!chrome.runtime?.sendMessage
 
   const requestSemanticCheck = (post) => {
@@ -303,7 +307,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     post.dataset.semanticChecked = '1'
     try {
       chrome.runtime.sendMessage(
-        { 'semantic-check': { query: semanticQuery, post: extractPostText(post).slice(0, 256) } },
+        { 'semantic-check': { queries: semanticTopics, post: extractPostText(post).slice(0, 256) } },
         (response) => applySemanticResult(post, response)
       )
     } catch {
@@ -398,7 +402,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     feedObserver.observe(feedContainer, { childList: true, subtree: true })
   }
 
-  if (keywords.length || detectSlop || hideSlop || classifyPosts || semanticQuery) connectObserver()
+  if (keywords.length || detectSlop || hideSlop || classifyPosts || semanticTopics.length) connectObserver()
 }
 
 const toggleFeed = (shown) => {

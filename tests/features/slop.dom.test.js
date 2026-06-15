@@ -708,7 +708,7 @@ describe('semantic-filter integration', () => {
     runClean({ 'semantic-filter': 'hustle culture' })
     expect(sendMessageSpy).toHaveBeenCalledTimes(6)
     expect(sendMessageSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ 'semantic-check': expect.objectContaining({ query: 'hustle culture' }) }),
+      expect.objectContaining({ 'semantic-check': expect.objectContaining({ queries: ['hustle culture'] }) }),
       expect.any(Function)
     )
   })

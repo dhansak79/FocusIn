@@ -9,8 +9,8 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
     return true
   }
   if (req['semantic-check']) {
-    const { query, post } = req['semantic-check']
-    semanticCheck(query, post)
+    const { queries, post } = req['semantic-check']
+    semanticCheck(queries, post)
       .then((score) => sendResponse({ score }))
       .catch(() => sendResponse({ score: 0 }))
     return true
@@ -33,7 +33,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     'detect-slop': true,
     'hide-slop': false,
     'classify-posts': false,
-    'semantic-filter': '',
+    'semantic-filter': 'hustle culture, personal branding, motivational quotes, cryptocurrency, job interview tips, AI productivity tools, startup success story, sales and lead generation',
     'hide-premium': true,
     'hide-advertisements': true,
     'hide-follow-recommendations': true,

@@ -73,6 +73,7 @@ describe('onInstalled', () => {
         'detect-slop': true,
         'hide-slop': false,
         'classify-posts': false,
+        'semantic-filter': expect.any(String),
         'hide-premium': true,
         'hide-advertisements': true,
         'hide-follow-recommendations': true,
@@ -123,7 +124,7 @@ describe('onMessage — semantic-check', () => {
     const { semanticCheck } = await import('../src/features/semantic-filter.js')
     semanticCheck.mockResolvedValue(0.75)
     const result = capturedMessageListener(
-      { 'semantic-check': { query: 'hustle culture', post: 'rise and grind' } },
+      { 'semantic-check': { queries: ['hustle culture'], post: 'rise and grind' } },
       {},
       vi.fn()
     )
@@ -135,12 +136,12 @@ describe('onMessage — semantic-check', () => {
     semanticCheck.mockResolvedValue(0.72)
     const sendResponse = vi.fn()
     capturedMessageListener(
-      { 'semantic-check': { query: 'hustle culture', post: 'rise and grind' } },
+      { 'semantic-check': { queries: ['hustle culture'], post: 'rise and grind' } },
       {},
       sendResponse
     )
     await flushPromises()
-    expect(semanticCheck).toHaveBeenCalledWith('hustle culture', 'rise and grind')
+    expect(semanticCheck).toHaveBeenCalledWith(['hustle culture'], 'rise and grind')
     expect(sendResponse).toHaveBeenCalledWith({ score: 0.72 })
   })
 
@@ -149,7 +150,7 @@ describe('onMessage — semantic-check', () => {
     semanticCheck.mockRejectedValue(new Error('model failed'))
     const sendResponse = vi.fn()
     capturedMessageListener(
-      { 'semantic-check': { query: 'hustle culture', post: 'text' } },
+      { 'semantic-check': { queries: ['hustle culture'], post: 'text' } },
       {},
       sendResponse
     )
