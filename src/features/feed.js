@@ -16,6 +16,7 @@ import {
   waitForSelector,
 } from '../utils.js'
 import { getSlopSignals, isSlop } from './slop-detector.js'
+import { trackPostFiltered, trackSlopCollapsed, trackSlopHidden } from '../stats.js'
 
 let feedObserver = null
 let scrollTimerId = null
@@ -175,13 +176,16 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop) => {
     }
     if (isKeywordMatch) {
       hidePost(post, mode)
+      trackPostFiltered()
     } else if (slopSignals) {
       if (hideSlop) {
         hidePost(post, mode)
+        trackSlopHidden(slopSignals)
       } else {
         post.classList.add('focusedin-slop-soft-hide')
         post.dataset.hidden = true
         addRevealBanner(post, slopSignals)
+        trackSlopCollapsed(slopSignals)
       }
     } else {
       removeHideClasses(post)

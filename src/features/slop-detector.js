@@ -1,4 +1,4 @@
-import { SLOP_PHRASES, SLOP_PATTERNS } from './slop-keywords.js'
+import { SLOP_PHRASES, SLOP_PATTERNS, SLOP_PATTERN_LABELS } from './slop-keywords.js'
 
 const EMOJI_THRESHOLD = 4
 const MIN_LINES_FOR_PATTERN = 5
@@ -74,9 +74,17 @@ export const getSlopScore = (text) =>
 
 export const getSlopSignals = (text) => {
   const signals = []
-  const phraseCount = countMatchingPhrases(text)
-  if (phraseCount > 0) signals.push(`buzzword phrases (${phraseCount})`)
-  if (SLOP_PATTERNS.some((p) => p.test(text))) signals.push('language patterns')
+  const lower = text.toLowerCase()
+
+  // Show the actual matched phrases (up to 3), quoted
+  const matchedPhrases = SLOP_PHRASES.filter((p) => lower.includes(p))
+  for (const phrase of matchedPhrases.slice(0, 3)) signals.push(`"${phrase}"`)
+
+  // Show the specific label for each matched pattern
+  SLOP_PATTERNS.forEach((pattern, i) => {
+    if (pattern.test(text)) signals.push(SLOP_PATTERN_LABELS[i])
+  })
+
   if (hasEmojiBullets(text)) signals.push('emoji bullets')
   if (hasHighEmojiDensity(text)) signals.push('emoji overload')
   if (hasMarkdownFormatting(text)) signals.push('raw markdown')

@@ -14,9 +14,11 @@ export default defineConfig({
         'src/features/jobs.js',
         'src/features/misc.js',
         'src/features/slop-detector.js',
+        'src/features/slop-keywords.js',
         'src/features/feed.js',
         'src/features/message.js',
         'src/utils.js',
+        'src/stats.js',
       ],
       thresholds: {
         lines: 90,

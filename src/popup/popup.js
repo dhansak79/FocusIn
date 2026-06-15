@@ -168,4 +168,28 @@ window.onload = function () {
   chrome.storage.local.get('job-keywords', function (res) {
     jobTagify.addTags(res['job-keywords'])
   })
+
+  if (!chrome.storage.session) return
+  chrome.storage.session.get(['focusin-stats'], function (res) {
+    const stats = res['focusin-stats']
+    if (!stats) return
+
+    const slopTotal = (stats.slopCollapsed || 0) + (stats.slopHidden || 0)
+    document.getElementById('stat-slop').textContent = slopTotal
+    document.getElementById('stat-filtered').textContent = stats.postsFiltered || 0
+
+    const topSignals = Object.entries(stats.signals || {})
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+
+    if (topSignals.length) {
+      const container = document.getElementById('top-signals')
+      container.innerHTML = topSignals
+        .map(
+          ([signal, count]) =>
+            `<div class="signal-item"><span class="signal-name">${signal}</span><span class="signal-count">${count}&times;</span></div>`
+        )
+        .join('')
+    }
+  })
 }
