@@ -121,20 +121,32 @@ const extractAuthorName = (post) => {
   return null
 }
 
+const collapseToTag = (banner, author) => {
+  banner.className = 'focusedin-slop-tag'
+  while (banner.firstChild) banner.removeChild(banner.firstChild)
+  const text = document.createElement('span')
+  text.textContent = `🤖 AI post${author ? `  ·  ${author}` : ''}`
+  banner.append(text)
+}
+
 const addRevealBanner = (post, signals) => {
-  if (post.previousElementSibling?.classList.contains('focusedin-slop-collapsed')) return
+  const existing = post.previousElementSibling
+  if (existing?.classList.contains('focusedin-slop-collapsed') || existing?.classList.contains('focusedin-slop-tag')) return
   const author = extractAuthorName(post)
   const banner = document.createElement('div')
   banner.className = 'focusedin-slop-collapsed'
-  banner.onclick = () => {
-    post.classList.remove('hide', 'focusedin-slop-soft-hide')
-    post.dataset.slopRevealed = true
-    banner.remove()
-  }
 
-  const label = document.createElement('div')
-  label.textContent = `🤖 AI slop hidden (${signals.join(', ')})`
-  banner.append(label)
+  const headline = document.createElement('div')
+  headline.className = 'focusedin-slop-headline'
+  headline.textContent = '🤖 AI-generated post'
+  banner.append(headline)
+
+  if (signals.length) {
+    const signalRow = document.createElement('div')
+    signalRow.className = 'focusedin-slop-signals'
+    signalRow.textContent = signals.join('  ·  ')
+    banner.append(signalRow)
+  }
 
   if (author) {
     const authorEl = document.createElement('div')
@@ -142,6 +154,19 @@ const addRevealBanner = (post, signals) => {
     authorEl.textContent = author
     banner.append(authorEl)
   }
+
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.className = 'focusedin-slop-reveal-btn'
+  btn.textContent = 'Show anyway'
+  btn.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    post.classList.remove('hide', 'focusedin-slop-soft-hide')
+    post.dataset.slopRevealed = true
+    collapseToTag(banner, author)
+  })
+  banner.append(btn)
 
   post.before(banner)
 }

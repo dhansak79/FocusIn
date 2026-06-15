@@ -89,17 +89,18 @@ describe('detect-slop - collapse with reveal banner', () => {
     expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-collapsed')).toBe(true)
   })
 
-  it('clicking the banner removes soft-hide class and removes the banner', () => {
+  it('clicking the reveal button removes soft-hide class and transforms banner to tag', () => {
     const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
 
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
 
-    posts[0].previousElementSibling.click()
+    posts[0].previousElementSibling.querySelector('button').click()
 
     expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
     expect(posts[0].classList.contains('hide')).toBe(false)
     expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-collapsed')).toBeFalsy()
+    expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-tag')).toBe(true)
   })
 
   it('does not re-collapse the post after the user reveals it', () => {
@@ -107,7 +108,7 @@ describe('detect-slop - collapse with reveal banner', () => {
 
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
-    posts[0].previousElementSibling.click()
+    posts[0].previousElementSibling.querySelector('button').click()
 
     vi.advanceTimersByTime(350)
     vi.advanceTimersByTime(350)
