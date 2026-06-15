@@ -13,8 +13,10 @@ const applyConfig = (config) => {
 }
 
 const loadAndApply = async () => {
-  const config = await storage.get()
-  applyConfig(config)
+  try {
+    const config = await storage.get()
+    applyConfig(config)
+  } catch (_) { /* context invalidated */ }
 }
 
 // Storage listener

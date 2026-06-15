@@ -130,6 +130,23 @@ describe('Navigation API — when navigation is in window', () => {
 })
 
 // ---------------------------------------------------------------------------
+// loadAndApply — error handling
+// ---------------------------------------------------------------------------
+
+describe('loadAndApply — storage error handling', () => {
+  it('does not throw when storage.get rejects (context invalidated)', async () => {
+    vi.stubGlobal('navigation', { addEventListener: vi.fn() })
+    vi.stubGlobal('location', { href: 'https://www.linkedin.com/feed/', pathname: '/feed/' })
+    mockGet.mockRejectedValue(new Error('Extension context invalidated.'))
+
+    await import('../src/index.js')
+    await Promise.resolve()
+    await Promise.resolve()
+    // No unhandled rejection — test passes if we reach here
+  })
+})
+
+// ---------------------------------------------------------------------------
 // onMessage handler
 // ---------------------------------------------------------------------------
 
