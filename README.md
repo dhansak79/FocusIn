@@ -51,6 +51,37 @@ FocusIn will be available in every browser on every device.
 - Click **Load Unpacked** on the left side of the window
 - Navigate to the location of the folder you unzipped, and click **Select Folder**
 
+## FAQ
+
+### Why was my post hidden or collapsed?
+
+FocusIn doesn't hide posts at random — it's looking for specific patterns that tend to show up in AI-generated LinkedIn posts. Posts only get flagged once enough of these patterns stack up together, so a single quirky sentence shouldn't trip it. If a post gets collapsed, the reveal button shows you which signals it matched, so it's never a black box.
+
+### How does the AI slop detector decide what's "slop"?
+
+It scans the post text for a handful of tells and adds up points for each one. The post is flagged once the total crosses a threshold:
+
+- **Buzzword phrases**: things like "game-changer," "let that sink in," "thought leadership," "delve," "leverage." One on its own doesn't flag a post; two or more does.
+- **Telltale sentence structures**: patterns like "It's not X. It's Y." contrast pairs, "As [someone] once said:" quote drops, numbered listicle titles ("7 habits that..."), Twitter-style "1/ 2/ 3/" threads, arrow (→) bullet lists, and em dashes (rarely typed by hand, very common in AI writing). Any one of these is treated as a strong signal on its own.
+- **Emoji overload**: more than 4 emoji in the post.
+- **Emoji bullet lists**: two or more lines that each start with an emoji used as a bullet point.
+- **Raw markdown**: `**bold**`, `# headers`, or `* bullets` that never got rendered, suggesting the text was pasted straight from a chatbot.
+- **Line stacking**: lots of short, single-sentence lines in a row, a very AI-typical staccato format. Extreme stacking (15+ lines, mostly single-sentence) is suspicious enough to flag a post on its own.
+
+Depending on your settings, flagged posts are either **collapsed** (with a reveal button) or **hidden completely**.
+
+### What's the difference between keyword filtering and the semantic topic filter?
+
+Keyword filtering hides a post only if it contains the exact word or phrase you typed. The semantic topic filter instead understands *meaning* — it can hide a post about "hustle culture" even if that exact phrase never appears, by comparing the post's content to your chosen topics using a small AI model that runs locally in your browser (nothing is sent anywhere). It's slower and less precise than keyword matching, so use it for themes that are hard to capture with a fixed list of words.
+
+### What does "Label post type with AI classification" do?
+
+It runs each post through a small local model to guess its category (e.g. job update, article share, poll) and shows that label on the post. It's just a label for context — it doesn't hide anything on its own.
+
+### Does any of this send my data anywhere?
+
+No. The slop detector, semantic filter, and post classifier all run entirely inside your browser. Nothing about your feed or your settings is sent to a server.
+
 ### Testing
 
 | Command | Purpose |
