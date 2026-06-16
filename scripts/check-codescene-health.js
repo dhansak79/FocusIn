@@ -43,9 +43,12 @@ for (const file of staged) {
 }
 
 if (failed) {
-  console.error(
-    `\nCodeScene health gate failed — all modified files must score ${MIN_HEALTH}/10 before committing.`
-  )
+  console.error(`
+CodeScene health gate failed — all modified files must score ${MIN_HEALTH}/10 before committing.
+
+To fix: use the CodeScene MCP tool \`code_health_review\` on each failing file for a detailed
+breakdown, then follow the \`codescene:guiding-refactoring-with-code-health\` skill to work
+through the issues in small, verifiable steps.`)
   process.exit(1)
 }
 
