@@ -660,6 +660,12 @@ export const SLOP_PATTERNS = [
   /\bas .{3,40} (once |always )?(said|put it)[,:.]/i,
   // Numbered listicle format — "5 things successful people do" / "7 habits that changed my life"
   /\b(3|4|5|6|7|8|9|10|11|12|15|20|25|50|100) (things|ways|habits|reasons|tips|mistakes|secrets|rules|lessons|principles|steps|skills)\b/i,
+  // Anaphora — same two-word phrase opens 3+ lines: "It means...\nIt means...\nIt means..."
+  /^(\w+ \w+) [^\n]+\n+\1 [^\n]+\n+\1/ms,
+  // "Some X. Some Y." parallel contrast — "Some creators attend. Some build."
+  /^Some [^.!?\n]{2,60}[.!?][ \t\n]+Some /ms,
+  // "Here's why" hook — close relative of "here's the thing" and "here's how"
+  /here[''']s why\b/i,
 ]
 
 // Human-readable label for each pattern — must stay in the same order as SLOP_PATTERNS
@@ -672,4 +678,7 @@ export const SLOP_PATTERN_LABELS = [
   "thread format",
   "quote attribution",
   "numbered listicle",
+  "anaphora",
+  "some X, some Y",
+  "here's why hook",
 ]

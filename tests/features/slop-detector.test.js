@@ -451,6 +451,71 @@ describe('isSlop - real-world clean posts', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Anaphora — same two-word phrase opens 3+ lines
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - anaphora pattern', () => {
+  it('flags three or more lines opening with the same two-word phrase', () => {
+    const post = [
+      'It means sitting in rooms with city officials.',
+      'It means curating events that create real connection.',
+      'It means flying in experts so people can access knowledge.',
+    ].join('\n')
+    expect(isSlop(post)).toBe(true)
+  })
+
+  it('reports "anaphora" in signals', () => {
+    const post = [
+      'It means sitting in rooms.',
+      'It means curating events.',
+      'It means flying in experts.',
+    ].join('\n')
+    expect(getSlopSignals(post)).toContain('anaphora')
+  })
+
+  it('does not flag when the same phrase only opens two lines', () => {
+    const post = 'It means sitting in rooms with city officials.\nIt means curating events that create real connection.\nThis is something different entirely.'
+    expect(getSlopScore(post)).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// "Some X. Some Y." — short parallel contrast at line start
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - some X some Y pattern', () => {
+  it('flags the "Some creators attend. Some build." structure', () => {
+    expect(isSlop('Some creators attend. Some build.')).toBe(true)
+  })
+
+  it('reports "some X, some Y" in signals', () => {
+    expect(getSlopSignals('Some people lead. Some follow.')).toContain('some X, some Y')
+  })
+
+  it('does not flag "some" used naturally mid-sentence', () => {
+    expect(getSlopScore('We tried some new approaches and some of them worked well.')).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// "Here's why" hook
+// ---------------------------------------------------------------------------
+
+describe("getSlopScore - here's why hook", () => {
+  it("flags a post opening with \"here's why\"", () => {
+    expect(isSlop("I turned down a dream this year. Here's why I'd do it again.")).toBe(true)
+  })
+
+  it('reports "here\'s why hook" in signals', () => {
+    expect(getSlopSignals("Here's why this changes everything.")).toContain("here's why hook")
+  })
+
+  it('does not flag "here is what" or other here phrases', () => {
+    expect(getSlopScore("Here is what we shipped today.")).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // getSlopSignals — human-readable labels for each triggered signal
 // ---------------------------------------------------------------------------
 
@@ -504,5 +569,8 @@ describe('getSlopSignals', () => {
     expect(getSlopSignals("It's not experience. It's exposure.")).toContain("it's not X, it's Y")
     expect(getSlopSignals('5 things successful people do differently.')).toContain('numbered listicle')
     expect(getSlopSignals('As Steve Jobs once said: stay hungry.')).toContain('quote attribution')
+    expect(getSlopSignals('It means sitting.\nIt means curating.\nIt means flying.')).toContain('anaphora')
+    expect(getSlopSignals('Some creators attend. Some build.')).toContain('some X, some Y')
+    expect(getSlopSignals("Here's why this matters.")).toContain("here's why hook")
   })
 })
