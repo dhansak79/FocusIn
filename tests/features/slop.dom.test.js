@@ -352,9 +352,9 @@ describe('detect-slop - collapse with reveal banner', () => {
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
 
-    const bannerText = posts[0].previousElementSibling?.textContent ?? ''
-    expect(bannerText).toContain('Real Author')
-    expect(bannerText).not.toContain('Some Liker')
+    const authorText = posts[0].previousElementSibling?.querySelector('.focusedin-slop-author')?.textContent ?? ''
+    expect(authorText).toContain('Real Author')
+    expect(authorText).not.toContain('Some Liker')
   })
 
   it('extracts author from aria-label on the actor card (current LinkedIn DOM)', () => {
@@ -528,165 +528,6 @@ describe('hide-slop - completely hidden', () => {
 })
 
 // ---------------------------------------------------------------------------
-// applyClassificationDecision - direct unit tests
-// ---------------------------------------------------------------------------
-
-describe('applyClassificationDecision', () => {
-  let applyClassificationDecision
-
-  beforeEach(async () => {
-    ;({ applyClassificationDecision } = await import('../../src/features/feed.js'))
-  })
-
-  it('collapses the post with a banner containing emoji, label and confidence', () => {
-    const posts = buildFeedDOM([CLEAN_POST])
-    applyClassificationDecision(posts[0], { label: 'self-promotion', score: 0.82 })
-    const banner = posts[0].previousElementSibling
-    expect(banner?.classList.contains('focusedin-slop-collapsed')).toBe(true)
-    expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(true)
-    expect(banner?.textContent).toContain('📣')
-    expect(banner?.textContent).toContain('self-promotion')
-    expect(banner?.textContent).toContain('82%')
-  })
-
-  it('does not inject a second banner when called again on the same post', () => {
-    const posts = buildFeedDOM([CLEAN_POST])
-    applyClassificationDecision(posts[0], { label: 'self-promotion', score: 0.82 })
-    applyClassificationDecision(posts[0], { label: 'hustle culture', score: 0.90 })
-    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
-  })
-
-  it('uses a fallback emoji for an unrecognised label', () => {
-    const posts = buildFeedDOM([CLEAN_POST])
-    applyClassificationDecision(posts[0], { label: 'unknown-category', score: 0.75 })
-    expect(posts[0].previousElementSibling?.textContent).toContain('🏷️')
-  })
-
-  it('uses the correct emoji for each known category', () => {
-    const cases = [
-      ['hustle culture', '💼'],
-      ['humble brag', '🙈'],
-      ['thought leadership', '💡'],
-      ['inspirational cliché', '✨'],
-    ]
-    for (const [label, emoji] of cases) {
-      buildFeedDOM([CLEAN_POST])
-      const post = document.querySelector('[data-lazy-mount-id] > div')
-      applyClassificationDecision(post, { label, score: 0.80 })
-      expect(post.previousElementSibling?.textContent).toContain(emoji)
-    }
-  })
-
-  it('clicking Show anyway reveals the post and collapses the banner to a tag', () => {
-    const posts = buildFeedDOM([CLEAN_POST])
-    applyClassificationDecision(posts[0], { label: 'self-promotion', score: 0.82 })
-    expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(true)
-
-    posts[0].previousElementSibling.querySelector('button').click()
-
-    expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
-    expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-tag')).toBe(true)
-  })
-
-  it('appends classification info to an existing slop banner instead of adding a second collapse', () => {
-    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
-    doFeed({ ...baseConfig, 'detect-slop': true })
-    vi.advanceTimersByTime(350)
-
-    applyClassificationDecision(posts[0], { label: 'humble brag', score: 0.87 })
-
-    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
-    expect(posts[0].previousElementSibling?.textContent).toContain('humble brag')
-  })
-})
-
-// ---------------------------------------------------------------------------
-// classify-posts integration
-// ---------------------------------------------------------------------------
-
-describe('classify-posts integration', () => {
-  let sendMessageSpy
-
-  beforeEach(() => {
-    sendMessageSpy = vi.fn((msg, cb) =>
-      cb({ result: { label: 'self-promotion', score: 0.82 } })
-    )
-    vi.stubGlobal('chrome', {
-      runtime: { lastError: null, sendMessage: sendMessageSpy },
-    })
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  it('sends a classify-post message for each clean post', () => {
-    runClean({ 'classify-posts': true })
-    expect(sendMessageSpy).toHaveBeenCalledTimes(6)
-    expect(sendMessageSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ 'classify-post': expect.any(String) }),
-      expect.any(Function)
-    )
-  })
-
-  it('collapses a clean post when the classification response has a result', () => {
-    buildFeedDOM(SIX_CLEAN)
-    doFeed({ ...baseConfig, 'classify-posts': true })
-    vi.advanceTimersByTime(350)
-    expect(document.querySelector('.focusedin-slop-collapsed')).not.toBeNull()
-  })
-
-  it('does not send classification messages when classify-posts is disabled', () => {
-    buildFeedDOM(SIX_CLEAN)
-    doFeed({ ...baseConfig, 'classify-posts': false })
-    vi.advanceTimersByTime(350)
-    expect(sendMessageSpy).not.toHaveBeenCalled()
-  })
-
-  it('does not classify slop-detected posts', () => {
-    buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
-    doFeed({ ...baseConfig, 'detect-slop': true, 'classify-posts': true })
-    vi.advanceTimersByTime(350)
-    expect(sendMessageSpy).toHaveBeenCalledTimes(5)
-  })
-
-  it('does not collapse a post when the classification response result is null', () => {
-    sendMessageSpy = vi.fn((msg, cb) => cb({ result: null }))
-    vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
-    runClean({ 'classify-posts': true })
-    expect(document.querySelector('[data-classification-badge]')).toBeNull()
-  })
-
-  it('does not collapse a post when chrome.runtime.lastError is set', () => {
-    sendMessageSpy = vi.fn((msg, cb) => cb(undefined))
-    vi.stubGlobal('chrome', { runtime: { lastError: new Error('Context invalidated'), sendMessage: sendMessageSpy } })
-    runClean({ 'classify-posts': true })
-    expect(document.querySelector('[data-classification-badge]')).toBeNull()
-  })
-
-  it('does not throw when sendMessage throws Extension context invalidated', () => {
-    expectNoThrowWithContext({ 'classify-posts': true })
-  })
-
-  it('does not re-classify a post when doFeed re-runs', () => {
-    buildFeedDOM(SIX_CLEAN)
-    doFeed({ ...baseConfig, 'classify-posts': true })
-    vi.advanceTimersByTime(350)
-    sendMessageSpy.mockClear()
-    doFeed({ ...baseConfig, 'classify-posts': true })
-    vi.advanceTimersByTime(350)
-    expect(sendMessageSpy).not.toHaveBeenCalled()
-  })
-
-  it('sends exactly one classify request when outer wrapper and inner listitem both match POST_SELECTOR', () => {
-    buildNestedFeedDOM()
-    doFeed({ ...baseConfig, 'classify-posts': true })
-    vi.advanceTimersByTime(350)
-    expect(sendMessageSpy).toHaveBeenCalledTimes(6)
-  })
-})
-
-// ---------------------------------------------------------------------------
 // semantic-filter integration
 // ---------------------------------------------------------------------------
 
@@ -730,23 +571,6 @@ describe('semantic-filter integration', () => {
     banner.querySelector('.focusedin-slop-reveal-btn').click()
     expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
     expect(banner.classList.contains('focusedin-slop-tag')).toBe(true)
-  })
-
-  it('appends semantic signal to existing classification banner when classification responds first', async () => {
-    sendMessageSpy = vi.fn((msg, cb) => {
-      if (msg['classify-post']) cb({ result: { label: 'self-promotion', score: 0.82 } })
-      else Promise.resolve().then(() => cb({ score: 0.8, topic: 'hustle culture' }))
-    })
-    vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
-    const posts = buildFeedDOM([CLEAN_POST])
-    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture', 'classify-posts': true })
-    vi.advanceTimersByTime(350)
-    await Promise.resolve()
-    const banner = posts[0].previousElementSibling
-    expect(banner?.classList.contains('focusedin-slop-collapsed')).toBe(true)
-    expect(banner?.textContent).toMatch(/self-promotion/)
-    expect(banner?.textContent).toMatch(/🎯 hustle culture/)
-    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
   })
 
   it('does not hide a post when the similarity score is below the threshold', () => {
@@ -810,20 +634,69 @@ describe('semantic-filter integration', () => {
     vi.advanceTimersByTime(350)
     expect(sendMessageSpy).toHaveBeenCalledTimes(6)
   })
+})
 
-  it('does not add a classification badge to a semantically hidden post', () => {
-    // Return distinct responses so both semantic-check and classify-post callbacks fire
-    sendMessageSpy = vi.fn((msg, cb) => {
-      if (msg['semantic-check']) cb({ score: 0.8 })
-      else cb({ result: { label: 'self-promotion', score: 0.82 } })
-    })
+// ---------------------------------------------------------------------------
+// extractSummary - direct unit tests
+// ---------------------------------------------------------------------------
+
+describe('extractSummary', () => {
+  let extractSummary
+
+  beforeEach(async () => {
+    ;({ extractSummary } = await import('../../src/features/feed.js'))
+  })
+
+  it('returns the first sentence of the text', () => {
+    expect(extractSummary('We shipped a new feature today. The team is proud.')).toBe(
+      'We shipped a new feature today.'
+    )
+  })
+
+  it('collapses multi-line text before extracting the first sentence', () => {
+    expect(extractSummary('Big news!\nWe just launched.\nMore details below.')).toBe('Big news!')
+  })
+
+  it('truncates a long run-on sentence with no early punctuation', () => {
+    const longSentence = 'a'.repeat(200)
+    const summary = extractSummary(longSentence)
+    expect(summary.endsWith('…')).toBe(true)
+    expect(summary.length).toBeLessThanOrEqual(121)
+  })
+
+  it('returns an empty string for empty input', () => {
+    expect(extractSummary('   ')).toBe('')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Summary row on collapsed-post banners
+// ---------------------------------------------------------------------------
+
+describe('summary row on collapse banners', () => {
+  it('shows a short summary on the slop reveal banner', () => {
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+
+    const banner = posts[0].previousElementSibling
+    const summaryRow = banner.querySelector('.focusedin-slop-summary')
+    expect(summaryRow).not.toBeNull()
+    expect(summaryRow.textContent).toContain("In today's fast-paced world")
+  })
+
+  it('shows a short summary on the semantic match banner', () => {
+    const sendMessageSpy = vi.fn((msg, cb) => cb({ score: 0.8, topic: 'hustle culture' }))
     vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
     const posts = buildFeedDOM(SIX_CLEAN)
-    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture', 'classify-posts': true })
+
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
     vi.advanceTimersByTime(350)
-    const hiddenPost = posts[0]
-    expect(hiddenPost.dataset.semanticHidden).toBe('1')
-    expect(hiddenPost.dataset.classificationBadge).toBeUndefined()
-    expect(hiddenPost.previousElementSibling?.textContent).toMatch(/🎯 Semantic match/)
+
+    const banner = posts[0].previousElementSibling
+    const summaryRow = banner.querySelector('.focusedin-slop-summary')
+    expect(summaryRow).not.toBeNull()
+    expect(summaryRow.textContent).toContain('We shipped a new feature today.')
   })
 })

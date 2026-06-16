@@ -1,9 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
-vi.mock('../src/features/classifier.js', () => ({
-  classifyPost: vi.fn(),
-}))
-
 vi.mock('../src/features/semantic-filter.js', () => ({
   semanticCheck: vi.fn(),
 }))
@@ -72,7 +68,6 @@ describe('onInstalled', () => {
         'sort-by-recent': true,
         'detect-slop': true,
         'hide-slop': false,
-        'classify-posts': false,
         'semantic-filter': expect.any(String),
         'hide-premium': true,
         'hide-advertisements': true,
@@ -86,40 +81,12 @@ describe('onInstalled', () => {
   })
 })
 
-describe('onMessage — classify-post', () => {
-  it('returns true to signal an async response', async () => {
-    const { classifyPost } = await import('../src/features/classifier.js')
-    classifyPost.mockResolvedValue(null)
-    const result = capturedMessageListener({ 'classify-post': 'some text' }, {}, vi.fn())
-    expect(result).toBe(true)
-  })
-
-  it('calls classifyPost with the post text and sends result', async () => {
-    const { classifyPost } = await import('../src/features/classifier.js')
-    classifyPost.mockResolvedValue({ label: 'self-promotion', score: 0.82 })
-    const sendResponse = vi.fn()
-    capturedMessageListener({ 'classify-post': 'some text' }, {}, sendResponse)
-    await flushPromises()
-    expect(classifyPost).toHaveBeenCalledWith('some text')
-    expect(sendResponse).toHaveBeenCalledWith({ result: { label: 'self-promotion', score: 0.82 } })
-  })
-
-  it('sends null result when classifyPost rejects', async () => {
-    const { classifyPost } = await import('../src/features/classifier.js')
-    classifyPost.mockRejectedValue(new Error('model failed'))
-    const sendResponse = vi.fn()
-    capturedMessageListener({ 'classify-post': 'text' }, {}, sendResponse)
-    await flushPromises()
-    expect(sendResponse).toHaveBeenCalledWith({ result: null })
-  })
-
+describe('onMessage — semantic-check', () => {
   it('does nothing for unrelated messages', () => {
     const result = capturedMessageListener({ other: true }, {}, vi.fn())
     expect(result).toBeUndefined()
   })
-})
 
-describe('onMessage — semantic-check', () => {
   it('returns true to signal an async response', async () => {
     const { semanticCheck } = await import('../src/features/semantic-filter.js')
     semanticCheck.mockResolvedValue({ score: 0.75, topic: 'hustle culture' })

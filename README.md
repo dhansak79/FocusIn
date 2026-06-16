@@ -26,11 +26,7 @@ FocusIn gives you back control of your LinkedIn feed — filtering out the garba
 
 ### AI Slop Detection
 
-Collapse or completely hide posts that read like AI-generated content — buzzword phrases, filler hooks, emoji overload, raw markdown, contrasting clause structures, and wall-to-wall single-sentence line stacking. Posts that trip enough signals are either collapsed (with a reveal button) or hidden entirely, depending on your settings.
-
-### AI Post Classification
-
-Optionally label each post with its type (e.g. job update, article share, poll) using a small ML model that runs locally in the browser — nothing is sent to a server.
+Collapse or completely hide posts that read like AI-generated content — buzzword phrases, filler hooks, emoji overload, raw markdown, contrasting clause structures, and wall-to-wall single-sentence line stacking. Posts that trip enough signals are either collapsed (with a reveal button) or hidden entirely, depending on your settings. Collapsed posts show a brief extractive summary so you can judge whether to expand without reading the full post.
 
 ### Semantic Topic Filter
 

@@ -53,6 +53,12 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
+.focusedin-slop-summary {
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .focusedin-slop-author {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.35);
