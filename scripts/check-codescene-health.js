@@ -2,6 +2,8 @@
 /* eslint-env node */
 import { spawnSync, execSync } from 'child_process'
 
+process.env.PATH = `${process.env.HOME}/.local/bin:${process.env.PATH}`
+
 const MIN_HEALTH = 10.0
 let failed = false
 
@@ -27,11 +29,17 @@ for (const file of staged) {
     continue
   }
 
-  const { score } = result
-  if (score != null && score < MIN_HEALTH) {
-    console.error(`  HEALTH ${score}/10  ${file}`)
-    failed = true
+  const { score, review: findings } = result
+  if (score == null || score >= MIN_HEALTH) continue
+
+  console.error(`\n  ${file}  —  Code Health ${score}/10`)
+  for (const finding of findings) {
+    console.error(`  [${finding.category}]`)
+    for (const fn of finding.functions) {
+      console.error(`    ${fn.title} (${fn.details}, lines ${fn['start-line']}–${fn['end-line']})`)
+    }
   }
+  failed = true
 }
 
 if (failed) {
