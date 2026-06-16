@@ -1,11 +1,20 @@
 import { classifyPost } from './features/classifier.js'
+import { semanticCheck } from './features/semantic-filter.js'
 
 chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
-  if (!req['classify-post']) return
-  classifyPost(req['classify-post'])
-    .then((result) => sendResponse({ result }))
-    .catch(() => sendResponse({ result: null }))
-  return true
+  if (req['classify-post']) {
+    classifyPost(req['classify-post'])
+      .then((result) => sendResponse({ result }))
+      .catch(() => sendResponse({ result: null }))
+    return true
+  }
+  if (req['semantic-check']) {
+    const { queries, post } = req['semantic-check']
+    semanticCheck(queries, post)
+      .then(({ score, topic }) => sendResponse({ score, topic }))
+      .catch(() => sendResponse({ score: 0 }))
+    return true
+  }
 })
 
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -24,6 +33,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     'detect-slop': true,
     'hide-slop': false,
     'classify-posts': false,
+    'semantic-filter': 'hustle culture, personal branding, motivational quotes, cryptocurrency, job interview tips, AI productivity tools, startup success story, sales and lead generation',
     'hide-premium': true,
     'hide-advertisements': true,
     'hide-follow-recommendations': true,

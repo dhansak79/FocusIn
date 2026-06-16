@@ -16,6 +16,7 @@ export default defineConfig({
         'src/features/slop-detector.js',
         'src/features/slop-keywords.js',
         'src/features/classifier.js',
+        'src/features/semantic-filter.js',
         'src/features/feed.js',
         'src/features/message.js',
         'src/utils.js',

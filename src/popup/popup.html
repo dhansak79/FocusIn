@@ -78,6 +78,27 @@
       />
     </div>
 
+    <div class="field semantic-field">
+      <label>Semantic topic filter <small>(hides posts related to these topics, ~80 MB download on first use)</small></label>
+      <div class="semantic-topic-wrapper">
+        <ul class="semantic-topic-list">
+          <li><label><input type="checkbox" class="semantic-topic" value="hustle culture" /> hustle culture</label></li>
+          <li><label><input type="checkbox" class="semantic-topic" value="personal branding" /> personal branding</label></li>
+          <li><label><input type="checkbox" class="semantic-topic" value="motivational quotes" /> motivational quotes</label></li>
+          <li><label><input type="checkbox" class="semantic-topic" value="cryptocurrency" /> cryptocurrency</label></li>
+          <li><label><input type="checkbox" class="semantic-topic" value="job interview tips" /> job interview tips</label></li>
+          <li><label><input type="checkbox" class="semantic-topic" value="AI productivity tools" /> AI productivity tools</label></li>
+          <li><label><input type="checkbox" class="semantic-topic" value="startup success story" /> startup success story</label></li>
+          <li><label><input type="checkbox" class="semantic-topic" value="sales and lead generation" /> sales and lead generation</label></li>
+        </ul>
+        <input id="semantic-custom-topics" placeholder="Add your own topics..." class="tagify--outside" />
+        <div class="semantic-diag">
+          <button type="button" id="test-semantic-btn">Test model</button>
+          <span id="semantic-test-result"></span>
+        </div>
+      </div>
+    </div>
+
     <div class="divider">Filter by interaction</div>
 
     <div class="field">

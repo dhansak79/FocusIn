@@ -199,6 +199,7 @@ const CATEGORY_EMOJI = {
 
 export const applyClassificationDecision = (post, { label, score }) => {
   if (post.dataset.classificationBadge) return
+  if (post.dataset.semanticHidden) return
   post.dataset.classificationBadge = label
   const emoji = CATEGORY_EMOJI[label] ?? '🏷️'
   const pct = Math.round(score * 100)
@@ -267,7 +268,9 @@ const isPostNode = (node) => {
   )
 }
 
-const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPosts) => {
+const SEMANTIC_THRESHOLD = 0.35
+
+const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPosts, semanticQuery) => {
   let postsProcessed = 0
 
   const countOnce = (post, fn, signals) => {
@@ -281,6 +284,70 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) return
     post.dataset.classifiedPost = '1'
     sendClassifyRequest(post, extractPostText(post))
+  }
+
+  const semanticTopics = semanticQuery
+    ? semanticQuery.split(',').map((q) => q.trim()).filter(Boolean)
+    : []
+
+  const applySemanticResult = (post, response) => {
+    if (chrome.runtime.lastError || response?.score == null) return
+    if (response.score < SEMANTIC_THRESHOLD) return
+    post.dataset.semanticHidden = '1'
+    post.dataset.hidden = true
+    countOnce(post, trackPostFiltered)
+    const pct = Math.round(response.score * 100)
+    const topic = response.topic ?? 'topic match'
+    const prev = post.previousElementSibling
+    if (prev?.classList.contains('focusedin-slop-collapsed')) {
+      const row = document.createElement('div')
+      row.className = 'focusedin-slop-signals'
+      row.textContent = `🎯 ${topic} · ${pct}%`
+      const revealBtn = prev.querySelector('.focusedin-slop-reveal-btn')
+      prev.insertBefore(row, revealBtn ?? null)
+      return
+    }
+    post.classList.add('focusedin-slop-soft-hide')
+    const banner = document.createElement('div')
+    banner.className = 'focusedin-slop-collapsed'
+    banner.dataset.focusinInjected = '1'
+    const headline = document.createElement('div')
+    headline.className = 'focusedin-slop-headline'
+    headline.textContent = '🎯 Semantic match'
+    banner.append(headline)
+    const scoreRow = document.createElement('div')
+    scoreRow.className = 'focusedin-slop-signals'
+    scoreRow.textContent = `${topic} · ${pct}%`
+    banner.append(scoreRow)
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'focusedin-slop-reveal-btn'
+    btn.textContent = 'Show anyway'
+    btn.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      post.classList.remove('focusedin-slop-soft-hide')
+      collapseToTag(banner, extractAuthorName(post))
+    })
+    banner.append(btn)
+    post.before(banner)
+  }
+
+  const semanticCheckEnabled = (post) =>
+    semanticTopics.length > 0 && !post.dataset.semanticChecked &&
+    typeof chrome !== 'undefined' && !!chrome.runtime?.sendMessage
+
+  const requestSemanticCheck = (post) => {
+    if (!semanticCheckEnabled(post)) return
+    post.dataset.semanticChecked = '1'
+    try {
+      chrome.runtime.sendMessage(
+        { 'semantic-check': { queries: semanticTopics, post: extractPostText(post).slice(0, 256) } },
+        (response) => applySemanticResult(post, response)
+      )
+    } catch {
+      // Extension context invalidated after reload
+    }
   }
 
   const checkSlop = (post) => {
@@ -308,7 +375,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     // LinkedIn nests an outer wrapper (> data-lazy-mount-id > div) AND an inner
     // div[role="listitem"] — both match POST_SELECTOR. Skip if an ancestor has
     // already been processed so we don't double-banner the same post.
-    if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-classified-post]')) return
+    if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-classified-post],[data-semantic-checked]')) return
     postsProcessed++
     const isKeywordMatch = keywords.some((keyword) => post.textContent.indexOf(keyword) !== -1)
     const slopSignals = checkSlop(post)
@@ -323,6 +390,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
         post.classList.remove('focusedin-slop-soft-hide')
         post.dataset.hidden = false
       }
+      requestSemanticCheck(post)
       requestClassification(post)
     }
   }
@@ -369,7 +437,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     feedObserver.observe(feedContainer, { childList: true, subtree: true })
   }
 
-  if (keywords.length || detectSlop || hideSlop || classifyPosts) connectObserver()
+  if (keywords.length || detectSlop || hideSlop || classifyPosts || semanticTopics.length) connectObserver()
 }
 
 const toggleFeed = (shown) => {
@@ -415,7 +483,8 @@ const handleFilterFeed = (mode, config) => {
     mode,
     !!config['detect-slop'],
     !!config['hide-slop'],
-    !!config['classify-posts']
+    !!config['classify-posts'],
+    config['semantic-filter'] || ''
   )
 }
 

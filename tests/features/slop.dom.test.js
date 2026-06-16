@@ -35,6 +35,21 @@ const SLOP_POST_DIVS = [
 ].join('')
 
 const CLEAN_POST = 'We shipped a new feature today. The team is proud of the work done.'
+const SIX_CLEAN = [CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST]
+
+const buildNestedFeedDOM = () => {
+  document.body.innerHTML = `
+    <div data-testid="mainFeed" componentkey="container-update-list_mainFeed-lazy-container">
+      <div data-lazy-mount-id="test-mount" style="display:contents">
+        <div data-display-contents="true"><div><div role="listitem">${CLEAN_POST}</div></div></div>
+        <div>${CLEAN_POST}</div>
+        <div>${CLEAN_POST}</div>
+        <div>${CLEAN_POST}</div>
+        <div>${CLEAN_POST}</div>
+        <div>${CLEAN_POST}</div>
+      </div>
+    </div>`
+}
 
 let doFeed
 
@@ -54,6 +69,23 @@ const baseConfig = {
   'feed-keywords': '',
   'hide-by-age': 'disabled',
   'main-toggle': true,
+}
+
+const runClean = (config) => {
+  buildFeedDOM(SIX_CLEAN)
+  doFeed({ ...baseConfig, ...config })
+  vi.advanceTimersByTime(350)
+}
+
+const expectNoThrowWithContext = (config) => {
+  vi.stubGlobal('chrome', {
+    runtime: { lastError: null, sendMessage: vi.fn(() => { throw new Error('Extension context invalidated.') }) },
+  })
+  buildFeedDOM(SIX_CLEAN)
+  expect(() => {
+    doFeed({ ...baseConfig, ...config })
+    vi.advanceTimersByTime(350)
+  }).not.toThrow()
 }
 
 // ---------------------------------------------------------------------------
@@ -118,7 +150,7 @@ describe('detect-slop - collapse with reveal banner', () => {
   })
 
   it('does not collapse a clean post', () => {
-    const posts = buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    const posts = buildFeedDOM(SIX_CLEAN)
 
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
@@ -448,7 +480,7 @@ describe('hide-slop - completely hidden', () => {
   })
 
   it('does not hide a clean post', () => {
-    const posts = buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    const posts = buildFeedDOM(SIX_CLEAN)
 
     doFeed({ ...baseConfig, 'hide-slop': true })
     vi.advanceTimersByTime(350)
@@ -589,9 +621,7 @@ describe('classify-posts integration', () => {
   })
 
   it('sends a classify-post message for each clean post', () => {
-    buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
-    doFeed({ ...baseConfig, 'classify-posts': true })
-    vi.advanceTimersByTime(350)
+    runClean({ 'classify-posts': true })
     expect(sendMessageSpy).toHaveBeenCalledTimes(6)
     expect(sendMessageSpy).toHaveBeenCalledWith(
       expect.objectContaining({ 'classify-post': expect.any(String) }),
@@ -600,14 +630,14 @@ describe('classify-posts integration', () => {
   })
 
   it('collapses a clean post when the classification response has a result', () => {
-    buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    buildFeedDOM(SIX_CLEAN)
     doFeed({ ...baseConfig, 'classify-posts': true })
     vi.advanceTimersByTime(350)
     expect(document.querySelector('.focusedin-slop-collapsed')).not.toBeNull()
   })
 
   it('does not send classification messages when classify-posts is disabled', () => {
-    buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    buildFeedDOM(SIX_CLEAN)
     doFeed({ ...baseConfig, 'classify-posts': false })
     vi.advanceTimersByTime(350)
     expect(sendMessageSpy).not.toHaveBeenCalled()
@@ -622,40 +652,24 @@ describe('classify-posts integration', () => {
 
   it('does not collapse a post when the classification response result is null', () => {
     sendMessageSpy = vi.fn((msg, cb) => cb({ result: null }))
-    vi.stubGlobal('chrome', {
-      runtime: { lastError: null, sendMessage: sendMessageSpy },
-    })
-    buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
-    doFeed({ ...baseConfig, 'classify-posts': true })
-    vi.advanceTimersByTime(350)
+    vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
+    runClean({ 'classify-posts': true })
     expect(document.querySelector('[data-classification-badge]')).toBeNull()
   })
 
   it('does not collapse a post when chrome.runtime.lastError is set', () => {
     sendMessageSpy = vi.fn((msg, cb) => cb(undefined))
-    vi.stubGlobal('chrome', {
-      runtime: { lastError: new Error('Context invalidated'), sendMessage: sendMessageSpy },
-    })
-    buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
-    doFeed({ ...baseConfig, 'classify-posts': true })
-    vi.advanceTimersByTime(350)
+    vi.stubGlobal('chrome', { runtime: { lastError: new Error('Context invalidated'), sendMessage: sendMessageSpy } })
+    runClean({ 'classify-posts': true })
     expect(document.querySelector('[data-classification-badge]')).toBeNull()
   })
 
   it('does not throw when sendMessage throws Extension context invalidated', () => {
-    sendMessageSpy = vi.fn(() => { throw new Error('Extension context invalidated.') })
-    vi.stubGlobal('chrome', {
-      runtime: { lastError: null, sendMessage: sendMessageSpy },
-    })
-    buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
-    expect(() => {
-      doFeed({ ...baseConfig, 'classify-posts': true })
-      vi.advanceTimersByTime(350)
-    }).not.toThrow()
+    expectNoThrowWithContext({ 'classify-posts': true })
   })
 
   it('does not re-classify a post when doFeed re-runs', () => {
-    buildFeedDOM([CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    buildFeedDOM(SIX_CLEAN)
     doFeed({ ...baseConfig, 'classify-posts': true })
     vi.advanceTimersByTime(350)
     sendMessageSpy.mockClear()
@@ -665,19 +679,151 @@ describe('classify-posts integration', () => {
   })
 
   it('sends exactly one classify request when outer wrapper and inner listitem both match POST_SELECTOR', () => {
-    document.body.innerHTML = `
-      <div data-testid="mainFeed" componentkey="container-update-list_mainFeed-lazy-container">
-        <div data-lazy-mount-id="test-mount" style="display:contents">
-          <div data-display-contents="true"><div><div role="listitem">${CLEAN_POST}</div></div></div>
-          <div>${CLEAN_POST}</div>
-          <div>${CLEAN_POST}</div>
-          <div>${CLEAN_POST}</div>
-          <div>${CLEAN_POST}</div>
-          <div>${CLEAN_POST}</div>
-        </div>
-      </div>`
+    buildNestedFeedDOM()
     doFeed({ ...baseConfig, 'classify-posts': true })
     vi.advanceTimersByTime(350)
     expect(sendMessageSpy).toHaveBeenCalledTimes(6)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// semantic-filter integration
+// ---------------------------------------------------------------------------
+
+describe('semantic-filter integration', () => {
+  let sendMessageSpy
+
+  beforeEach(() => {
+    sendMessageSpy = vi.fn((msg, cb) => cb({ score: 0.8, topic: 'hustle culture' }))
+    vi.stubGlobal('chrome', {
+      runtime: { lastError: null, sendMessage: sendMessageSpy },
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sends a semantic-check message for each clean post when semantic-filter is set', () => {
+    runClean({ 'semantic-filter': 'hustle culture' })
+    expect(sendMessageSpy).toHaveBeenCalledTimes(6)
+    expect(sendMessageSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ 'semantic-check': expect.objectContaining({ queries: ['hustle culture'] }) }),
+      expect.any(Function)
+    )
+  })
+
+  it('hides a post and shows a collapse banner when the similarity score meets the threshold', () => {
+    const posts = buildFeedDOM(SIX_CLEAN)
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+    vi.advanceTimersByTime(350)
+    expect(posts[0].dataset.hidden).toBe('true')
+    expect(posts[0].previousElementSibling?.classList.contains('focusedin-slop-collapsed')).toBe(true)
+    expect(posts[0].previousElementSibling?.textContent).toMatch(/🎯 Semantic match/)
+  })
+
+  it('clicking Show anyway on semantic banner reveals the post', () => {
+    const posts = buildFeedDOM([CLEAN_POST])
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+    vi.advanceTimersByTime(350)
+    const banner = posts[0].previousElementSibling
+    banner.querySelector('.focusedin-slop-reveal-btn').click()
+    expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
+    expect(banner.classList.contains('focusedin-slop-tag')).toBe(true)
+  })
+
+  it('appends semantic signal to existing classification banner when classification responds first', async () => {
+    sendMessageSpy = vi.fn((msg, cb) => {
+      if (msg['classify-post']) cb({ result: { label: 'self-promotion', score: 0.82 } })
+      else Promise.resolve().then(() => cb({ score: 0.8, topic: 'hustle culture' }))
+    })
+    vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
+    const posts = buildFeedDOM([CLEAN_POST])
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture', 'classify-posts': true })
+    vi.advanceTimersByTime(350)
+    await Promise.resolve()
+    const banner = posts[0].previousElementSibling
+    expect(banner?.classList.contains('focusedin-slop-collapsed')).toBe(true)
+    expect(banner?.textContent).toMatch(/self-promotion/)
+    expect(banner?.textContent).toMatch(/🎯 hustle culture/)
+    expect(document.querySelectorAll('.focusedin-slop-collapsed').length).toBe(1)
+  })
+
+  it('does not hide a post when the similarity score is below the threshold', () => {
+    sendMessageSpy = vi.fn((msg, cb) => cb({ score: 0.3 }))
+    vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
+    const posts = buildFeedDOM(SIX_CLEAN)
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+    vi.advanceTimersByTime(350)
+    expect(posts[0].dataset.hidden).not.toBe('true')
+  })
+
+  it('does not send semantic-check messages when semantic-filter is empty', () => {
+    buildFeedDOM(SIX_CLEAN)
+    doFeed({ ...baseConfig, 'semantic-filter': '' })
+    vi.advanceTimersByTime(350)
+    expect(sendMessageSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not semantic-check slop-detected posts', () => {
+    buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true, 'semantic-filter': 'hustle culture' })
+    vi.advanceTimersByTime(350)
+    expect(sendMessageSpy).toHaveBeenCalledTimes(5)
+  })
+
+  it('does not re-check a post when doFeed re-runs', () => {
+    buildFeedDOM(SIX_CLEAN)
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+    vi.advanceTimersByTime(350)
+    sendMessageSpy.mockClear()
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+    vi.advanceTimersByTime(350)
+    expect(sendMessageSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not throw when sendMessage throws Extension context invalidated', () => {
+    expectNoThrowWithContext({ 'semantic-filter': 'hustle culture' })
+  })
+
+  it('does not throw when chrome is not available', () => {
+    vi.unstubAllGlobals()
+    buildFeedDOM(SIX_CLEAN)
+    expect(() => {
+      doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+      vi.advanceTimersByTime(350)
+    }).not.toThrow()
+  })
+
+  it('does not hide a post when the response score is null', () => {
+    sendMessageSpy = vi.fn((msg, cb) => cb({ score: null }))
+    vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
+    const posts = buildFeedDOM(SIX_CLEAN)
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+    vi.advanceTimersByTime(350)
+    expect(posts[0].dataset.semanticHidden).toBeUndefined()
+  })
+
+  it('sends exactly one semantic-check when outer wrapper and inner listitem both match POST_SELECTOR', () => {
+    buildNestedFeedDOM()
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+    vi.advanceTimersByTime(350)
+    expect(sendMessageSpy).toHaveBeenCalledTimes(6)
+  })
+
+  it('does not add a classification badge to a semantically hidden post', () => {
+    // Return distinct responses so both semantic-check and classify-post callbacks fire
+    sendMessageSpy = vi.fn((msg, cb) => {
+      if (msg['semantic-check']) cb({ score: 0.8 })
+      else cb({ result: { label: 'self-promotion', score: 0.82 } })
+    })
+    vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
+    const posts = buildFeedDOM(SIX_CLEAN)
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture', 'classify-posts': true })
+    vi.advanceTimersByTime(350)
+    const hiddenPost = posts[0]
+    expect(hiddenPost.dataset.semanticHidden).toBe('1')
+    expect(hiddenPost.dataset.classificationBadge).toBeUndefined()
+    expect(hiddenPost.previousElementSibling?.textContent).toMatch(/🎯 Semantic match/)
   })
 })
