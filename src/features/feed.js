@@ -126,6 +126,20 @@ const getAuthorFromStrongLinks = (post) => {
 const extractAuthorName = (post) =>
   getAuthorFromActorDiv(post) ?? getAuthorFromFollowBtn(post) ?? getAuthorFromStrongLinks(post)
 
+const SUMMARY_MAX_LENGTH = 120
+
+// Extractive summary: the post's first sentence, or a truncated lead-in for one
+// long run-on. Lets a reader judge a collapsed post without expanding it.
+export const extractSummary = (text) => {
+  const cleaned = text.replace(/\s+/g, ' ').trim()
+  if (!cleaned) return ''
+  const sentenceEnd = cleaned.search(/[.!?](?:\s|$)/)
+  if (sentenceEnd !== -1 && sentenceEnd < SUMMARY_MAX_LENGTH) {
+    return cleaned.slice(0, sentenceEnd + 1)
+  }
+  return `${cleaned.slice(0, SUMMARY_MAX_LENGTH).trim()}…`
+}
+
 // Tracks post text prefixes the user has explicitly revealed, persists for the page lifetime.
 // Prevents re-collapsing when LinkedIn replaces the DOM element for an already-revealed post.
 const revealedTexts = new Set()
@@ -141,7 +155,8 @@ const collapseToTag = (banner, author) => {
 const addRevealBanner = (post, signals) => {
   if (post.dataset.focusinBanner) return
   if (post.dataset.slopRevealed) return
-  const postText = extractPostText(post).trim().slice(0, 150)
+  const fullText = extractPostText(post).trim()
+  const postText = fullText.slice(0, 150)
   if (revealedTexts.has(postText)) return
   post.dataset.focusinBanner = '1'
   const author = extractAuthorName(post)
@@ -153,6 +168,14 @@ const addRevealBanner = (post, signals) => {
   headline.className = 'focusedin-slop-headline'
   headline.textContent = '🤖 AI-generated post'
   banner.append(headline)
+
+  const summary = extractSummary(fullText)
+  if (summary) {
+    const summaryRow = document.createElement('div')
+    summaryRow.className = 'focusedin-slop-summary'
+    summaryRow.textContent = summary
+    banner.append(summaryRow)
+  }
 
   if (signals.length) {
     const signalRow = document.createElement('div')
@@ -186,73 +209,6 @@ const addRevealBanner = (post, signals) => {
 }
 
 // ---------------------------------------------------------------------------
-// Classification collapse banner
-// ---------------------------------------------------------------------------
-
-const CATEGORY_EMOJI = {
-  'self-promotion': '📣',
-  'hustle culture': '💼',
-  'humble brag': '🙈',
-  'thought leadership': '💡',
-  'inspirational cliché': '✨',
-}
-
-export const applyClassificationDecision = (post, { label, score }) => {
-  if (post.dataset.classificationBadge) return
-  if (post.dataset.semanticHidden) return
-  post.dataset.classificationBadge = label
-  const emoji = CATEGORY_EMOJI[label] ?? '🏷️'
-  const pct = Math.round(score * 100)
-
-  // If a slop banner already precedes this post, append classification info to it
-  const prev = post.previousElementSibling
-  if (prev?.classList.contains('focusedin-slop-collapsed')) {
-    const classRow = document.createElement('div')
-    classRow.className = 'focusedin-slop-signals'
-    classRow.textContent = `${emoji} ${label} · ${pct}%`
-    const revealBtn = prev.querySelector('.focusedin-slop-reveal-btn')
-    prev.insertBefore(classRow, revealBtn ?? null)
-    return
-  }
-
-  post.classList.add('focusedin-slop-soft-hide')
-  const banner = document.createElement('div')
-  banner.className = 'focusedin-slop-collapsed'
-  banner.dataset.focusinInjected = '1'
-  const headline = document.createElement('div')
-  headline.className = 'focusedin-slop-headline'
-  headline.textContent = `${emoji} ${label}`
-  banner.append(headline)
-  const scoreRow = document.createElement('div')
-  scoreRow.className = 'focusedin-slop-signals'
-  scoreRow.textContent = `${pct}% confidence`
-  banner.append(scoreRow)
-  const btn = document.createElement('button')
-  btn.type = 'button'
-  btn.className = 'focusedin-slop-reveal-btn'
-  btn.textContent = 'Show anyway'
-  btn.addEventListener('click', (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    post.classList.remove('focusedin-slop-soft-hide')
-    collapseToTag(banner, extractAuthorName(post))
-  })
-  banner.append(btn)
-  post.before(banner)
-}
-
-const sendClassifyRequest = (post, text) => {
-  try {
-    chrome.runtime.sendMessage({ 'classify-post': text }, (response) => {
-      if (chrome.runtime.lastError || !response?.result) return
-      applyClassificationDecision(post, response.result)
-    })
-  } catch {
-    // Extension context invalidated after reload — silently discard
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Feed observation and post filtering
 // ---------------------------------------------------------------------------
 
@@ -270,20 +226,13 @@ const isPostNode = (node) => {
 
 const SEMANTIC_THRESHOLD = 0.35
 
-const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPosts, semanticQuery) => {
+const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuery) => {
   let postsProcessed = 0
 
   const countOnce = (post, fn, signals) => {
     if (post.dataset.focusinCounted) return
     signals ? fn(signals) : fn()
     post.dataset.focusinCounted = '1'
-  }
-
-  const requestClassification = (post) => {
-    if (!classifyPosts || post.dataset.classifiedPost) return
-    if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) return
-    post.dataset.classifiedPost = '1'
-    sendClassifyRequest(post, extractPostText(post))
   }
 
   const semanticTopics = semanticQuery
@@ -298,15 +247,6 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     countOnce(post, trackPostFiltered)
     const pct = Math.round(response.score * 100)
     const topic = response.topic ?? 'topic match'
-    const prev = post.previousElementSibling
-    if (prev?.classList.contains('focusedin-slop-collapsed')) {
-      const row = document.createElement('div')
-      row.className = 'focusedin-slop-signals'
-      row.textContent = `🎯 ${topic} · ${pct}%`
-      const revealBtn = prev.querySelector('.focusedin-slop-reveal-btn')
-      prev.insertBefore(row, revealBtn ?? null)
-      return
-    }
     post.classList.add('focusedin-slop-soft-hide')
     const banner = document.createElement('div')
     banner.className = 'focusedin-slop-collapsed'
@@ -315,6 +255,13 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     headline.className = 'focusedin-slop-headline'
     headline.textContent = '🎯 Semantic match'
     banner.append(headline)
+    const summary = extractSummary(extractPostText(post))
+    if (summary) {
+      const summaryRow = document.createElement('div')
+      summaryRow.className = 'focusedin-slop-summary'
+      summaryRow.textContent = summary
+      banner.append(summaryRow)
+    }
     const scoreRow = document.createElement('div')
     scoreRow.className = 'focusedin-slop-signals'
     scoreRow.textContent = `${topic} · ${pct}%`
@@ -375,7 +322,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     // LinkedIn nests an outer wrapper (> data-lazy-mount-id > div) AND an inner
     // div[role="listitem"] — both match POST_SELECTOR. Skip if an ancestor has
     // already been processed so we don't double-banner the same post.
-    if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-classified-post],[data-semantic-checked]')) return
+    if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-semantic-checked]')) return
     postsProcessed++
     const isKeywordMatch = keywords.some((keyword) => post.textContent.indexOf(keyword) !== -1)
     const slopSignals = checkSlop(post)
@@ -385,13 +332,10 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     } else if (slopSignals) {
       applySlopDecision(post, slopSignals)
     } else {
-      if (!post.dataset.classificationBadge) {
-        removeHideClasses(post)
-        post.classList.remove('focusedin-slop-soft-hide')
-        post.dataset.hidden = false
-      }
+      removeHideClasses(post)
+      post.classList.remove('focusedin-slop-soft-hide')
+      post.dataset.hidden = false
       requestSemanticCheck(post)
-      requestClassification(post)
     }
   }
 
@@ -437,7 +381,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, classifyPost
     feedObserver.observe(feedContainer, { childList: true, subtree: true })
   }
 
-  if (keywords.length || detectSlop || hideSlop || classifyPosts || semanticTopics.length) connectObserver()
+  if (keywords.length || detectSlop || hideSlop || semanticTopics.length) connectObserver()
 }
 
 const toggleFeed = (shown) => {
@@ -483,7 +427,6 @@ const handleFilterFeed = (mode, config) => {
     mode,
     !!config['detect-slop'],
     !!config['hide-slop'],
-    !!config['classify-posts'],
     config['semantic-filter'] || ''
   )
 }

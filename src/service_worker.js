@@ -1,13 +1,6 @@
-import { classifyPost } from './features/classifier.js'
 import { semanticCheck } from './features/semantic-filter.js'
 
 chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
-  if (req['classify-post']) {
-    classifyPost(req['classify-post'])
-      .then((result) => sendResponse({ result }))
-      .catch(() => sendResponse({ result: null }))
-    return true
-  }
   if (req['semantic-check']) {
     const { queries, post } = req['semantic-check']
     semanticCheck(queries, post)
@@ -32,7 +25,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     'sort-by-recent': true,
     'detect-slop': true,
     'hide-slop': false,
-    'classify-posts': false,
     'semantic-filter': 'hustle culture, personal branding, motivational quotes, cryptocurrency, job interview tips, AI productivity tools, startup success story, sales and lead generation',
     'hide-premium': true,
     'hide-advertisements': true,
