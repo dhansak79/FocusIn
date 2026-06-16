@@ -7,7 +7,7 @@ process.env.PATH = `${process.env.HOME}/.local/bin:${process.env.PATH}`
 if (spawnSync('cs', ['version'], { stdio: 'ignore' }).error) {
   console.error(
     'CodeScene health gate: cs is not installed.\n' +
-    'Install it from https://codescene.io/docs/cli/index.html and re-try.'
+    'Follow the guidance at https://codescene.io/docs/cli/index.html to install it.'
   )
   process.exit(1)
 }
