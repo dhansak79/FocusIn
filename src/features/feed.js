@@ -225,7 +225,7 @@ const isPostNode = (node) => {
 }
 
 const SEMANTIC_THRESHOLD = 0.35
-const SLOP_ARCHETYPE_THRESHOLD = 0.38
+const SLOP_ARCHETYPE_THRESHOLD = 0.25
 
 const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuery, detectSlopArchetype) => {
   let postsProcessed = 0

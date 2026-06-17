@@ -579,7 +579,7 @@ describe('semantic-filter integration', () => {
     sendMessageSpy = vi.fn((msg, cb) => cb({ score: 0.3 }))
     vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
     const posts = buildFeedDOM(SIX_CLEAN)
-    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture' })
+    doFeed({ ...baseConfig, 'semantic-filter': 'hustle culture', 'slop-archetype': false })
     vi.advanceTimersByTime(350)
     expect(posts[0].dataset.hidden).not.toBe('true')
   })
@@ -696,7 +696,7 @@ describe('slop-archetype-check integration', () => {
   })
 
   it('does not collapse a post when the archetype score is below the threshold', () => {
-    sendMessageSpy = vi.fn((msg, cb) => cb({ score: 0.3 }))
+    sendMessageSpy = vi.fn((msg, cb) => cb({ score: 0.2 }))
     vi.stubGlobal('chrome', { runtime: { lastError: null, sendMessage: sendMessageSpy } })
     const posts = buildFeedDOM([CLEAN_POST])
     doFeed({ ...baseConfig, 'detect-slop': true })
