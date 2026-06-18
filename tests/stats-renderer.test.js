@@ -32,16 +32,19 @@ describe('renderDamageReport', () => {
     expect(els.filteredEl.textContent).toBe(42)
   })
 
-  it('renders top 3 signals sorted by count descending', () => {
+  it('renders top 5 signals sorted by count descending', () => {
     const els = makeElements()
     renderDamageReport({
       ...ZERO,
-      signals: { 'em dash': 5, 'line stacking': 2, '"game-changer"': 8, 'arrow bullets': 1 },
+      signals: { 'em dash': 5, 'line stacking': 2, '"game-changer"': 8, 'arrow bullets': 1, 'emoji bullets': 4, 'raw markdown': 3, 'emoji overload': 0 },
     }, els)
     expect(els.signalsEl.innerHTML).toContain('"game-changer"')
     expect(els.signalsEl.innerHTML).toContain('em dash')
+    expect(els.signalsEl.innerHTML).toContain('emoji bullets')
+    expect(els.signalsEl.innerHTML).toContain('raw markdown')
     expect(els.signalsEl.innerHTML).toContain('line stacking')
     expect(els.signalsEl.innerHTML).not.toContain('arrow bullets')
+    expect(els.signalsEl.innerHTML).not.toContain('emoji overload')
   })
 
   it('renders signal count with times symbol', () => {
