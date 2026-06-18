@@ -67,7 +67,6 @@ afterEach(() => {
 
 const baseConfig = {
   'feed-keywords': '',
-  'hide-by-age': 'disabled',
   'main-toggle': true,
   'slop-archetype': true,
 }

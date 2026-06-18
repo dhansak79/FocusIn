@@ -14,7 +14,6 @@ import {
   hidePost,
   resetShownPosts,
   resetBlockedPosts,
-  resetJobs,
 } from '../src/utils.js'
 
 beforeEach(() => {
@@ -356,44 +355,6 @@ describe('resetBlockedPosts', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// resetJobs
-// ---------------------------------------------------------------------------
-
-describe('resetJobs', () => {
-  it('removes hide classes from .job-card-container elements', () => {
-    document.body.innerHTML =
-      '<div class="job-card-container hide showIcon" data-hidden="true">job</div>'
-    const card = document.querySelector('.job-card-container')
-    resetJobs()
-    expect(card.classList.contains('hide')).toBe(false)
-    expect(card.classList.contains('showIcon')).toBe(false)
-  })
-
-  it('deletes dataset.hidden from .job-card-container elements', () => {
-    document.body.innerHTML =
-      '<div class="job-card-container" data-hidden="true">job</div>'
-    const card = document.querySelector('.job-card-container')
-    resetJobs()
-    expect(card.dataset.hidden).toBeUndefined()
-  })
-
-  it('removes hide classes from div[data-job-id] elements', () => {
-    document.body.innerHTML =
-      '<div data-job-id="123" class="hide showIcon" data-hidden="true">job</div>'
-    const card = document.querySelector('[data-job-id]')
-    resetJobs()
-    expect(card.classList.contains('hide')).toBe(false)
-  })
-
-  it('deletes dataset.hidden from div[data-job-id] elements', () => {
-    document.body.innerHTML =
-      '<div data-job-id="123" class="dim" data-hidden="true">job</div>'
-    const card = document.querySelector('[data-job-id]')
-    resetJobs()
-    expect(card.dataset.hidden).toBeUndefined()
-  })
-})
 
 // ---------------------------------------------------------------------------
 // findElement

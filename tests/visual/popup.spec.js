@@ -13,10 +13,6 @@ test.beforeEach(async ({ page }) => {
           set: () => {},
         },
       },
-      tabs: {
-        query: (_opts, cb) => cb([{ id: 1 }]),
-        sendMessage: () => {},
-      },
       runtime: { lastError: null },
     }
   })
@@ -39,22 +35,23 @@ test('No Noah Jelich references', async ({ page }) => {
   expect(html).not.toContain('Buy me')
 })
 
-test('Feed section — switches present', async ({ page }) => {
-  await expect(page.locator('label[for="hide-whole-feed"]').first()).toBeVisible()
-  await expect(page.locator('label[for="sort-by-recent"]').first()).toBeVisible()
+test('AI content section — switches present', async ({ page }) => {
   await expect(page.locator('label[for="detect-slop"]').first()).toBeVisible()
+  await expect(page.locator('label[for="slop-archetype"]').first()).toBeVisible()
+  await expect(page.locator('label[for="hide-slop"]').first()).toBeVisible()
+  await page.screenshot({ path: 'tests/visual/screenshots/ai-content.png', fullPage: true })
+})
+
+test('Keyword filter — present', async ({ page }) => {
   await expect(page.locator('#hide-by-keywords')).toBeAttached()
-  await page.screenshot({ path: 'tests/visual/screenshots/feed.png', fullPage: true })
 })
 
-test('Jobs section — present', async ({ page }) => {
-  await expect(page.locator('label[for="hide-promoted-jobs"]').first()).toBeVisible()
-  await expect(page.locator('#hide-by-job-keywords')).toBeAttached()
-})
-
-test('Misc section — present', async ({ page }) => {
-  await expect(page.locator('#unfollow-all')).toBeVisible()
-  await expect(page.locator('label[for="hide-advertisements"]').first()).toBeVisible()
+test('Removed sections — not present', async ({ page }) => {
+  await expect(page.locator('label[for="hide-whole-feed"]')).not.toBeAttached()
+  await expect(page.locator('label[for="sort-by-recent"]')).not.toBeAttached()
+  await expect(page.locator('#unfollow-all')).not.toBeAttached()
+  await expect(page.locator('label[for="hide-advertisements"]')).not.toBeAttached()
+  await expect(page.locator('#hide-by-job-keywords')).not.toBeAttached()
 })
 
 test('Master toggle switches to DISABLED', async ({ page }) => {

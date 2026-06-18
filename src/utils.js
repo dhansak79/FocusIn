@@ -1,7 +1,4 @@
-import {
-  JOB_SELECTORS,
-  POST_SELECTOR,
-} from './constants.js'
+import { POST_SELECTOR } from './constants.js'
 
 const isReady = (selector) => {
   const found = document.querySelectorAll(selector)
@@ -146,7 +143,3 @@ export const resetBlockedPosts = () => {
   document.querySelectorAll('.focusedin-slop-collapsed, .focusedin-slop-tag').forEach((el) => el.remove())
 }
 
-export const resetJobs = () => {
-  console.log('FocusedIn: Reset shown jobs')
-  resetBySelector(JOB_SELECTORS.join(','))
-}

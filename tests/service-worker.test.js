@@ -48,7 +48,7 @@ describe('onInstalled', () => {
   })
 
   it('does not set defaults when already initialized', async () => {
-    mockGet.mockResolvedValue({ initialized: 'v0.5' })
+    mockGet.mockResolvedValue({ initialized: 'v1.0' })
     await capturedInstallListener({ reason: 'install' })
     expect(mockSet).not.toHaveBeenCalled()
   })
@@ -58,26 +58,28 @@ describe('onInstalled', () => {
     await capturedInstallListener({ reason: 'install' })
     expect(mockSet).toHaveBeenCalledWith(
       expect.objectContaining({
-        initialized: 'v0.5',
+        initialized: 'v1.0',
         'main-toggle': true,
-        'hide-whole-feed': false,
-        'hide-by-age': 'week',
         'feed-keywords': '',
-        'hide-liked': true,
-        'hide-suggested': true,
-        'sort-by-recent': true,
         'detect-slop': true,
         'hide-slop': false,
+        'slop-archetype': true,
         'semantic-filter': expect.any(String),
-        'hide-premium': true,
-        'hide-advertisements': true,
-        'hide-follow-recommendations': true,
-        'hide-news': false,
-        'hide-notification-count': false,
-        'job-keywords': '',
-        'hide-promoted-jobs': false,
       })
     )
+  })
+
+  it('does not set removed feature defaults on a fresh install', async () => {
+    mockGet.mockResolvedValue({})
+    await capturedInstallListener({ reason: 'install' })
+    const setArg = mockSet.mock.calls[0][0]
+    expect(setArg).not.toHaveProperty('hide-whole-feed')
+    expect(setArg).not.toHaveProperty('sort-by-recent')
+    expect(setArg).not.toHaveProperty('hide-by-age')
+    expect(setArg).not.toHaveProperty('hide-liked')
+    expect(setArg).not.toHaveProperty('hide-suggested')
+    expect(setArg).not.toHaveProperty('hide-premium')
+    expect(setArg).not.toHaveProperty('job-keywords')
   })
 })
 

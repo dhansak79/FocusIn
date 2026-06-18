@@ -1,21 +1,13 @@
-import { setupDeleteMessagesButton } from './features/message.js'
+'use strict'
+
 import applyFeed from './features/feed.js'
-import applyMisc, { unfollowAll } from './features/misc.js'
-import applyJobs from './features/jobs.js'
-import { FOLLOW_PAGE_URL } from './constants.js'
 
 const storage = chrome.storage.local
-
-const applyConfig = (config) => {
-  applyFeed(config)
-  applyJobs(config)
-  applyMisc(config)
-}
 
 const loadAndApply = async () => {
   try {
     const config = await storage.get()
-    applyConfig(config)
+    applyFeed(config)
   } catch (_) { /* context invalidated */ }
 }
 
@@ -27,30 +19,10 @@ chrome.storage.onChanged.addListener((changes) => {
   loadAndApply()
 })
 
-chrome.runtime.onMessage.addListener(async (req) => {
-  if (req['unfollow-all']) {
-    if (!window.location.href.includes(FOLLOW_PAGE_URL)) {
-      alert(
-        'No messages. Are you on the follows page (/mynetwork/network-manager/people-follow)?\n\nIf not, please navigate to following using the LinkedIn navbar and then click the Unfollow All button again.'
-      )
-      return
-    } else {
-      await unfollowAll()
-    }
-  }
-})
-
-const AUTHORIZED_URLS = ['/', '/feed/', '/jobs/', '/messaging/']
-
 const onNavigate = (url) => {
   const pathname = new URL(url).pathname
-  if (!AUTHORIZED_URLS.includes(pathname)) return
-
+  if (pathname !== '/feed/' && pathname !== '/') return
   loadAndApply()
-
-  if (pathname.startsWith('/messaging/')) {
-    setupDeleteMessagesButton()
-  }
 }
 
 // Initialize on the current page immediately, then listen for subsequent navigations

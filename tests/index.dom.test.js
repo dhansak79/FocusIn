@@ -3,12 +3,8 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 // Module mocks — hoisted before any import
 vi.mock('../src/features/feed.js', () => ({ default: vi.fn() }))
-vi.mock('../src/features/jobs.js', () => ({ default: vi.fn() }))
-vi.mock('../src/features/misc.js', () => ({ default: vi.fn(), unfollowAll: vi.fn() }))
-vi.mock('../src/features/message.js', () => ({ setupDeleteMessagesButton: vi.fn() }))
 
 const mockGet = vi.fn().mockResolvedValue({})
-let capturedOnMessage = null
 let capturedOnChanged = null
 
 const stubChrome = () =>
@@ -18,11 +14,7 @@ const stubChrome = () =>
       onChanged: { addListener: vi.fn((fn) => { capturedOnChanged = fn }) },
     },
     runtime: {
-      onMessage: {
-        addListener: vi.fn((fn) => {
-          capturedOnMessage = fn
-        }),
-      },
+      onMessage: { addListener: vi.fn() },
     },
   })
 
@@ -31,7 +23,6 @@ beforeEach(() => {
   vi.useFakeTimers()
   mockGet.mockClear()
   mockGet.mockResolvedValue({})
-  capturedOnMessage = null
   capturedOnChanged = null
   stubChrome()
 })
@@ -68,7 +59,6 @@ describe('Navigation API — when navigation is in window', () => {
   })
 
   it('calls initialize immediately for the current page on load', async () => {
-    // Re-import with an authorized URL as the starting location
     vi.resetModules()
     mockGet.mockClear()
     vi.stubGlobal('location', { href: 'https://www.linkedin.com/feed/', pathname: '/feed/' })
@@ -101,7 +91,7 @@ describe('Navigation API — when navigation is in window', () => {
     expect(mockGet).not.toHaveBeenCalled()
   })
 
-  it('calls initialize for an authorized URL', async () => {
+  it('calls initialize for /feed/', async () => {
     navigateHandlers[0]({ canIntercept: true, hashChange: false, downloadRequest: null, destination: { url: 'https://www.linkedin.com/feed/' } })
     await Promise.resolve()
     expect(mockGet).toHaveBeenCalled()
@@ -113,20 +103,13 @@ describe('Navigation API — when navigation is in window', () => {
     expect(mockGet).not.toHaveBeenCalled()
   })
 
-  it('calls setupDeleteMessagesButton for messaging URL', async () => {
-    const { setupDeleteMessagesButton } = await import('../src/features/message.js')
-    navigateHandlers[0]({ canIntercept: true, hashChange: false, downloadRequest: null, destination: { url: 'https://www.linkedin.com/messaging/' } })
-    await Promise.resolve()
-    expect(setupDeleteMessagesButton).toHaveBeenCalled()
-  })
-
   it('calls doFeed on each navigation when config is loaded', async () => {
     const doFeed = (await import('../src/features/feed.js')).default
     mockGet.mockResolvedValue({ 'main-toggle': true })
     navigateHandlers[0]({ canIntercept: true, hashChange: false, downloadRequest: null, destination: { url: 'https://www.linkedin.com/feed/' } })
-    await Promise.resolve() // handleNavigation → initialize()
-    await Promise.resolve() // storage.get() resolves
-    await Promise.resolve() // doIt runs
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
     expect(doFeed).toHaveBeenCalled()
   })
 })
@@ -193,40 +176,6 @@ describe('loadAndApply — storage error handling', () => {
 })
 
 // ---------------------------------------------------------------------------
-// onMessage handler
-// ---------------------------------------------------------------------------
-
-describe('chrome.runtime.onMessage — unfollow-all', () => {
-  beforeEach(async () => {
-    vi.stubGlobal('navigation', { addEventListener: vi.fn() })
-    await import('../src/index.js')
-  })
-
-  it('shows an alert when not on the follows page', async () => {
-    vi.stubGlobal('location', { href: 'https://www.linkedin.com/feed/', pathname: '/feed/' })
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
-    await capturedOnMessage({ 'unfollow-all': true })
-    expect(alertSpy).toHaveBeenCalled()
-  })
-
-  it('calls unfollowAll when on the follows page', async () => {
-    const { unfollowAll } = await import('../src/features/misc.js')
-    vi.stubGlobal('location', {
-      href: 'https://www.linkedin.com/mynetwork/network-manager/people-follow',
-      pathname: '/mynetwork/network-manager/people-follow',
-    })
-    await capturedOnMessage({ 'unfollow-all': true })
-    expect(unfollowAll).toHaveBeenCalled()
-  })
-
-  it('does nothing when message is not unfollow-all', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
-    await capturedOnMessage({ other: true })
-    expect(alertSpy).not.toHaveBeenCalled()
-  })
-})
-
-// ---------------------------------------------------------------------------
 // Interval fallback path
 // ---------------------------------------------------------------------------
 
@@ -234,14 +183,13 @@ describe('Interval fallback — when navigation is not in window', () => {
   beforeEach(async () => {
     vi.stubGlobal('location', { href: 'https://www.linkedin.com/feed/', pathname: '/feed/' })
     await import('../src/index.js')
-    // Flush the initial handleNavigation call that fires synchronously on import
     await Promise.resolve()
     await Promise.resolve()
     mockGet.mockClear()
   })
 
   it('detects a URL change and calls initialize', async () => {
-    vi.stubGlobal('location', { href: 'https://www.linkedin.com/jobs/', pathname: '/jobs/' })
+    vi.stubGlobal('location', { href: 'https://www.linkedin.com/feed/?new', pathname: '/feed/' })
     await vi.advanceTimersByTimeAsync(2000)
     await Promise.resolve()
     expect(mockGet).toHaveBeenCalled()
@@ -256,7 +204,7 @@ describe('Interval fallback — when navigation is not in window', () => {
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
     document.dispatchEvent(new Event('visibilitychange'))
 
-    vi.stubGlobal('location', { href: 'https://www.linkedin.com/jobs/', pathname: '/jobs/' })
+    vi.stubGlobal('location', { href: 'https://www.linkedin.com/feed/?new', pathname: '/feed/' })
     await vi.advanceTimersByTimeAsync(2000)
     expect(mockGet).not.toHaveBeenCalled()
   })
@@ -267,7 +215,7 @@ describe('Interval fallback — when navigation is not in window', () => {
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
     document.dispatchEvent(new Event('visibilitychange'))
 
-    vi.stubGlobal('location', { href: 'https://www.linkedin.com/jobs/', pathname: '/jobs/' })
+    vi.stubGlobal('location', { href: 'https://www.linkedin.com/feed/?new', pathname: '/feed/' })
     await vi.advanceTimersByTimeAsync(2000)
     await Promise.resolve()
     expect(mockGet).toHaveBeenCalled()
@@ -276,7 +224,7 @@ describe('Interval fallback — when navigation is not in window', () => {
   it('stops the interval on pagehide', async () => {
     window.dispatchEvent(new Event('pagehide'))
 
-    vi.stubGlobal('location', { href: 'https://www.linkedin.com/jobs/', pathname: '/jobs/' })
+    vi.stubGlobal('location', { href: 'https://www.linkedin.com/feed/?new', pathname: '/feed/' })
     await vi.advanceTimersByTimeAsync(2000)
     expect(mockGet).not.toHaveBeenCalled()
   })
