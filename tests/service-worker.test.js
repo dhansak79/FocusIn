@@ -62,7 +62,6 @@ describe('onInstalled', () => {
         'main-toggle': true,
         'feed-keywords': '',
         'detect-slop': true,
-        'hide-slop': false,
         'slop-archetype': true,
         'semantic-filter': expect.any(String),
       })
@@ -80,6 +79,7 @@ describe('onInstalled', () => {
     expect(setArg).not.toHaveProperty('hide-suggested')
     expect(setArg).not.toHaveProperty('hide-premium')
     expect(setArg).not.toHaveProperty('job-keywords')
+    expect(setArg).not.toHaveProperty('hide-slop')
   })
 })
 

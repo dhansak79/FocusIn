@@ -1,5 +1,5 @@
 export const renderDamageReport = (stats, { slopEl, filteredEl, signalsEl }) => {
-  slopEl.textContent = (stats.slopCollapsed || 0) + (stats.slopHidden || 0)
+  slopEl.textContent = stats.slopCollapsed || 0
   filteredEl.textContent = stats.postsFiltered || 0
 
   const topSignals = Object.entries(stats.signals || {})

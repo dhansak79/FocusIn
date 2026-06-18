@@ -35,7 +35,7 @@ const flush = async (mod, fn) => {
 const awaitStats = (readStats) =>
   new Promise((resolve) => readStats((stats) => resolve(stats)))
 
-const ZERO = { postsFiltered: 0, slopCollapsed: 0, slopHidden: 0, signals: {} }
+const ZERO = { postsFiltered: 0, slopCollapsed: 0, signals: {} }
 
 // ---------------------------------------------------------------------------
 // trackPostFiltered
@@ -88,7 +88,7 @@ describe('trackPostFiltered', () => {
 })
 
 // ---------------------------------------------------------------------------
-// trackSlopCollapsed / trackSlopHidden — shared helper
+// trackSlopCollapsed
 // ---------------------------------------------------------------------------
 
 const flushAndExpectStats = async (action, expectedStats) => {
@@ -120,25 +120,12 @@ describe('trackSlopCollapsed', () => {
 })
 
 // ---------------------------------------------------------------------------
-// trackSlopHidden
-// ---------------------------------------------------------------------------
-
-describe('trackSlopHidden', () => {
-  it('increments slopHidden and records signals', async () => {
-    await flushAndExpectStats(
-      ({ trackSlopHidden }) => trackSlopHidden(['"here\'s the thing"', 'line stacking']),
-      { slopHidden: 1, signals: { '"here\'s the thing"': 1, 'line stacking': 1 } }
-    )
-  })
-})
-
-// ---------------------------------------------------------------------------
 // readStats
 // ---------------------------------------------------------------------------
 
 describe('readStats', () => {
   it('returns stored stats when date matches today', async () => {
-    const stored = { postsFiltered: 5, slopCollapsed: 3, slopHidden: 1, signals: { 'em dash': 2 } }
+    const stored = { postsFiltered: 5, slopCollapsed: 3, signals: { 'em dash': 2 } }
     withStorage(storedToday(stored))
     const { readStats } = await importStats()
 
@@ -146,7 +133,7 @@ describe('readStats', () => {
   })
 
   it('returns zero stats when stored date is yesterday', async () => {
-    withStorage(storedYesterday({ postsFiltered: 99, slopCollapsed: 10, slopHidden: 5, signals: {} }))
+    withStorage(storedYesterday({ postsFiltered: 99, slopCollapsed: 10, signals: {} }))
     const { readStats } = await importStats()
 
     expect(await awaitStats(readStats)).toEqual(ZERO)
@@ -212,12 +199,11 @@ describe('extension context invalidated', () => {
 describe('without chrome', () => {
   it('track functions do not throw when chrome is unavailable', async () => {
     vi.unstubAllGlobals()
-    const { trackPostFiltered, trackSlopCollapsed, trackSlopHidden } = await importStats()
+    const { trackPostFiltered, trackSlopCollapsed } = await importStats()
 
     expect(() => {
       trackPostFiltered()
       trackSlopCollapsed(['em dash'])
-      trackSlopHidden(['line stacking'])
       vi.advanceTimersByTime(500)
     }).not.toThrow()
   })

@@ -11,7 +11,7 @@ import {
   resetShownPosts,
 } from '../utils.js'
 import { getSlopSignals, isSlop } from './slop-detector.js'
-import { trackPostFiltered, trackSlopCollapsed, trackSlopHidden } from '../stats.js'
+import { trackPostFiltered, trackSlopCollapsed } from '../stats.js'
 
 let feedObserver = null
 let scrollTimerId = null
@@ -167,7 +167,7 @@ const isPostNode = (node) => {
 const SEMANTIC_THRESHOLD = 0.35
 const SLOP_ARCHETYPE_THRESHOLD = 0.25
 
-const blockPosts = (keywords, mode, detectSlop, hideSlop, semanticQuery, detectSlopArchetype) => {
+const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchetype) => {
   let postsProcessed = 0
 
   const countOnce = (post, fn, signals) => {
@@ -272,7 +272,7 @@ const blockPosts = (keywords, mode, detectSlop, hideSlop, semanticQuery, detectS
   }
 
   const checkSlop = (post) => {
-    if (!(detectSlop || hideSlop)) return null
+    if (!detectSlop) return null
     if (post.dataset.slopRevealed || post.querySelector('[data-slop-revealed]')) return null
     const text = extractPostText(post)
     if (revealedTexts.has(text.trim().slice(0, 150))) return null
@@ -280,15 +280,10 @@ const blockPosts = (keywords, mode, detectSlop, hideSlop, semanticQuery, detectS
   }
 
   const applySlopDecision = (post, slopSignals) => {
-    if (hideSlop) {
-      hidePost(post, mode)
-      countOnce(post, trackSlopHidden, slopSignals)
-    } else {
-      post.classList.add('focusedin-slop-soft-hide')
-      post.dataset.hidden = true
-      addRevealBanner(post, slopSignals)
-      countOnce(post, trackSlopCollapsed, slopSignals)
-    }
+    post.classList.add('focusedin-slop-soft-hide')
+    post.dataset.hidden = true
+    addRevealBanner(post, slopSignals)
+    countOnce(post, trackSlopCollapsed, slopSignals)
   }
 
   const applyKeywordToPost = (post) => {
@@ -349,7 +344,7 @@ const blockPosts = (keywords, mode, detectSlop, hideSlop, semanticQuery, detectS
     feedObserver.observe(feedContainer, { childList: true, subtree: true })
   }
 
-  if (keywords.length || detectSlop || hideSlop || semanticTopics.length || detectSlopArchetype) connectObserver()
+  if (keywords.length || detectSlop || semanticTopics.length || detectSlopArchetype) connectObserver()
 }
 
 const disconnectObserver = () => {
@@ -374,7 +369,6 @@ const handleFilterFeed = (mode, config) => {
     config['feed-keywords'] ? config['feed-keywords'].split(',').map((k) => k.trim()).filter(Boolean) : [],
     mode,
     !!config['detect-slop'],
-    !!config['hide-slop'],
     config['semantic-filter'] || '',
     !!config['slop-archetype']
   )

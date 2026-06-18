@@ -9,7 +9,7 @@ const makeElements = () => ({
   signalsEl: makeEl(),
 })
 
-const ZERO = { postsFiltered: 0, slopCollapsed: 0, slopHidden: 0, signals: {} }
+const ZERO = { postsFiltered: 0, slopCollapsed: 0, signals: {} }
 
 describe('renderDamageReport', () => {
   it('shows zeros when stats are empty', () => {
@@ -20,10 +20,10 @@ describe('renderDamageReport', () => {
     expect(els.signalsEl.innerHTML).toBe('')
   })
 
-  it('sums slopCollapsed and slopHidden into the slop element', () => {
+  it('shows slopCollapsed in the slop element', () => {
     const els = makeElements()
-    renderDamageReport({ ...ZERO, slopCollapsed: 7, slopHidden: 3 }, els)
-    expect(els.slopEl.textContent).toBe(10)
+    renderDamageReport({ ...ZERO, slopCollapsed: 7 }, els)
+    expect(els.slopEl.textContent).toBe(7)
   })
 
   it('sets postsFiltered into the filtered element', () => {

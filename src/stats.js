@@ -2,7 +2,7 @@ const STORAGE_KEY = 'focusin-stats'
 const DATE_KEY = 'focusin-stats-date'
 const FLUSH_DELAY = 500
 
-const zero = () => ({ postsFiltered: 0, slopCollapsed: 0, slopHidden: 0, signals: {} })
+const zero = () => ({ postsFiltered: 0, slopCollapsed: 0, signals: {} })
 
 let pending = zero()
 let flushTimer = null
@@ -16,7 +16,6 @@ const applyDelta = (res, delta) => {
   const stats = res[DATE_KEY] === today() ? (res[STORAGE_KEY] || zero()) : zero()
   stats.postsFiltered += delta.postsFiltered
   stats.slopCollapsed += delta.slopCollapsed
-  stats.slopHidden += delta.slopHidden
   for (const [signal, count] of Object.entries(delta.signals)) {
     stats.signals[signal] = (stats.signals[signal] || 0) + count
   }
@@ -53,12 +52,6 @@ export const trackPostFiltered = () => { pending.postsFiltered++; schedule() }
 
 export const trackSlopCollapsed = (signals) => {
   pending.slopCollapsed++
-  recordSignals(signals)
-  schedule()
-}
-
-export const trackSlopHidden = (signals) => {
-  pending.slopHidden++
   recordSignals(signals)
   schedule()
 }

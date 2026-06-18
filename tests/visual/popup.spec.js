@@ -38,7 +38,6 @@ test('No Noah Jelich references', async ({ page }) => {
 test('AI content section — switches present', async ({ page }) => {
   await expect(page.locator('label[for="detect-slop"]').first()).toBeVisible()
   await expect(page.locator('label[for="slop-archetype"]').first()).toBeVisible()
-  await expect(page.locator('label[for="hide-slop"]').first()).toBeVisible()
   await page.screenshot({ path: 'tests/visual/screenshots/ai-content.png', fullPage: true })
 })
 
@@ -49,6 +48,7 @@ test('Keyword filter — present', async ({ page }) => {
 test('Removed sections — not present', async ({ page }) => {
   await expect(page.locator('label[for="hide-whole-feed"]')).not.toBeAttached()
   await expect(page.locator('label[for="sort-by-recent"]')).not.toBeAttached()
+  await expect(page.locator('label[for="hide-slop"]')).not.toBeAttached()
   await expect(page.locator('#unfollow-all')).not.toBeAttached()
   await expect(page.locator('label[for="hide-advertisements"]')).not.toBeAttached()
   await expect(page.locator('#hide-by-job-keywords')).not.toBeAttached()
