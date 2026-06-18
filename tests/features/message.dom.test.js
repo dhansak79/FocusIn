@@ -49,6 +49,11 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('setupDeleteMessagesButton', () => {
+  it('does not throw when the messaging container is absent (e.g. search results page)', async () => {
+    document.body.innerHTML = '' // no messaging DOM at all
+    await expect(setupDeleteMessagesButton()).resolves.toBeUndefined()
+  })
+
   it('appends a "Select all for deletion" button inside the menu ul', async () => {
     buildMessagingDOM()
     await setupDeleteMessagesButton()

@@ -65,6 +65,8 @@ export const setupDeleteMessagesButton = async () => {
     menu.appendChild(selectMenuItem)
   })
 
+  if (!menuContainer) return
+
   observer.observe(menuContainer, {
     attributes: false,
     childList: true,
