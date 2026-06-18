@@ -1,3 +1,21 @@
+// Natural-language descriptions of structural slop patterns that keyword matching misses.
+// Used by the semantic archetype detector in the service worker.
+export const SLOP_ARCHETYPES = [
+  // Manufactured courage / working up nerve
+  "I had to work up the nerve just to walk into the room and say what needed to be said",
+  "finding my own ritual to manufacture confidence before a high-stakes difficult conversation",
+  // Lone voice / outranked underdog
+  "being the only person willing to say the uncomfortable truth in a room full of people who outrank you",
+  "I was the lone voice in the room surrounded by skeptics but I had seen what was at stake",
+  // Identity address / parasocial bait
+  "if you are the change agent inside a large bureaucracy you already know exactly how this feels",
+  "for anyone who has ever been outranked and outnumbered but said the hard thing anyway",
+  // Misunderstood hero
+  "people thought I was difficult but they did not know what I had seen and what the cost of silence would be",
+  // Vulnerable relatable secret reveal
+  "the vulnerable truth behind a public display of professional courage is a private ritual nobody sees",
+]
+
 export const SLOP_PHRASES = [
   "in today's fast-paced",
   'let that sink in',
@@ -232,7 +250,6 @@ export const SLOP_PHRASES = [
 
   // "Went viral" hype posts
   'went viral',
-  'this went viral',
   'is going viral',
 
   // Clichés we missed
@@ -248,7 +265,6 @@ export const SLOP_PHRASES = [
   'you are not alone',
   'you are not the only one',
   'the good news',
-  'the good news is',
   'if this sounds familiar',
   'does this sound familiar',
   'sound familiar?',
@@ -314,7 +330,6 @@ export const SLOP_PHRASES = [
   'moving the needle',
 
   // "Two types of people" binary framing — very specific LinkedIn pattern
-  'there are two types of people',
   'two types of people',
   'two kinds of people',
 
@@ -322,7 +337,6 @@ export const SLOP_PHRASES = [
   'put in the work',
   'do the work',
   'no shortcuts',
-  'there are no shortcuts',
   'outwork everyone',
   'work ethic',
 
@@ -578,6 +592,15 @@ export const SLOP_PHRASES = [
   'game plan',
   'life hack',
   'tl;dr',
+
+  // Performative intellectual brooding — "deep thought" hooks that signal AI ghostwriting
+  "can't quite shake",
+  "sitting with",
+  'i keep coming back to',
+  "i can't stop thinking about",
+  'most orgs haven\'t',
+  'most companies haven\'t',
+  'most leaders haven\'t',
 
   // Anecdote / storytime hooks
   'story time:',

@@ -43,6 +43,7 @@ const schedule = () => {
 }
 
 const recordSignals = (signals) => {
+  if (!signals) return
   for (const signal of signals) {
     pending.signals[signal] = (pending.signals[signal] || 0) + 1
   }

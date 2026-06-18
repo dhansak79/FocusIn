@@ -87,17 +87,6 @@ describe('onMessage — semantic-check', () => {
     expect(result).toBeUndefined()
   })
 
-  it('returns true to signal an async response', async () => {
-    const { semanticCheck } = await import('../src/features/semantic-filter.js')
-    semanticCheck.mockResolvedValue({ score: 0.75, topic: 'hustle culture' })
-    const result = capturedMessageListener(
-      { 'semantic-check': { queries: ['hustle culture'], post: 'rise and grind' } },
-      {},
-      vi.fn()
-    )
-    expect(result).toBe(true)
-  })
-
   it('sends the similarity score and matched topic', async () => {
     const { semanticCheck } = await import('../src/features/semantic-filter.js')
     semanticCheck.mockResolvedValue({ score: 0.72, topic: 'hustle culture' })
@@ -111,16 +100,51 @@ describe('onMessage — semantic-check', () => {
     expect(semanticCheck).toHaveBeenCalledWith(['hustle culture'], 'rise and grind')
     expect(sendResponse).toHaveBeenCalledWith({ score: 0.72, topic: 'hustle culture' })
   })
+})
+
+describe('onMessage — slop-archetype-check', () => {
+  it('sends the similarity score and matched archetype topic', async () => {
+    const { semanticCheck } = await import('../src/features/semantic-filter.js')
+    semanticCheck.mockResolvedValue({ score: 0.42, topic: 'manufactured courage' })
+    const sendResponse = vi.fn()
+    capturedMessageListener(
+      { 'slop-archetype-check': { post: 'I had to work up the nerve to walk in' } },
+      {},
+      sendResponse
+    )
+    await flushPromises()
+    expect(sendResponse).toHaveBeenCalledWith({ score: 0.42, topic: 'manufactured courage' })
+  })
+
+  it('calls semanticCheck with SLOP_ARCHETYPES as the queries', async () => {
+    const { semanticCheck } = await import('../src/features/semantic-filter.js')
+    const { SLOP_ARCHETYPES } = await import('../src/features/slop-keywords.js')
+    semanticCheck.mockResolvedValue({ score: 0.4, topic: 'lone voice' })
+    capturedMessageListener(
+      { 'slop-archetype-check': { post: 'some post text' } },
+      {},
+      vi.fn()
+    )
+    await flushPromises()
+    expect(semanticCheck).toHaveBeenCalledWith(SLOP_ARCHETYPES, 'some post text')
+  })
+})
+
+describe.each([
+  ['semantic-check', { 'semantic-check': { queries: ['hustle culture'], post: 'rise and grind' } }],
+  ['slop-archetype-check', { 'slop-archetype-check': { post: 'I had to work up the nerve to walk in' } }],
+])('onMessage — %s', (_msgType, msg) => {
+  it('returns true to signal an async response', async () => {
+    const { semanticCheck } = await import('../src/features/semantic-filter.js')
+    semanticCheck.mockResolvedValue({ score: 0.5, topic: 'topic' })
+    expect(capturedMessageListener(msg, {}, vi.fn())).toBe(true)
+  })
 
   it('sends score 0 when semanticCheck rejects', async () => {
     const { semanticCheck } = await import('../src/features/semantic-filter.js')
     semanticCheck.mockRejectedValue(new Error('model failed'))
     const sendResponse = vi.fn()
-    capturedMessageListener(
-      { 'semantic-check': { queries: ['hustle culture'], post: 'text' } },
-      {},
-      sendResponse
-    )
+    capturedMessageListener(msg, {}, sendResponse)
     await flushPromises()
     expect(sendResponse).toHaveBeenCalledWith({ score: 0 })
   })

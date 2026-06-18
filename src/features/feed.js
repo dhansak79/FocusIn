@@ -225,8 +225,9 @@ const isPostNode = (node) => {
 }
 
 const SEMANTIC_THRESHOLD = 0.35
+const SLOP_ARCHETYPE_THRESHOLD = 0.25
 
-const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuery) => {
+const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuery, detectSlopArchetype) => {
   let postsProcessed = 0
 
   const countOnce = (post, fn, signals) => {
@@ -239,22 +240,15 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuer
     ? semanticQuery.split(',').map((q) => q.trim()).filter(Boolean)
     : []
 
-  const applySemanticResult = (post, response) => {
-    if (chrome.runtime.lastError || response?.score == null) return
-    if (response.score < SEMANTIC_THRESHOLD) return
-    post.dataset.semanticHidden = '1'
-    post.dataset.hidden = true
-    countOnce(post, trackPostFiltered)
-    const pct = Math.round(response.score * 100)
-    const topic = response.topic ?? 'topic match'
+  const buildSemanticCollapseBanner = (post, headlineText, signalText) => {
     post.classList.add('focusedin-slop-soft-hide')
     const banner = document.createElement('div')
     banner.className = 'focusedin-slop-collapsed'
     banner.dataset.focusinInjected = '1'
-    const headline = document.createElement('div')
-    headline.className = 'focusedin-slop-headline'
-    headline.textContent = '🎯 Semantic match'
-    banner.append(headline)
+    const headlineEl = document.createElement('div')
+    headlineEl.className = 'focusedin-slop-headline'
+    headlineEl.textContent = headlineText
+    banner.append(headlineEl)
     const summary = extractSummary(extractPostText(post))
     if (summary) {
       const summaryRow = document.createElement('div')
@@ -264,7 +258,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuer
     }
     const scoreRow = document.createElement('div')
     scoreRow.className = 'focusedin-slop-signals'
-    scoreRow.textContent = `${topic} · ${pct}%`
+    scoreRow.textContent = signalText
     banner.append(scoreRow)
     const btn = document.createElement('button')
     btn.type = 'button'
@@ -280,20 +274,58 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuer
     post.before(banner)
   }
 
-  const semanticCheckEnabled = (post) =>
-    semanticTopics.length > 0 && !post.dataset.semanticChecked &&
+  const makeSemanticApplier = (threshold, trackFn, headlineText, signalFn) => (post, response) => {
+    if (chrome.runtime.lastError || response?.score == null) return
+    if (response.score < threshold) return
+    if (post.dataset.semanticHidden) return
+    post.dataset.semanticHidden = '1'
+    post.dataset.hidden = true
+    countOnce(post, trackFn)
+    const pct = Math.round(response.score * 100)
+    buildSemanticCollapseBanner(post, headlineText, signalFn(response, pct))
+  }
+
+  const applySemanticResult = makeSemanticApplier(
+    SEMANTIC_THRESHOLD, trackPostFiltered, '🎯 Semantic match',
+    (r, pct) => `${r.topic ?? 'topic match'} · ${pct}%`
+  )
+
+  const applySemanticSlopResult = makeSemanticApplier(
+    SLOP_ARCHETYPE_THRESHOLD, trackSlopCollapsed, '🎯 Structural slop',
+    (_r, pct) => `structural slop · ${pct}%`
+  )
+
+  const chromeMessagingAvailable = () =>
     typeof chrome !== 'undefined' && !!chrome.runtime?.sendMessage
 
-  const requestSemanticCheck = (post) => {
-    if (!semanticCheckEnabled(post)) return
-    post.dataset.semanticChecked = '1'
+  const semanticCheckEnabled = (post) =>
+    semanticTopics.length > 0 && !post.dataset.semanticChecked && chromeMessagingAvailable()
+
+  const slopArchetypeCheckEnabled = (post) =>
+    detectSlopArchetype && !post.dataset.slopArchetypeChecked && chromeMessagingAvailable()
+
+  const sendSemanticMessage = (msg, callback) => {
     try {
-      chrome.runtime.sendMessage(
-        { 'semantic-check': { queries: semanticTopics, post: extractPostText(post).slice(0, 256) } },
-        (response) => applySemanticResult(post, response)
-      )
+      chrome.runtime.sendMessage(msg, callback)
     } catch {
       // Extension context invalidated after reload
+    }
+  }
+
+  const requestSemanticChecks = (post) => {
+    if (slopArchetypeCheckEnabled(post)) {
+      post.dataset.slopArchetypeChecked = '1'
+      sendSemanticMessage(
+        { 'slop-archetype-check': { post: extractPostText(post).slice(0, 256) } },
+        (r) => applySemanticSlopResult(post, r)
+      )
+    }
+    if (semanticCheckEnabled(post)) {
+      post.dataset.semanticChecked = '1'
+      sendSemanticMessage(
+        { 'semantic-check': { queries: semanticTopics, post: extractPostText(post).slice(0, 256) } },
+        (r) => applySemanticResult(post, r)
+      )
     }
   }
 
@@ -335,7 +367,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuer
       removeHideClasses(post)
       post.classList.remove('focusedin-slop-soft-hide')
       post.dataset.hidden = false
-      requestSemanticCheck(post)
+      requestSemanticChecks(post)
     }
   }
 
@@ -381,7 +413,7 @@ const blockPostsByKeywords = (keywords, mode, detectSlop, hideSlop, semanticQuer
     feedObserver.observe(feedContainer, { childList: true, subtree: true })
   }
 
-  if (keywords.length || detectSlop || hideSlop || semanticTopics.length) connectObserver()
+  if (keywords.length || detectSlop || hideSlop || semanticTopics.length || detectSlopArchetype) connectObserver()
 }
 
 const toggleFeed = (shown) => {
@@ -427,7 +459,8 @@ const handleFilterFeed = (mode, config) => {
     mode,
     !!config['detect-slop'],
     !!config['hide-slop'],
-    config['semantic-filter'] || ''
+    config['semantic-filter'] || '',
+    !!config['slop-archetype']
   )
 }
 

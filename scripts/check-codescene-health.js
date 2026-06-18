@@ -43,7 +43,7 @@ for (const file of staged) {
   console.error(`\n  ${file}  —  Code Health ${score}/10`)
   for (const finding of findings) {
     console.error(`  [${finding.category}]`)
-    for (const fn of finding.functions) {
+    for (const fn of (finding.functions ?? [])) {
       console.error(`    ${fn.title} (${fn.details}, lines ${fn['start-line']}–${fn['end-line']})`)
     }
   }
