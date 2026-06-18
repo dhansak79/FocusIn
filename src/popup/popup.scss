@@ -242,11 +242,11 @@ body {
   padding: 1rem 1.5rem 0.75rem;
 
   .damage-header {
-    font-size: 0.65rem;
+    font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: $muted;
+    color: $text;
     margin-bottom: 0.75rem;
   }
 }
@@ -264,16 +264,16 @@ body {
 
 .damage-count {
   display: block;
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 700;
   color: $accent;
   line-height: 1;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.3rem;
 }
 
 .damage-label {
-  font-size: 0.68rem;
-  color: $muted;
+  font-size: 0.75rem;
+  color: $text;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -282,8 +282,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.76rem;
-  padding: 0.25rem 0;
+  font-size: 0.82rem;
+  padding: 0.3rem 0;
   border-top: 1px solid $border-col;
 
   .signal-name {
@@ -293,8 +293,64 @@ body {
   .signal-count {
     color: $accent;
     font-weight: 600;
-    font-size: 0.72rem;
+    font-size: 0.8rem;
   }
+}
+
+// ── Semantic filter section ────────────────────────────────────────────────
+#settings-panel .semantic-field {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.semantic-topic-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.semantic-topic-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+
+  li label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
+    font-size: 0.88rem;
+    color: $text;
+    cursor: pointer;
+  }
+}
+
+.semantic-diag {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+
+  button {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.6rem;
+    background: transparent;
+    border: 1px solid $border-col;
+    border-radius: 4px;
+    color: $text;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+      border-color: $muted;
+      color: $white;
+    }
+  }
+}
+
+#semantic-test-result {
+  font-size: 0.78rem;
+  color: $muted;
 }
 
 // ── Age filter row ─────────────────────────────────────────────────────────

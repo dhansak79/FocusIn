@@ -4,7 +4,7 @@ export const renderDamageReport = (stats, { slopEl, filteredEl, signalsEl }) => 
 
   const topSignals = Object.entries(stats.signals || {})
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
+    .slice(0, 5)
 
   if (topSignals.length && signalsEl) {
     signalsEl.innerHTML = topSignals
