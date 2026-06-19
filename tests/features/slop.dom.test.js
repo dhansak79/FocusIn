@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 
+let mockUnfollowFn = vi.fn().mockResolvedValue({})
+vi.mock('../../src/features/unfollow.js', () => ({
+  unfollowAuthor: (...args) => mockUnfollowFn(...args),
+}))
+
 const buildFeedDOM = (postContents) => {
   const postDivs = postContents.map((c) => `<div>${c}</div>`).join('')
   document.body.innerHTML = `
@@ -780,5 +785,102 @@ describe('summary row on collapse banners', () => {
     const summaryRow = banner.querySelector('.focusedin-slop-summary')
     expect(summaryRow).not.toBeNull()
     expect(summaryRow.textContent).toContain('We shipped a new feature today.')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Unfollow button
+// ---------------------------------------------------------------------------
+
+// Post with an actor card element inside an /in/ link — makes vanity name extractable
+const SLOP_WITH_ACTOR = `<a href="/in/john-doe/"><div aria-label="John Doe Profile 2nd">John Doe</div></a><br>${SLOP_POST}`
+const CLEAN_WITH_ACTOR = `<a href="/in/jane-smith/"><div aria-label="Jane Smith Profile 1st">Jane Smith</div></a>${CLEAN_POST}`
+
+describe('Unfollow button', () => {
+  beforeEach(() => {
+    mockUnfollowFn = vi.fn().mockResolvedValue({})
+  })
+
+  it('shows an Unfollow button on the AI post banner when vanity name is extractable', () => {
+    const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    expect(posts[0].previousElementSibling.querySelector('.focusedin-unfollow-btn')).not.toBeNull()
+  })
+
+  it('does not show an Unfollow button on the AI post banner when vanity name is not extractable', () => {
+    const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    expect(posts[0].previousElementSibling.querySelector('.focusedin-unfollow-btn')).toBeNull()
+  })
+
+  it('shows an Unfollow button on the pattern match banner when vanity name is extractable', () => {
+    vi.stubGlobal('chrome', {
+      runtime: { lastError: null, sendMessage: vi.fn((msg, cb) => cb({ score: 0.8 })) },
+    })
+    const posts = buildFeedDOM([CLEAN_WITH_ACTOR])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    expect(posts[0].previousElementSibling.querySelector('.focusedin-unfollow-btn')).not.toBeNull()
+  })
+
+  it('disables the Unfollow button and shows loading text on click', () => {
+    mockUnfollowFn = vi.fn().mockReturnValue(new Promise(() => {}))
+    const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    const btn = posts[0].previousElementSibling.querySelector('.focusedin-unfollow-btn')
+    btn.click()
+    expect(btn.disabled).toBe(true)
+    expect(btn.textContent).toBe('Unfollowing…')
+  })
+
+  it('shows "Unfollowed" and adds done class on success', async () => {
+    const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    const btn = posts[0].previousElementSibling.querySelector('.focusedin-unfollow-btn')
+    btn.click()
+    await vi.runAllTicks()
+    expect(btn.textContent).toBe('Unfollowed')
+    expect(btn.classList.contains('focusedin-unfollow-done')).toBe(true)
+    expect(btn.disabled).toBe(true)
+  })
+
+  it('shows "Unfollow failed" and re-enables the button on error', async () => {
+    mockUnfollowFn = vi.fn().mockRejectedValue(new Error('fail'))
+    const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    const btn = posts[0].previousElementSibling.querySelector('.focusedin-unfollow-btn')
+    btn.click()
+    // Rejection travels through .then() before reaching .catch() — two microtask ticks needed
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(btn.disabled).toBe(false)
+    expect(btn.textContent).toBe('Unfollow failed')
+  })
+
+  it('shows an Unfollow button when vanity name is extractable from a strong link (no aria-label)', () => {
+    // Mirrors getAuthorFromStrongLinks fallback — a[href*="/in/"] strong without aria-label actor card
+    const slopWithStrongLink = `<a href="/in/murad-q/"><strong>Murad Q</strong></a><br>${SLOP_POST}`
+    const posts = buildFeedDOM([slopWithStrongLink, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    expect(posts[0].previousElementSibling.querySelector('.focusedin-unfollow-btn')).not.toBeNull()
+  })
+
+  it('the Unfollow button is placed after the author element and before Show anyway', () => {
+    const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    const banner = posts[0].previousElementSibling
+    const children = [...banner.children]
+    const authorIdx = children.findIndex((el) => el.classList.contains('focusedin-slop-author'))
+    const unfollowIdx = children.findIndex((el) => el.classList.contains('focusedin-unfollow-btn'))
+    const revealIdx = children.findIndex((el) => el.classList.contains('focusedin-slop-reveal-btn'))
+    expect(authorIdx).toBeLessThan(unfollowIdx)
+    expect(unfollowIdx).toBeLessThan(revealIdx)
   })
 })

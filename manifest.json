@@ -53,6 +53,7 @@
         "src/features/feed.js",
         "src/features/slop-detector.js",
         "src/features/slop-keywords.js",
+        "src/features/unfollow.js",
         "src/stats.js"
       ],
       "matches": [

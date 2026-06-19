@@ -15,6 +15,7 @@ export default defineConfig({
         'src/features/classifier.js',
         'src/features/semantic-filter.js',
         'src/features/feed.js',
+        'src/features/unfollow.js',
         'src/utils.js',
         'src/stats.js',
         'src/stats-renderer.js',

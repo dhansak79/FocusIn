@@ -13,6 +13,7 @@ import {
 } from '../utils.js'
 import { getSlopSignals, isSlop } from './slop-detector.js'
 import { trackPostFiltered, trackSlopCollapsed } from '../stats.js'
+import { unfollowAuthor } from './unfollow.js'
 
 let feedObserver = null
 let scrollTimerId = null
@@ -67,6 +68,28 @@ const getAuthorFromStrongLinks = (post) => {
 const extractAuthorName = (post) =>
   getAuthorFromActorDiv(post) ?? getAuthorFromFollowBtn(post) ?? getAuthorFromStrongLinks(post)
 
+const vanityFromHref = (href) => (href ?? '').match(/\/in\/([^/?#]+)/)?.[1] ?? null
+
+const getVanityFromStrongLinks = (post) => {
+  for (const strong of post.querySelectorAll('a[href*="/in/"] strong')) {
+    const link = strong.closest('a')
+    const directText = [...(link?.parentElement?.childNodes ?? [])]
+      .filter((n) => n.nodeType === Node.TEXT_NODE)
+      .map((n) => n.textContent)
+      .join('')
+    if (!SOCIAL_PROOF_RE.test(directText)) return vanityFromHref(link?.getAttribute('href'))
+  }
+  return null
+}
+
+const extractAuthorVanityName = (post) => {
+  const actorEl = post.querySelector(
+    '[aria-label*=" Profile"],[aria-label*="st+"],[aria-label*="nd+"],[aria-label*="rd+"]'
+  )
+  const ariaVanity = vanityFromHref(actorEl?.closest('a[href*="/in/"]')?.getAttribute('href'))
+  return ariaVanity ?? getVanityFromStrongLinks(post)
+}
+
 const SUMMARY_MAX_LENGTH = 120
 
 // Extractive summary: the post's first sentence, or a truncated lead-in for one
@@ -85,6 +108,29 @@ export const extractSummary = (text) => {
 // Prevents re-collapsing when LinkedIn replaces the DOM element for an already-revealed post.
 const revealedTexts = new Set()
 
+const makeUnfollowButton = (vanityName) => {
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.className = 'focusedin-unfollow-btn'
+  btn.textContent = 'Unfollow'
+  btn.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    btn.disabled = true
+    btn.textContent = 'Unfollowing…'
+    unfollowAuthor(vanityName)
+      .then(() => {
+        btn.textContent = 'Unfollowed'
+        btn.classList.add('focusedin-unfollow-done')
+      })
+      .catch(() => {
+        btn.disabled = false
+        btn.textContent = 'Unfollow failed'
+      })
+  })
+  return btn
+}
+
 const collapseToTag = (banner, author) => {
   banner.className = 'focusedin-slop-tag'
   while (banner.firstChild) banner.removeChild(banner.firstChild)
@@ -101,6 +147,7 @@ const addRevealBanner = (post, signals) => {
   if (revealedTexts.has(postText)) return
   post.dataset.focusinBanner = '1'
   const author = extractAuthorName(post)
+  const vanityName = extractAuthorVanityName(post)
   const banner = document.createElement('div')
   banner.className = 'focusedin-slop-collapsed'
   banner.dataset.focusinInjected = '1'
@@ -130,6 +177,10 @@ const addRevealBanner = (post, signals) => {
     authorEl.className = 'focusedin-slop-author'
     authorEl.textContent = author
     banner.append(authorEl)
+  }
+
+  if (vanityName) {
+    banner.append(makeUnfollowButton(vanityName))
   }
 
   const btn = document.createElement('button')
@@ -209,11 +260,15 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     scoreRow.textContent = signalText
     banner.append(scoreRow)
     const author = extractAuthorName(post)
+    const vanityName = extractAuthorVanityName(post)
     if (author) {
       const authorEl = document.createElement('div')
       authorEl.className = 'focusedin-slop-author'
       authorEl.textContent = author
       banner.append(authorEl)
+    }
+    if (vanityName) {
+      banner.append(makeUnfollowButton(vanityName))
     }
     const btn = document.createElement('button')
     btn.type = 'button'
