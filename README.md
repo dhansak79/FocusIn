@@ -62,6 +62,14 @@ No. Everything runs in your browser.
 
 The keyword filter is exact match. The semantic filter understands meaning, so it catches posts about a topic even when the specific words you typed never appear. It is slower and less precise; use it for themes that are hard to pin down with a word list.
 
+## AI-assisted development
+
+This project uses [Claude Code](https://claude.ai/code) as the primary coding assistant, with [CodeScene](https://codescene.io) enforcing code health gates on every commit and PR.
+
+**OpenSpec** (currently in evaluation) adds a spec-driven layer to that workflow. Before implementing a feature, `/opsx:propose` generates a proposal, technical design, and task checklist. `/opsx:apply` drives implementation against those artifacts. The intent is to reduce ambiguity in AI-generated code by aligning on *what* to build before any code is written. Archived change specs live in `openspec/changes/archive/` and serve as a decision log.
+
+See [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) for more detail.
+
 ## Development
 
 | Command | Purpose |
