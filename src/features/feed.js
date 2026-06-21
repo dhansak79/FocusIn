@@ -134,8 +134,8 @@ const makeUnfollowButton = (vanityName) => {
 const makeWhitelistButton = (vanityName, authorName, post, banner) => {
   const btn = document.createElement('button')
   btn.type = 'button'
-  btn.className = 'focusedin-whitelist-btn'
-  btn.textContent = 'Whitelist'
+  btn.className = 'focusedin-trust-btn'
+  btn.textContent = 'Trust author'
   btn.addEventListener('click', (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -144,7 +144,7 @@ const makeWhitelistButton = (vanityName, authorName, post, banner) => {
       const filtered = list.filter((entry) => entry.vanity !== vanityName)
       chrome.storage.local.set({ 'author-whitelist': [...filtered, { vanity: vanityName, name: authorName ?? vanityName }] })
     })
-    btn.textContent = 'Whitelisted ✓'
+    btn.textContent = 'Trusted ✓'
     setTimeout(() => {
       post.classList.remove('focusedin-slop-soft-hide')
       banner.remove()
@@ -202,8 +202,11 @@ const addRevealBanner = (post, signals) => {
   }
 
   if (vanityName) {
-    banner.append(makeUnfollowButton(vanityName))
-    banner.append(makeWhitelistButton(vanityName, author, post, banner))
+    const actionsRow = document.createElement('div')
+    actionsRow.className = 'focusedin-banner-actions'
+    actionsRow.append(makeUnfollowButton(vanityName))
+    actionsRow.append(makeWhitelistButton(vanityName, author, post, banner))
+    banner.append(actionsRow)
   }
 
   const btn = document.createElement('button')
@@ -291,8 +294,11 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
       banner.append(authorEl)
     }
     if (vanityName) {
-      banner.append(makeUnfollowButton(vanityName))
-      banner.append(makeWhitelistButton(vanityName, author, post, banner))
+      const actionsRow = document.createElement('div')
+      actionsRow.className = 'focusedin-banner-actions'
+      actionsRow.append(makeUnfollowButton(vanityName))
+      actionsRow.append(makeWhitelistButton(vanityName, author, post, banner))
+      banner.append(actionsRow)
     }
     const btn = document.createElement('button')
     btn.type = 'button'

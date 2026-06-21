@@ -64,9 +64,49 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
-.focusedin-slop-reveal-btn {
-  align-self: flex-start;
+.focusedin-banner-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
   margin-top: 6px;
+}
+
+.focusedin-unfollow-btn,
+.focusedin-trust-btn {
+  padding: 5px 14px;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.focusedin-unfollow-btn {
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  color: #ff9a9a;
+}
+
+.focusedin-unfollow-btn:hover {
+  background: rgba(220, 38, 38, 0.18);
+  border-color: rgba(220, 38, 38, 0.75);
+  color: #fff;
+}
+
+.focusedin-trust-btn {
+  border: 1px solid rgba(0, 180, 150, 0.5);
+  color: #7eddd4;
+}
+
+.focusedin-trust-btn:hover {
+  background: rgba(0, 180, 150, 0.18);
+  border-color: rgba(0, 180, 150, 0.8);
+  color: #fff;
+}
+
+.focusedin-slop-reveal-btn {
+  align-self: stretch;
   padding: 5px 14px;
   background: transparent;
   border: 1px solid rgba(220, 38, 38, 0.45);

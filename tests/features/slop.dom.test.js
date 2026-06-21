@@ -871,17 +871,17 @@ describe('Unfollow button', () => {
     expect(posts[0].previousElementSibling.querySelector('.focusedin-unfollow-btn')).not.toBeNull()
   })
 
-  it('the Unfollow button is placed after the author element and before Show anyway', () => {
+  it('the actions row is placed after the author element and before Show anyway', () => {
     const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
     const banner = posts[0].previousElementSibling
     const children = [...banner.children]
     const authorIdx = children.findIndex((el) => el.classList.contains('focusedin-slop-author'))
-    const unfollowIdx = children.findIndex((el) => el.classList.contains('focusedin-unfollow-btn'))
+    const actionsIdx = children.findIndex((el) => el.classList.contains('focusedin-banner-actions'))
     const revealIdx = children.findIndex((el) => el.classList.contains('focusedin-slop-reveal-btn'))
-    expect(authorIdx).toBeLessThan(unfollowIdx)
-    expect(unfollowIdx).toBeLessThan(revealIdx)
+    expect(authorIdx).toBeLessThan(actionsIdx)
+    expect(actionsIdx).toBeLessThan(revealIdx)
   })
 })
 
@@ -941,7 +941,7 @@ describe('Author whitelist — semantic/pattern match path', () => {
 // Whitelist button
 // ---------------------------------------------------------------------------
 
-describe('Whitelist button', () => {
+describe('Trust author button', () => {
   let mockGet, mockSet
 
   beforeEach(() => {
@@ -957,21 +957,21 @@ describe('Whitelist button', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows a Whitelist button on the AI post banner when vanity name is extractable', () => {
+  it('shows a Trust author button on the AI post banner when vanity name is extractable', () => {
     const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
-    expect(posts[0].previousElementSibling.querySelector('.focusedin-whitelist-btn')).not.toBeNull()
+    expect(posts[0].previousElementSibling.querySelector('.focusedin-trust-btn')).not.toBeNull()
   })
 
-  it('does not show a Whitelist button on the AI post banner when vanity name is not extractable', () => {
+  it('does not show a Trust author button on the AI post banner when vanity name is not extractable', () => {
     const posts = buildFeedDOM([SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
-    expect(posts[0].previousElementSibling.querySelector('.focusedin-whitelist-btn')).toBeNull()
+    expect(posts[0].previousElementSibling.querySelector('.focusedin-trust-btn')).toBeNull()
   })
 
-  it('shows a Whitelist button on the pattern match banner when vanity name is extractable', () => {
+  it('shows a Trust author button on the pattern match banner when vanity name is extractable', () => {
     vi.stubGlobal('chrome', {
       storage: { local: { get: mockGet, set: mockSet } },
       runtime: { lastError: null, sendMessage: vi.fn((msg, cb) => cb({ score: 0.8 })) },
@@ -979,23 +979,23 @@ describe('Whitelist button', () => {
     const posts = buildFeedDOM([CLEAN_WITH_ACTOR])
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
-    expect(posts[0].previousElementSibling.querySelector('.focusedin-whitelist-btn')).not.toBeNull()
+    expect(posts[0].previousElementSibling.querySelector('.focusedin-trust-btn')).not.toBeNull()
   })
 
-  it('shows "Whitelisted ✓" immediately after clicking the Whitelist button', () => {
+  it('shows "Trusted ✓" immediately after clicking the Trust author button', () => {
     const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
-    const btn = posts[0].previousElementSibling.querySelector('.focusedin-whitelist-btn')
+    const btn = posts[0].previousElementSibling.querySelector('.focusedin-trust-btn')
     btn.click()
-    expect(btn.textContent).toBe('Whitelisted ✓')
+    expect(btn.textContent).toBe('Trusted ✓')
   })
 
   it('saves the author to author-whitelist in storage on click', () => {
     const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
-    posts[0].previousElementSibling.querySelector('.focusedin-whitelist-btn').click()
+    posts[0].previousElementSibling.querySelector('.focusedin-trust-btn').click()
     expect(mockSet).toHaveBeenCalledWith(
       expect.objectContaining({
         'author-whitelist': expect.arrayContaining([
@@ -1005,27 +1005,37 @@ describe('Whitelist button', () => {
     )
   })
 
-  it('removes soft-hide class and banner from DOM after 600ms on Whitelist click', () => {
+  it('removes soft-hide class and banner from DOM after 600ms on Trust author click', () => {
     const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
     const banner = posts[0].previousElementSibling
-    banner.querySelector('.focusedin-whitelist-btn').click()
+    banner.querySelector('.focusedin-trust-btn').click()
     vi.advanceTimersByTime(600)
     expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
     expect(document.contains(banner)).toBe(false)
   })
 
-  it('places the Whitelist button after the Unfollow button and before Show anyway', () => {
+  it('the action wrapper contains both Unfollow and Trust author buttons', () => {
+    const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+    doFeed({ ...baseConfig, 'detect-slop': true })
+    vi.advanceTimersByTime(350)
+    const banner = posts[0].previousElementSibling
+    const actionsRow = banner.querySelector('.focusedin-banner-actions')
+    expect(actionsRow).not.toBeNull()
+    expect(actionsRow.querySelector('.focusedin-unfollow-btn')).not.toBeNull()
+    expect(actionsRow.querySelector('.focusedin-trust-btn')).not.toBeNull()
+  })
+
+  it('Trust author and Unfollow are inside the actions wrapper, which precedes Show anyway', () => {
     const posts = buildFeedDOM([SLOP_WITH_ACTOR, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
     doFeed({ ...baseConfig, 'detect-slop': true })
     vi.advanceTimersByTime(350)
     const banner = posts[0].previousElementSibling
     const children = [...banner.children]
-    const unfollowIdx = children.findIndex((el) => el.classList.contains('focusedin-unfollow-btn'))
-    const whitelistIdx = children.findIndex((el) => el.classList.contains('focusedin-whitelist-btn'))
+    const actionsIdx = children.findIndex((el) => el.classList.contains('focusedin-banner-actions'))
     const revealIdx = children.findIndex((el) => el.classList.contains('focusedin-slop-reveal-btn'))
-    expect(unfollowIdx).toBeLessThan(whitelistIdx)
-    expect(whitelistIdx).toBeLessThan(revealIdx)
+    expect(actionsIdx).toBeGreaterThanOrEqual(0)
+    expect(actionsIdx).toBeLessThan(revealIdx)
   })
 })
