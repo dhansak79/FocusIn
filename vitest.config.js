@@ -21,6 +21,7 @@ export default defineConfig({
         'src/stats.js',
         'src/stats-renderer.js',
         'src/popup/popup.js',
+        'scripts/spec-coverage.js',
       ],
       thresholds: {
         lines: 90,

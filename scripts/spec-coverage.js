@@ -4,21 +4,7 @@ import { readdirSync, readFileSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const args = process.argv.slice(2)
-const changeIdx = args.indexOf('--change')
-const changeName = changeIdx !== -1 ? args[changeIdx + 1] : null
-
-const specsDir = changeName
-  ? join(ROOT, 'openspec', 'changes', changeName, 'specs')
-  : join(ROOT, 'openspec', 'specs')
-
-if (!existsSync(specsDir)) {
-  console.error(`Error: spec directory not found: ${specsDir}`)
-  process.exit(1)
-}
-
-const findFiles = (dir, predicate) => {
+export const findFiles = (dir, predicate) => {
   const results = []
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name)
@@ -30,11 +16,9 @@ const findFiles = (dir, predicate) => {
 
 const DELTA_SECTIONS = new Set(['ADDED Requirements', 'MODIFIED Requirements'])
 
-// In change mode, only ADDED and MODIFIED sections contribute scenarios.
 const sectionIncluded = (section, changeMode) => !changeMode || DELTA_SECTIONS.has(section)
 
-// Parse scenarios from a spec file, grouped by requirement name.
-const parseScenarios = (filePath, changeMode) => {
+export const parseScenarios = (filePath, changeMode) => {
   let requirement = null
   let include = !changeMode
 
@@ -53,41 +37,59 @@ const parseScenarios = (filePath, changeMode) => {
   })
 }
 
-const testContents = findFiles(join(ROOT, 'tests'), (n) => n.endsWith('.test.js'))
-  .map((f) => readFileSync(f, 'utf8'))
-  .join('\n')
-
-const isCovered = (name) =>
+export const isCovered = (name, testContents) =>
   testContents.includes(`it('Scenario: ${name}'`) ||
   testContents.includes(`it("Scenario: ${name}"`)
 
-const specFiles = findFiles(specsDir, (n) => n === 'spec.md')
-let total = 0
-let covered = 0
+/* c8 ignore start */
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+  const args = process.argv.slice(2)
+  const changeIdx = args.indexOf('--change')
+  const changeName = changeIdx !== -1 ? args[changeIdx + 1] : null
 
-console.log('\nSpec Coverage Report')
-console.log('─'.repeat(60))
+  const specsDir = changeName
+    ? join(ROOT, 'openspec', 'changes', changeName, 'specs')
+    : join(ROOT, 'openspec', 'specs')
 
-for (const specFile of specFiles) {
-  const entries = parseScenarios(specFile, changeName !== null)
-  if (entries.length === 0) continue
-
-  console.log(`\n${specFile.replace(ROOT + '/', '')}`)
-
-  let lastReq = null
-  for (const { requirement, scenario } of entries) {
-    if (requirement !== lastReq) {
-      console.log(`  ${requirement}`)
-      lastReq = requirement
-    }
-    const hit = isCovered(scenario)
-    console.log(`    ${hit ? '✓' : '✗'} ${scenario}`)
-    total++
-    if (hit) covered++
+  if (!existsSync(specsDir)) {
+    console.error(`Error: spec directory not found: ${specsDir}`)
+    process.exit(1)
   }
+
+  const testContents = findFiles(join(ROOT, 'tests'), (n) => n.endsWith('.test.js'))
+    .map((f) => readFileSync(f, 'utf8'))
+    .join('\n')
+
+  const specFiles = findFiles(specsDir, (n) => n === 'spec.md')
+  let total = 0
+  let covered = 0
+
+  console.log('\nSpec Coverage Report')
+  console.log('─'.repeat(60))
+
+  for (const specFile of specFiles) {
+    const entries = parseScenarios(specFile, changeName !== null)
+    if (entries.length === 0) continue
+
+    console.log(`\n${specFile.replace(ROOT + '/', '')}`)
+
+    let lastReq = null
+    for (const { requirement, scenario } of entries) {
+      if (requirement !== lastReq) {
+        console.log(`  ${requirement}`)
+        lastReq = requirement
+      }
+      const hit = isCovered(scenario, testContents)
+      console.log(`    ${hit ? '✓' : '✗'} ${scenario}`)
+      total++
+      if (hit) covered++
+    }
+  }
+
+  console.log(`\n${'─'.repeat(60)}`)
+  console.log(`Summary: ${covered} / ${total} scenarios covered\n`)
+
+  process.exit(covered < total ? 1 : 0)
 }
-
-console.log(`\n${'─'.repeat(60)}`)
-console.log(`Summary: ${covered} / ${total} scenarios covered\n`)
-
-process.exit(covered < total ? 1 : 0)
+/* c8 ignore stop */
