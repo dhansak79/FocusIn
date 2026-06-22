@@ -53,25 +53,6 @@ Archive a completed change in the experimental workflow.
 
    **If no tasks file exists:** Proceed without task-related warning.
 
-3.5. **Check spec coverage (hard gate)**
-
-   Run:
-   ```bash
-   node scripts/spec-coverage.js --change "<name>"
-   ```
-
-   This checks only scenarios under `## ADDED Requirements` and `## MODIFIED Requirements` in the change's delta specs.
-
-   **If exit code is 1 (uncovered scenarios found):**
-   - Display the full output showing which scenarios are missing
-   - **STOP. Do not proceed to archive. Do not prompt for confirmation.**
-   - Tell the user: "Write boundary tests for the missing scenarios in `tests/spec/`, then re-run `/opsx:archive`."
-   - For scenarios that are genuinely untestable (popup UI, browser-only APIs), instruct the user to mark them `it.todo('Scenario: <name>')` — the parser counts `it.todo` as covered.
-
-   **If exit code is 0:** Proceed normally.
-
-   **If `scripts/spec-coverage.js` does not exist** (change predates this tooling): Skip this step and proceed.
-
 4. **Assess delta spec sync state**
 
    Use `artifactPaths.specs.existingOutputPaths` from status JSON to check for delta specs. If none exist, proceed without sync prompt.

@@ -1,13 +1,13 @@
 ---
 name: spec-coverage
-description: Check which spec scenarios have boundary tests. Use before archiving a change to verify all new scenarios are covered, or on-demand to audit coverage across all specs.
+description: Check which spec scenarios have boundary tests. Run on-demand to audit coverage across all specs or scoped to a specific change.
 ---
 
 # Spec Coverage
 
 ## When to Use
 
-- **Before archiving a change** — the archive gate runs this automatically in change-scoped mode; use it manually to check before you get there
+- **Before archiving a change** — run manually to check which new scenarios still need boundary tests
 - **On demand** — to see the full picture of which scenarios across all specs have boundary tests and which don't
 
 ## How to Run
@@ -65,11 +65,6 @@ For each ✗:
 
 3. **Is it genuinely not testable** via jsdom (e.g., browser API with no mock path)? Mark `it.todo` with a reason comment explaining why.
 
-## Definition of Done (Archive Gate)
+## Definition of Done (Informational)
 
-The archive workflow runs change-scoped spec coverage as a **hard gate** — it cannot be bypassed with a confirm prompt. Before a change can be archived:
-
-- Every scenario under `## ADDED Requirements` and `## MODIFIED Requirements` in the change's delta specs must appear as `it('Scenario: <name>')` or `it.todo('Scenario: <name>')` in a test file.
-- Exit code must be 0.
-
-If the gate fails, write the missing boundary tests (or mark untestable ones `it.todo`), then re-run `/opsx:archive`.
+The archive workflow does not gate on spec coverage — CI is the real gate. Use this tool as a convenience check before archiving to catch scenarios that lack boundary tests. Any ✗ is a nudge to write the test, not a hard block.
