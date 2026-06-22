@@ -2,7 +2,7 @@ const STORAGE_KEY = 'focusin-stats'
 const DATE_KEY = 'focusin-stats-date'
 const FLUSH_DELAY = 500
 
-const zero = () => ({ postsFiltered: 0, slopCollapsed: 0, signals: {} })
+const zero = () => ({ postsFiltered: 0, slopCollapsed: 0, signals: {}, authors: {} })
 
 let pending = zero()
 let flushTimer = null
@@ -14,10 +14,17 @@ const local = () =>
 
 const applyDelta = (res, delta) => {
   const stats = res[DATE_KEY] === today() ? (res[STORAGE_KEY] || zero()) : zero()
+  if (!stats.authors) stats.authors = {}
   stats.postsFiltered += delta.postsFiltered
   stats.slopCollapsed += delta.slopCollapsed
   for (const [signal, count] of Object.entries(delta.signals)) {
     stats.signals[signal] = (stats.signals[signal] || 0) + count
+  }
+  for (const [key, { name, count }] of Object.entries(delta.authors)) {
+    const entry = stats.authors[key] || { name, count: 0 }
+    entry.name = name
+    entry.count += count
+    stats.authors[key] = entry
   }
   return stats
 }
@@ -48,6 +55,16 @@ const recordSignals = (signals) => {
   }
 }
 
+export const trackAuthorBlocked = (vanityName, displayName) => {
+  const key = vanityName || displayName
+  if (!key) return
+  const entry = pending.authors[key] || { name: displayName ?? vanityName, count: 0 }
+  entry.name = displayName ?? vanityName
+  entry.count++
+  pending.authors[key] = entry
+  schedule()
+}
+
 export const trackPostFiltered = () => { pending.postsFiltered++; schedule() }
 
 export const trackSlopCollapsed = (signals) => {
@@ -56,14 +73,17 @@ export const trackSlopCollapsed = (signals) => {
   schedule()
 }
 
-export const readStats = (callback) => {
+const readDailyStats = (callback) => {
   const s = local()
   if (!s) { callback(zero()); return }
   try {
     s.get([STORAGE_KEY, DATE_KEY], (res) => {
       if (chrome.runtime?.lastError) { callback(zero()); return }
-      const stats = res[DATE_KEY] === today() ? (res[STORAGE_KEY] || zero()) : zero()
-      callback(stats)
+      callback(res[DATE_KEY] === today() ? (res[STORAGE_KEY] || zero()) : zero())
     })
   } catch (_) { callback(zero()) }
 }
+
+export const readStats = (callback) => readDailyStats(callback)
+
+export const readAuthorStats = (callback) => readDailyStats((stats) => callback(stats.authors || {}))

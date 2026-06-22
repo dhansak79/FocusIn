@@ -12,7 +12,7 @@ import {
   resetShownPosts,
 } from '../utils.js'
 import { getSlopSignals, isSlop } from './slop-detector.js'
-import { trackPostFiltered, trackSlopCollapsed } from '../stats.js'
+import { trackAuthorBlocked, trackPostFiltered, trackSlopCollapsed } from '../stats.js'
 import { unfollowAuthor } from './unfollow.js'
 
 let feedObserver = null
@@ -300,6 +300,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
       actionsRow.append(makeWhitelistButton(vanityName, author, post, banner))
       banner.append(actionsRow)
     }
+    trackAuthorBlocked(vanityName, author)
     const btn = document.createElement('button')
     btn.type = 'button'
     btn.className = 'focusedin-slop-reveal-btn'
@@ -403,6 +404,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     post.dataset.hidden = true
     addRevealBanner(post, slopSignals)
     countOnce(post, trackSlopCollapsed, slopSignals)
+    trackAuthorBlocked(vanity, extractAuthorName(post))
   }
 
   const applyKeywordToPost = (post) => {
@@ -414,6 +416,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     if (isKeywordMatch) {
       hidePost(post, mode)
       countOnce(post, trackPostFiltered)
+      trackAuthorBlocked(extractAuthorVanityName(post), extractAuthorName(post))
     } else if (slopSignals) {
       applySlopDecision(post, slopSignals)
     } else {

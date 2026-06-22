@@ -1,5 +1,5 @@
-import { readStats } from '../stats.js'
-import { renderDamageReport } from '../stats-renderer.js'
+import { readAuthorStats, readStats } from '../stats.js'
+import { renderAuthorTally, renderDamageReport } from '../stats-renderer.js'
 
 /*
  * Settings functionality
@@ -28,17 +28,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const tabFilters = document.getElementById('tab-filters')
   const tabAuthors = document.getElementById('tab-authors')
+  const tabBlocked = document.getElementById('tab-blocked')
   const settingsPanel = document.getElementById('settings-panel')
   const authorsPanel = document.getElementById('authors-panel')
+  const blockedPanel = document.getElementById('blocked-panel')
   const switchTab = (name) => {
-    const isFilters = name === 'filters'
-    tabFilters.classList.toggle('active', isFilters)
-    tabAuthors.classList.toggle('active', !isFilters)
-    settingsPanel.classList.toggle('active', isFilters)
-    authorsPanel.classList.toggle('active', !isFilters)
+    tabFilters.classList.toggle('active', name === 'filters')
+    tabAuthors.classList.toggle('active', name === 'authors')
+    tabBlocked.classList.toggle('active', name === 'blocked')
+    settingsPanel.classList.toggle('active', name === 'filters')
+    authorsPanel.classList.toggle('active', name === 'authors')
+    blockedPanel.classList.toggle('active', name === 'blocked')
   }
   tabFilters.addEventListener('click', () => switchTab('filters'))
   tabAuthors.addEventListener('click', () => switchTab('authors'))
+  tabBlocked.addEventListener('click', () => switchTab('blocked'))
 
   // Set initial checked state from storage
   chrome.storage.local.get(
@@ -198,5 +202,9 @@ window.onload = function () {
       filteredEl: document.getElementById('stat-filtered'),
       signalsEl: document.getElementById('top-signals'),
     })
+  )
+
+  readAuthorStats((authorStats) =>
+    renderAuthorTally(authorStats, document.getElementById('author-tally-list'))
   )
 }

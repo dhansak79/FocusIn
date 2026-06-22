@@ -13461,6 +13461,58 @@ body {
   font-size: 0.8rem;
 }
 
+#tab-bar {
+  display: flex;
+  border-bottom: 1px solid #1e3a7a;
+  padding: 0 1rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #bbc4d0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: -1px;
+  letter-spacing: 0.04em;
+  transition: color 0.1s, border-color 0.1s;
+}
+.tab-btn:hover {
+  color: #ffffff;
+}
+.tab-btn.active {
+  color: #00d1b2;
+  border-bottom-color: #00d1b2;
+}
+
+.tab-panel {
+  display: none;
+}
+.tab-panel.active {
+  display: block;
+}
+
+#authors-panel .field {
+  display: block;
+}
+#authors-panel .field .tagify {
+  width: 100%;
+}
+
+.tone-threshold-field {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+#tone-threshold {
+  width: 100%;
+  accent-color: #00d1b2;
+  cursor: pointer;
+}
+
 #settings-panel .semantic-field {
   flex-direction: column;
   align-items: flex-start;
@@ -13513,54 +13565,34 @@ body {
   color: #505868;
 }
 
-#tab-bar {
+.author-tally-item {
   display: flex;
-  border-bottom: 1px solid #1e3a7a;
-  padding: 0 1rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-top: 1px solid #1e3a7a;
 }
-
-.tab-btn {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #bbc4d0;
-  cursor: pointer;
-  font-size: 0.85rem;
-  padding: 0.6rem 0.75rem;
-  margin-bottom: -1px;
-  letter-spacing: 0.04em;
-  transition: color 0.1s, border-color 0.1s;
-}
-.tab-btn:hover {
+.author-tally-item .author-tally-name {
   color: #ffffff;
+  font-size: 0.88rem;
 }
-.tab-btn.active {
+.author-tally-item .author-tally-count {
   color: #00d1b2;
-  border-bottom-color: #00d1b2;
+  font-weight: 600;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+}
+.author-tally-item .author-tally-count::after {
+  content: "×";
+  font-size: 0.72rem;
+  margin-left: 0.15em;
+  opacity: 0.75;
 }
 
-.tab-panel {
-  display: none;
-}
-.tab-panel.active {
-  display: block;
-}
-
-#authors-panel .field {
-  display: block;
-}
-#authors-panel .field .tagify {
-  width: 100%;
-}
-
-.tone-threshold-field {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.4rem;
-}
-
-#tone-threshold {
-  width: 100%;
-  accent-color: #00d1b2;
-  cursor: pointer;
+.author-tally-empty {
+  font-size: 0.82rem;
+  color: #505868;
+  padding: 0.5rem 0;
+  text-align: center;
 }

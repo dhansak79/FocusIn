@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { renderDamageReport } from '../src/stats-renderer.js'
+import { renderAuthorTally, renderDamageReport } from '../src/stats-renderer.js'
 
 const makeEl = (text = '0') => ({ textContent: text, innerHTML: '' })
 
@@ -10,6 +10,54 @@ const makeElements = () => ({
 })
 
 const ZERO = { postsFiltered: 0, slopCollapsed: 0, signals: {} }
+
+const makeContainer = () => ({ innerHTML: '' })
+
+describe('renderAuthorTally', () => {
+  it('renders empty state when authorStats is empty', () => {
+    const el = makeContainer()
+    renderAuthorTally({}, el)
+    expect(el.innerHTML).toContain('No posts blocked today')
+  })
+
+  it('renders authors sorted by count descending', () => {
+    const el = makeContainer()
+    renderAuthorTally({
+      'alice': { name: 'Alice', count: 2 },
+      'bob': { name: 'Bob', count: 7 },
+      'carol': { name: 'Carol', count: 4 },
+    }, el)
+    const names = [...el.innerHTML.matchAll(/class="author-tally-name">([^<]+)</g)].map((m) => m[1])
+    expect(names).toEqual(['Bob', 'Carol', 'Alice'])
+  })
+
+  it('caps list at 20 entries', () => {
+    const el = makeContainer()
+    const authors = Object.fromEntries(
+      Array.from({ length: 25 }, (_, i) => [`author-${i}`, { name: `Author ${i}`, count: 25 - i }])
+    )
+    renderAuthorTally(authors, el)
+    const items = el.innerHTML.match(/author-tally-item/g) ?? []
+    expect(items.length).toBe(20)
+  })
+
+  it('renders author name and count in each row', () => {
+    const el = makeContainer()
+    renderAuthorTally({ 'grace-hopper': { name: 'Grace Hopper', count: 5 } }, el)
+    expect(el.innerHTML).toContain('Grace Hopper')
+    expect(el.innerHTML).toContain('>5<')
+  })
+
+  it('does nothing when containerEl is null', () => {
+    expect(() => renderAuthorTally({ 'a': { name: 'A', count: 1 } }, null)).not.toThrow()
+  })
+
+  it('renders empty state when authorStats is null', () => {
+    const el = makeContainer()
+    renderAuthorTally(null, el)
+    expect(el.innerHTML).toContain('No posts blocked today')
+  })
+})
 
 describe('renderDamageReport', () => {
   it('shows zeros when stats are empty', () => {

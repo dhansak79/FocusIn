@@ -35,7 +35,7 @@ const flush = async (mod, fn) => {
 const awaitStats = (readStats) =>
   new Promise((resolve) => readStats((stats) => resolve(stats)))
 
-const ZERO = { postsFiltered: 0, slopCollapsed: 0, signals: {} }
+const ZERO = { postsFiltered: 0, slopCollapsed: 0, signals: {}, authors: {} }
 
 // ---------------------------------------------------------------------------
 // trackPostFiltered
@@ -84,6 +84,118 @@ describe('trackPostFiltered', () => {
     vi.advanceTimersByTime(499)
 
     expect(mockSet).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// trackAuthorBlocked
+// ---------------------------------------------------------------------------
+
+const flushAndExpectAuthors = async (storageFn, action, expectedAuthors) => {
+  storageFn()
+  const mod = await importStats()
+  await flush(mod, action)
+  expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+    'focusin-stats': expect.objectContaining({ authors: expectedAuthors }),
+  }))
+}
+
+describe('trackAuthorBlocked', () => {
+  it('flushes author entry to storage after debounce', async () => {
+    await flushAndExpectAuthors(
+      () => withStorage({ 'focusin-stats-date': TODAY }),
+      ({ trackAuthorBlocked }) => trackAuthorBlocked('grace-hopper', 'Grace Hopper'),
+      { 'grace-hopper': { name: 'Grace Hopper', count: 1 } }
+    )
+  })
+
+  it('accumulates count for the same author across multiple calls', async () => {
+    withStorage({ 'focusin-stats-date': TODAY })
+    const mod = await importStats()
+
+    await flush(mod, ({ trackAuthorBlocked }) => {
+      trackAuthorBlocked('grace-hopper', 'Grace Hopper')
+      trackAuthorBlocked('grace-hopper', 'Grace Hopper')
+      trackAuthorBlocked('grace-hopper', 'Grace Hopper')
+    })
+
+    expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+      'focusin-stats': expect.objectContaining({
+        authors: { 'grace-hopper': { name: 'Grace Hopper', count: 3 } },
+      }),
+    }))
+  })
+
+  it('merges delta authors with existing stored authors', async () => {
+    await flushAndExpectAuthors(
+      () => withStorage(storedToday({ ...ZERO, authors: { 'alice': { name: 'Alice', count: 5 } } })),
+      ({ trackAuthorBlocked }) => trackAuthorBlocked('alice', 'Alice'),
+      { 'alice': { name: 'Alice', count: 6 } }
+    )
+  })
+
+  it('falls back to display name as key when vanity is null', async () => {
+    await flushAndExpectAuthors(
+      () => withStorage({ 'focusin-stats-date': TODAY }),
+      ({ trackAuthorBlocked }) => trackAuthorBlocked(null, 'No Vanity'),
+      { 'No Vanity': { name: 'No Vanity', count: 1 } }
+    )
+  })
+
+  it('does not write to storage when both vanity and display name are null', async () => {
+    withStorage({ 'focusin-stats-date': TODAY })
+    const mod = await importStats()
+
+    await flush(mod, ({ trackAuthorBlocked }) => trackAuthorBlocked(null, null))
+
+    expect(mockSet).not.toHaveBeenCalled()
+  })
+
+  it('resets author tallies when stored date is yesterday', async () => {
+    await flushAndExpectAuthors(
+      () => withStorage(storedYesterday({ ...ZERO, authors: { 'old-author': { name: 'Old Author', count: 99 } } })),
+      ({ trackAuthorBlocked }) => trackAuthorBlocked('new-author', 'New Author'),
+      { 'new-author': { name: 'New Author', count: 1 } }
+    )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// readAuthorStats
+// ---------------------------------------------------------------------------
+
+describe('readAuthorStats', () => {
+  it('returns stored authors map when date matches today', async () => {
+    const authors = { 'grace-hopper': { name: 'Grace Hopper', count: 3 } }
+    withStorage(storedToday({ ...ZERO, authors }))
+    const { readAuthorStats } = await importStats()
+
+    const result = await new Promise((resolve) => readAuthorStats(resolve))
+    expect(result).toEqual(authors)
+  })
+
+  it('returns empty object when stored date is yesterday', async () => {
+    withStorage(storedYesterday({ ...ZERO, authors: { 'grace-hopper': { name: 'Grace Hopper', count: 3 } } }))
+    const { readAuthorStats } = await importStats()
+
+    const result = await new Promise((resolve) => readAuthorStats(resolve))
+    expect(result).toEqual({})
+  })
+
+  it('returns empty object when storage is empty', async () => {
+    emptyStorage()
+    const { readAuthorStats } = await importStats()
+
+    const result = await new Promise((resolve) => readAuthorStats(resolve))
+    expect(result).toEqual({})
+  })
+
+  it('calls back with empty object when s.get throws', async () => {
+    mockGet.mockImplementation(() => { throw new Error('Extension context invalidated.') })
+    const { readAuthorStats } = await importStats()
+
+    const result = await new Promise((resolve) => readAuthorStats(resolve))
+    expect(result).toEqual({})
   })
 })
 

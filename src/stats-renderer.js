@@ -1,3 +1,21 @@
+export const renderAuthorTally = (authorStats, containerEl) => {
+  if (!containerEl) return
+  const entries = Object.entries(authorStats || {})
+    .sort(([, a], [, b]) => b.count - a.count)
+    .slice(0, 20)
+
+  if (!entries.length) {
+    containerEl.innerHTML = '<div class="author-tally-empty">No posts blocked today</div>'
+    return
+  }
+
+  containerEl.innerHTML = entries
+    .map(([, { name, count }]) =>
+      `<div class="author-tally-item"><span class="author-tally-name">${name}</span><span class="author-tally-count">${count}</span></div>`
+    )
+    .join('')
+}
+
 export const renderDamageReport = (stats, { slopEl, filteredEl, signalsEl }) => {
   slopEl.textContent = stats.slopCollapsed || 0
   filteredEl.textContent = stats.postsFiltered || 0

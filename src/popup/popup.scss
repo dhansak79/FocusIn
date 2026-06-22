@@ -297,6 +297,59 @@ body {
   }
 }
 
+// ── Tab bar ────────────────────────────────────────────────────────────────
+#tab-bar {
+  display: flex;
+  border-bottom: 1px solid $border-col;
+  padding: 0 1rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: $text;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: -1px;
+  letter-spacing: 0.04em;
+  transition: color 0.1s, border-color 0.1s;
+
+  &:hover { color: $white; }
+
+  &.active {
+    color: $accent;
+    border-bottom-color: $accent;
+  }
+}
+
+.tab-panel {
+  display: none;
+
+  &.active { display: block; }
+}
+
+// ── Authors panel ──────────────────────────────────────────────────────────
+#authors-panel .field {
+  display: block;
+
+  .tagify { width: 100%; }
+}
+
+// ── Tone threshold slider ──────────────────────────────────────────────────
+.tone-threshold-field {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+#tone-threshold {
+  width: 100%;
+  accent-color: $accent;
+  cursor: pointer;
+}
+
 // ── Semantic filter section ────────────────────────────────────────────────
 #settings-panel .semantic-field {
   flex-direction: column;
@@ -351,5 +404,41 @@ body {
 #semantic-test-result {
   font-size: 0.78rem;
   color: $muted;
+}
+
+// ── Author tally (Blocked tab) ─────────────────────────────────────────────
+.author-tally-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-top: 1px solid $border-col;
+
+  .author-tally-name {
+    color: $white;
+    font-size: 0.88rem;
+  }
+
+  .author-tally-count {
+    color: $accent;
+    font-weight: 600;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    margin-left: 0.75rem;
+
+    &::after {
+      content: '×';
+      font-size: 0.72rem;
+      margin-left: 0.15em;
+      opacity: 0.75;
+    }
+  }
+}
+
+.author-tally-empty {
+  font-size: 0.82rem;
+  color: $muted;
+  padding: 0.5rem 0;
+  text-align: center;
 }
 

@@ -34,6 +34,7 @@ beforeEach(async () => {
       <div id="tab-bar">
         <button type="button" id="tab-filters" class="tab-btn active">Filters</button>
         <button type="button" id="tab-authors" class="tab-btn">Authors</button>
+        <button type="button" id="tab-blocked" class="tab-btn">Blocked</button>
       </div>
       <div id="settings-panel" class="tab-panel active">
         <input id="tone-filter" class="switch is-rounded" type="checkbox" />
@@ -42,6 +43,9 @@ beforeEach(async () => {
       </div>
       <div id="authors-panel" class="tab-panel">
         <input id="author-whitelist" />
+      </div>
+      <div id="blocked-panel" class="tab-panel">
+        <div id="author-tally-list"></div>
       </div>
     </div>
     <input id="hide-by-keywords" />
@@ -176,6 +180,48 @@ describe('popup', () => {
     expect(document.getElementById('tab-filters').classList.contains('active')).toBe(true)
     expect(document.getElementById('settings-panel').classList.contains('active')).toBe(true)
     expect(document.getElementById('authors-panel').classList.contains('active')).toBe(false)
+  })
+
+  it('switches to Blocked tab and shows blocked panel', () => {
+    document.getElementById('tab-blocked').click()
+    expect(document.getElementById('tab-blocked').classList.contains('active')).toBe(true)
+    expect(document.getElementById('tab-filters').classList.contains('active')).toBe(false)
+    expect(document.getElementById('tab-authors').classList.contains('active')).toBe(false)
+    expect(document.getElementById('blocked-panel').classList.contains('active')).toBe(true)
+    expect(document.getElementById('settings-panel').classList.contains('active')).toBe(false)
+    expect(document.getElementById('authors-panel').classList.contains('active')).toBe(false)
+  })
+
+  it('switches back to Filters tab from Blocked tab', () => {
+    document.getElementById('tab-blocked').click()
+    document.getElementById('tab-filters').click()
+    expect(document.getElementById('tab-filters').classList.contains('active')).toBe(true)
+    expect(document.getElementById('blocked-panel').classList.contains('active')).toBe(false)
+    expect(document.getElementById('tab-blocked').classList.contains('active')).toBe(false)
+  })
+
+  it('renders author tally in blocked panel on window.onload when authors are stored', async () => {
+    const TODAY = new Date().toISOString().slice(0, 10)
+    mockGet.mockImplementation((keys, cb) => {
+      if (Array.isArray(keys) && keys.includes('focusin-stats')) {
+        cb({
+          'focusin-stats': { postsFiltered: 0, slopCollapsed: 0, signals: {}, authors: { 'grace-hopper': { name: 'Grace Hopper', count: 3 } } },
+          'focusin-stats-date': TODAY,
+        })
+      } else {
+        cb({})
+      }
+    })
+    window.onload()
+    await Promise.resolve()
+    expect(document.getElementById('author-tally-list').innerHTML).toContain('Grace Hopper')
+  })
+
+  it('renders empty state in blocked panel when no authors blocked today', async () => {
+    mockGet.mockImplementation((_, cb) => cb && cb({}))
+    window.onload()
+    await Promise.resolve()
+    expect(document.getElementById('author-tally-list').innerHTML).toContain('No posts blocked today')
   })
 
   it('saves author whitelist to storage when author-whitelist input changes (vanity from tag.vanity)', () => {
