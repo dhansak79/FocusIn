@@ -13,5 +13,5 @@
   "reporters": ["html", "json", "progress", "clear-text"],
   "thresholds": { "break": 75 },
   "tempDirName": ".stryker-tmp",
-  "htmlReporter": { "fileName": "index.html" }
+  "htmlReporter": { "fileName": "reports/mutation/index.html" }
 }
