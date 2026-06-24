@@ -1,0 +1,9 @@
+type: '@focusin/mutation'
+typeVersion: 2026.06.23.1
+id: 6157bcde-a164-43e7-992a-38b48a2c8bfd
+name: focusin-mutation
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}

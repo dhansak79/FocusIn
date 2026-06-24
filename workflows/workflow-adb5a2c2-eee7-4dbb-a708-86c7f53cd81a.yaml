@@ -1,0 +1,50 @@
+id: adb5a2c2-eee7-4dbb-a708-86c7f53cd81a
+name: quality-gate
+description: Full quality pipeline — spec coverage and tests in parallel, then coverage thresholds, then mutation
+tags: {}
+version: 1
+jobs:
+  - name: check
+    description: Spec scenario coverage and test suite — run in parallel
+    steps:
+      - name: spec-coverage
+        description: Check which spec scenarios have boundary tests
+        allowFailure: true
+        task:
+          type: model_method
+          modelIdOrName: focusin-spec-coverage
+          methodName: run
+      - name: tests
+        description: Run vitest and verify all tests pass
+        task:
+          type: model_method
+          modelIdOrName: focusin-tests
+          methodName: test
+
+  - name: coverage
+    description: Run vitest with coverage and verify thresholds (90% lines/branches/functions/statements)
+    dependsOn:
+      - job: check
+        condition:
+          type: succeeded
+    steps:
+      - name: coverage
+        description: Run coverage and store percentages
+        task:
+          type: model_method
+          modelIdOrName: focusin-tests
+          methodName: coverage
+
+  - name: mutation
+    description: Run Stryker mutation testing — only if coverage passes
+    dependsOn:
+      - job: coverage
+        condition:
+          type: succeeded
+    steps:
+      - name: mutation
+        description: Run Stryker and store per-file mutation scores
+        task:
+          type: model_method
+          modelIdOrName: focusin-mutation
+          methodName: run

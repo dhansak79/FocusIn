@@ -1,0 +1,9 @@
+type: '@focusin/spec-coverage'
+typeVersion: 2026.06.23.1
+id: f7e50eaf-460c-45a1-8ece-6c04eec50bbc
+name: focusin-spec-coverage
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}

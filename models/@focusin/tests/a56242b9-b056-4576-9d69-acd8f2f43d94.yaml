@@ -1,0 +1,9 @@
+type: '@focusin/tests'
+typeVersion: 2026.06.23.1
+id: a56242b9-b056-4576-9d69-acd8f2f43d94
+name: focusin-tests
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}

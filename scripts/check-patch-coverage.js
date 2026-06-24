@@ -7,6 +7,7 @@ import { execSync } from 'child_process'
 import { readFileSync, existsSync } from 'fs'
 
 const LCOV = 'coverage/lcov.info'
+const ROOT = execSync('git rev-parse --show-toplevel').toString().trim() + '/'
 
 if (!existsSync(LCOV)) {
   console.error('check-patch-coverage: coverage/lcov.info not found')
@@ -18,7 +19,8 @@ const coverage = {}
 let file = null
 for (const line of readFileSync(LCOV, 'utf8').split('\n')) {
   if (line.startsWith('SF:')) {
-    file = line.slice(3).trim()
+    const raw = line.slice(3).trim()
+    file = raw.startsWith(ROOT) ? raw.slice(ROOT.length) : raw
     coverage[file] = {}
   } else if (line.startsWith('DA:') && file) {
     const [ln, hits] = line.slice(3).split(',')
@@ -49,15 +51,15 @@ for (const line of diff.split('\n')) {
 // Report any added lines with zero hits
 let failed = false
 for (const [f, lines] of Object.entries(added)) {
-  // Only enforce coverage on unit-testable source files.
-  // src/content/ and src/popup/ contain browser/extension-only code that
-  // cannot be exercised in a jsdom unit test.
-  if (!f.startsWith('src/') || !f.endsWith('.js')) continue
-  if (f.startsWith('src/content/') || f.startsWith('src/popup/')) continue
+  const isJsSource = f.startsWith('src/') && f.endsWith('.js') &&
+    !f.startsWith('src/content/') && !f.startsWith('src/popup/')
+  const isDenoExt = f.startsWith('extensions/models/') && f.endsWith('.ts') && !f.endsWith('_test.ts')
+  if (!isJsSource && !isDenoExt) continue
 
   const fileCov = coverage[f]
   if (!fileCov) {
-    console.error(`  NOT IN COVERAGE SCOPE  ${f} — add it to vitest.config.js include`)
+    const hint = isDenoExt ? 'run deno test --coverage extensions/models/' : 'add it to vitest.config.js include'
+    console.error(`  NOT IN COVERAGE SCOPE  ${f} — ${hint}`)
     failed = true
     continue
   }
