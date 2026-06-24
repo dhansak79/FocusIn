@@ -46,6 +46,7 @@ export const SLOP_PHRASES = [
   "strategy becomes real",
   "seeing an interesting shift",
   "excited to be part of",
+  "put it sharply",
 
   // LLM tells
   'in the realm of',
