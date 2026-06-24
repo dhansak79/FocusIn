@@ -41,6 +41,26 @@ type StrykerFile = {
   mutants: Array<{ status: string }>;
 };
 
+type FileScore = z.infer<typeof FileScoreSchema>;
+
+/** Score a single file's mutants: killed+timeout count as killed. */
+export function scoreMutants(path: string, mutants: StrykerFile["mutants"]): FileScore {
+  const killed = mutants.filter((m) => m.status === "Killed" || m.status === "Timeout").length;
+  const survived = mutants.filter((m) => m.status === "Survived").length;
+  const noCoverage = mutants.filter((m) => m.status === "NoCoverage").length;
+  const total = mutants.length;
+  return { path, score: total ? (killed / total) * 100 : 100, killed, survived, noCoverage, total };
+}
+
+/** Aggregate per-file scores into overall totals. */
+export function aggregateScores(files: FileScore[]): { overallScore: number; killed: number; survived: number; noCoverage: number; total: number } {
+  const killed = files.reduce((s, f) => s + f.killed, 0);
+  const survived = files.reduce((s, f) => s + f.survived, 0);
+  const noCoverage = files.reduce((s, f) => s + f.noCoverage, 0);
+  const total = files.reduce((s, f) => s + f.total, 0);
+  return { overallScore: total ? (killed / total) * 100 : 0, killed, survived, noCoverage, total };
+}
+
 export const model = {
   type: "@focusin/mutation",
   version: "2026.06.23.1",
@@ -73,45 +93,17 @@ export const model = {
         }).output();
 
         const reportPath = `${projectDir}/reports/mutation/mutation.json`;
-        let overallScore = 0,
-          killed = 0,
-          survived = 0,
-          noCoverage = 0,
-          total = 0;
-        const files: Array<z.infer<typeof FileScoreSchema>> = [];
+        let overallScore = 0, killed = 0, survived = 0, noCoverage = 0, total = 0;
+        const files: FileScore[] = [];
 
         try {
           const data = JSON.parse(await Deno.readTextFile(reportPath)) as {
             files: Record<string, StrykerFile>;
           };
           for (const [filepath, fileData] of Object.entries(data.files)) {
-            const mutants = fileData.mutants;
-            const fKilled = mutants.filter(
-              (m) => m.status === "Killed" || m.status === "Timeout",
-            ).length;
-            const fSurvived = mutants.filter(
-              (m) => m.status === "Survived",
-            ).length;
-            const fNoCov = mutants.filter(
-              (m) => m.status === "NoCoverage",
-            ).length;
-            const fTotal = mutants.length;
-            const score = fTotal ? (fKilled / fTotal) * 100 : 100;
-
-            files.push({
-              path: filepath,
-              score,
-              killed: fKilled,
-              survived: fSurvived,
-              noCoverage: fNoCov,
-              total: fTotal,
-            });
-            killed += fKilled;
-            survived += fSurvived;
-            noCoverage += fNoCov;
-            total += fTotal;
+            files.push(scoreMutants(filepath, fileData.mutants));
           }
-          overallScore = total ? (killed / total) * 100 : 0;
+          ({ overallScore, killed, survived, noCoverage, total } = aggregateScores(files));
         } catch {
           // mutation report not generated
         }

@@ -37,7 +37,17 @@ type WriteResourceFn = (
 
 type CoverageMetrics = { lines: number; functions: number; branches: number; statements: number };
 
-async function readCoverageMetrics(projectDir: string): Promise<CoverageMetrics> {
+/** Parse vitest JSON reporter output into test counts. */
+export function parseVitestOutput(raw: string): { total: number; passing: number; failing: number } {
+  try {
+    const r = JSON.parse(raw);
+    return { total: r.numTotalTests ?? 0, passing: r.numPassedTests ?? 0, failing: r.numFailedTests ?? 0 };
+  } catch {
+    return { total: 0, passing: 0, failing: 0 };
+  }
+}
+
+export async function readCoverageMetrics(projectDir: string): Promise<CoverageMetrics> {
   try {
     const raw = await Deno.readTextFile(`${projectDir}/coverage/coverage-summary.json`);
     const total = JSON.parse(raw).total ?? {};
@@ -93,11 +103,9 @@ export const model = {
 
         let total = 0, passing = 0, failing = 0;
         try {
-          const r = JSON.parse(await Deno.readTextFile(outputFile));
-          total = r.numTotalTests ?? 0;
-          passing = r.numPassedTests ?? 0;
-          failing = r.numFailedTests ?? 0;
+          const raw = await Deno.readTextFile(outputFile);
           await Deno.remove(outputFile).catch(() => {});
+          ({ total, passing, failing } = parseVitestOutput(raw));
         } catch {
           failing = code !== 0 ? 1 : 0;
         }

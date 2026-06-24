@@ -25,6 +25,13 @@ type WriteResourceFn = (
   data: Record<string, unknown>,
 ) => Promise<{ name: string }>;
 
+/** Parse "Summary: N / M scenarios covered" from spec-coverage script stdout. */
+export function parseSpecCoverageOutput(output: string): { covered: number; total: number } {
+  const match = output.match(/Summary:\s+(\d+)\s*\/\s*(\d+)\s+scenarios covered/);
+  if (!match) return { covered: 0, total: 0 };
+  return { covered: parseInt(match[1], 10), total: parseInt(match[2], 10) };
+}
+
 export const model = {
   type: "@focusin/spec-coverage",
   version: "2026.06.23.1",
@@ -56,14 +63,7 @@ export const model = {
         }).output();
 
         const output = new TextDecoder().decode(stdout);
-
-        // Parse "Summary: N / M scenarios covered"
-        let covered = 0, total = 0;
-        const match = output.match(/Summary:\s+(\d+)\s*\/\s*(\d+)\s+scenarios covered/);
-        if (match) {
-          covered = parseInt(match[1], 10);
-          total = parseInt(match[2], 10);
-        }
+        const { covered, total } = parseSpecCoverageOutput(output);
         const pct = total > 0 ? (covered / total) * 100 : 100;
 
         const handle = await context.writeResource("result", "current", {
