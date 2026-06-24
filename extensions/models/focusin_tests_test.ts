@@ -61,6 +61,15 @@ Deno.test("readCoverageMetrics: returns zeros for malformed JSON", async () => {
   await Deno.remove(dir, { recursive: true });
 });
 
+Deno.test("readCoverageMetrics: returns zeros when total field is absent", async () => {
+  const dir = await Deno.makeTempDir();
+  await Deno.mkdir(`${dir}/coverage`);
+  await Deno.writeTextFile(`${dir}/coverage/coverage-summary.json`, "{}");
+  const result = await readCoverageMetrics(dir);
+  assertEquals(result, { lines: 0, functions: 0, branches: 0, statements: 0 });
+  await Deno.remove(dir, { recursive: true });
+});
+
 Deno.test("model.test.execute: parses output file and writes resource on success", async () => {
   const dir = await Deno.makeTempDir();
   const vitestJson = JSON.stringify({ numTotalTests: 10, numPassedTests: 10, numFailedTests: 0 });
@@ -101,7 +110,7 @@ Deno.test("model.test.execute: parses output file and writes resource on success
   await Deno.remove(dir, { recursive: true });
 });
 
-Deno.test("model.test.execute: sets failing=1 when command fails and no output file", async () => {
+async function runTestExecuteNoFile(exitCode: number): Promise<Record<string, unknown>> {
   const written: Record<string, unknown>[] = [];
   const ctx = {
     globalArgs: { projectDir: "/nonexistent-abc" },
@@ -110,15 +119,23 @@ Deno.test("model.test.execute: sets failing=1 when command fails and no output f
       return { name: "testResult/current" };
     },
   };
-
   await withMockCommand(
-    () => ({ output: async () => ({ code: 1, stdout: new Uint8Array(), stderr: new Uint8Array() }) }),
-    async () => {
-      await model.methods.test.execute({}, ctx as never);
-      assertEquals(written[0].passed, false);
-      assertEquals(written[0].failing, 1);
-    },
+    () => ({ output: async () => ({ code: exitCode, stdout: new Uint8Array(), stderr: new Uint8Array() }) }),
+    async () => { await model.methods.test.execute({}, ctx as never); },
   );
+  return written[0];
+}
+
+Deno.test("model.test.execute: failing=0 when command succeeds but output file absent", async () => {
+  const result = await runTestExecuteNoFile(0);
+  assertEquals(result.passed, true);
+  assertEquals(result.failing, 0);
+});
+
+Deno.test("model.test.execute: sets failing=1 when command fails and no output file", async () => {
+  const result = await runTestExecuteNoFile(1);
+  assertEquals(result.passed, false);
+  assertEquals(result.failing, 1);
 });
 
 Deno.test("model.coverage.execute: reads coverage-summary.json and writes resource", async () => {
