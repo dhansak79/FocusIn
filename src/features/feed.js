@@ -252,7 +252,16 @@ const isPostNode = (node) => {
 const SEMANTIC_THRESHOLD = 0.35
 const SLOP_ARCHETYPE_THRESHOLD = 0.25
 
-const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchetype, whitelisted, toneFilterEnabled, toneThreshold) => {
+const isPromotedPost = (post) => {
+  const textBox = post.querySelector('[data-testid="expandable-text-box"]')
+  const candidates = post.querySelectorAll('p, span')
+  for (const el of candidates) {
+    if (textBox && !textBox.contains(el) && el.textContent.trim() === 'Promoted') return true
+  }
+  return false
+}
+
+const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchetype, whitelisted, toneFilterEnabled, toneThreshold, hidePromoted) => {
   let postsProcessed = 0
 
   const countOnce = (post, fn, signals) => {
@@ -411,6 +420,10 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     if (post.dataset.focusinInjected) return
     if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-semantic-checked]')) return
     postsProcessed++
+    if (hidePromoted && isPromotedPost(post)) {
+      hidePost(post, mode)
+      return
+    }
     const isKeywordMatch = keywords.some((keyword) => post.textContent.indexOf(keyword) !== -1)
     const slopSignals = checkSlop(post)
     if (isKeywordMatch) {
@@ -466,7 +479,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     feedObserver.observe(feedContainer, { childList: true, subtree: true })
   }
 
-  if (keywords.length || detectSlop || semanticTopics.length || detectSlopArchetype || toneFilterEnabled) connectObserver()
+  if (keywords.length || detectSlop || semanticTopics.length || detectSlopArchetype || toneFilterEnabled || hidePromoted) connectObserver()
 }
 
 const disconnectObserver = () => {
@@ -499,7 +512,8 @@ const handleFilterFeed = (mode, config) => {
     !!config['slop-archetype'],
     whitelisted,
     !!config['tone-filter'],
-    config['tone-threshold'] ?? 70
+    config['tone-threshold'] ?? 70,
+    !!config['hide-promoted']
   )
 }
 

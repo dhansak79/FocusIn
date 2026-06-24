@@ -121,13 +121,19 @@ When users ask why Code Health matters:
 
 # Testing Gate (Mandatory)
 
-After every implementation change — feature, fix, or refactor — run:
+Two gates apply at different scopes:
 
+**Pre-commit (run after every implementation change):**
 ```
 npm test && npm run coverage
 ```
-
 Both must exit 0 before the work is done. Do not suggest a commit or declare done until they pass. See `.claude/skills/testing/SKILL.md` for how to interpret failures and what counts as sufficient coverage.
+
+**Pre-push (runs automatically via `.githooks/pre-push`):**
+```
+swamp workflow run quality-gate
+```
+This runs spec-coverage + tests in parallel, then coverage thresholds, then mutation testing. It fires automatically on `git push`. If it fails, do not push — fix the issue first. You cannot run this directly (swamp may not be in the agent PATH); prompt the user to push and check the result.
 
 ---
 
