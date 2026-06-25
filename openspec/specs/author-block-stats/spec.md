@@ -24,6 +24,11 @@ The extension SHALL increment a per-author blocked-post counter in `chrome.stora
 - **AND** the author vanity name is extractable from the post DOM
 - **THEN** the author's count in the daily `authors` map increments by 1
 
+#### Scenario: Block count increments on promoted-post filter
+- **WHEN** a post is hidden by the promoted-post filter
+- **AND** the author vanity name is extractable from the post DOM
+- **THEN** the author's count in the daily `authors` map increments by 1
+
 #### Scenario: Block count falls back to display name as key
 - **WHEN** a post is blocked
 - **AND** the vanity name cannot be extracted from the post DOM
@@ -38,6 +43,17 @@ The extension SHALL increment a per-author blocked-post counter in `chrome.stora
 #### Scenario: Daily reset clears per-author tallies
 - **WHEN** the current date differs from the stored date key
 - **THEN** the `authors` map resets to empty along with the other daily stats
+
+### Requirement: Author names and signal strings are HTML-escaped before popup rendering
+The stats renderer SHALL HTML-escape all dynamic string values (author display names and signal strings) before inserting them into `innerHTML` template literals, to prevent stored cross-site scripting from LinkedIn profile names or other page-sourced data reaching the extension popup.
+
+#### Scenario: HTML metacharacters in author name are escaped
+- **WHEN** a blocked author's display name contains HTML metacharacters (e.g. `<`, `>`, `&`, `"`)
+- **THEN** those characters are rendered as their HTML entities in the popup and do not execute as markup
+
+#### Scenario: Signal strings with special characters are escaped
+- **WHEN** a slop signal string contains HTML metacharacters
+- **THEN** those characters are rendered as their HTML entities in the popup and do not execute as markup
 
 ### Requirement: Popup shows a "Blocked" tab with ranked author list
 The popup SHALL include a third tab labelled "Blocked" that displays a list of authors whose posts were blocked today, ranked by block count descending, showing display name and count.

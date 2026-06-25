@@ -57,6 +57,13 @@ describe('renderAuthorTally', () => {
     renderAuthorTally(null, el)
     expect(el.innerHTML).toContain('No posts blocked today')
   })
+
+  it('HTML metacharacters in author name are escaped', () => {
+    const el = makeContainer()
+    renderAuthorTally({ 'xss': { name: '<img src=x onerror=alert(1)>', count: 1 } }, el)
+    expect(el.innerHTML).not.toContain('<img')
+    expect(el.innerHTML).toContain('&lt;img')
+  })
 })
 
 describe('renderDamageReport', () => {
@@ -86,7 +93,7 @@ describe('renderDamageReport', () => {
       ...ZERO,
       signals: { 'em dash': 5, 'line stacking': 2, '"game-changer"': 8, 'arrow bullets': 1, 'emoji bullets': 4, 'raw markdown': 3, 'emoji overload': 0 },
     }, els)
-    expect(els.signalsEl.innerHTML).toContain('"game-changer"')
+    expect(els.signalsEl.innerHTML).toContain('&quot;game-changer&quot;')
     expect(els.signalsEl.innerHTML).toContain('em dash')
     expect(els.signalsEl.innerHTML).toContain('emoji bullets')
     expect(els.signalsEl.innerHTML).toContain('raw markdown')
