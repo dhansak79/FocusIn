@@ -82,6 +82,13 @@ it('Scenario: Silent skip when neither name is available', () => {
   expect(mockTrackAuthorBlocked).toHaveBeenCalledWith(null, null)
 })
 
+it('Scenario: Block count increments on promoted-post filter', () => {
+  buildFeedDOM([`<a href="/in/grace-hopper/"><div aria-label="Grace Hopper Profile 1st">Grace Hopper</div></a><p><span>Promoted</span></p><p data-testid="expandable-text-box">Ad content</p>`, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+  doFeed({ ...baseConfig, 'hide-promoted': true })
+  vi.advanceTimersByTime(350)
+  expect(mockTrackAuthorBlocked).toHaveBeenCalledWith('grace-hopper', 'Grace Hopper')
+})
+
 it('Scenario: Block count increments on slop detection (pattern/keyword)', () => {
   vi.stubGlobal('chrome', makeChromeStub())
   buildFeedDOM([SLOP_WITH_ACTOR, SLOP_POST, SLOP_POST, SLOP_POST, SLOP_POST, SLOP_POST])

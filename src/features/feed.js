@@ -256,7 +256,7 @@ const isPromotedPost = (post) => {
   const textBox = post.querySelector('[data-testid="expandable-text-box"]')
   const candidates = post.querySelectorAll('p, span')
   for (const el of candidates) {
-    if (textBox && !textBox.contains(el) && el.textContent.trim() === 'Promoted') return true
+    if (!textBox?.contains(el) && el.textContent.trim() === 'Promoted') return true
   }
   return false
 }
@@ -421,7 +421,11 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-semantic-checked]')) return
     postsProcessed++
     if (hidePromoted && isPromotedPost(post)) {
+      const vanity = extractAuthorVanityName(post)
+      const name = extractAuthorName(post)
       hidePost(post, mode)
+      countOnce(post, trackPostFiltered)
+      trackAuthorBlocked(vanity, name)
       return
     }
     const isKeywordMatch = keywords.some((keyword) => post.textContent.indexOf(keyword) !== -1)

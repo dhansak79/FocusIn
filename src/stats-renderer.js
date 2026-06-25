@@ -1,3 +1,10 @@
+const escapeHtml = (str) =>
+  String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+
 export const renderAuthorTally = (authorStats, containerEl) => {
   if (!containerEl) return
   const entries = Object.entries(authorStats || {})
@@ -11,7 +18,7 @@ export const renderAuthorTally = (authorStats, containerEl) => {
 
   containerEl.innerHTML = entries
     .map(([, { name, count }]) =>
-      `<div class="author-tally-item"><span class="author-tally-name">${name}</span><span class="author-tally-count">${count}</span></div>`
+      `<div class="author-tally-item"><span class="author-tally-name">${escapeHtml(name)}</span><span class="author-tally-count">${count}</span></div>`
     )
     .join('')
 }
@@ -28,7 +35,7 @@ export const renderDamageReport = (stats, { slopEl, filteredEl, signalsEl }) => 
     signalsEl.innerHTML = topSignals
       .map(
         ([signal, count]) =>
-          `<div class="signal-item"><span class="signal-name">${signal}</span><span class="signal-count">${count}&times;</span></div>`
+          `<div class="signal-item"><span class="signal-name">${escapeHtml(signal)}</span><span class="signal-count">${count}&times;</span></div>`
       )
       .join('')
   }
