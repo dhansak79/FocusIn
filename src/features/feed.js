@@ -420,12 +420,14 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     if (post.dataset.focusinInjected) return
     if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-semantic-checked]')) return
     postsProcessed++
-    if (hidePromoted && isPromotedPost(post)) {
-      const vanity = extractAuthorVanityName(post)
-      const name = extractAuthorName(post)
-      hidePost(post, mode)
-      countOnce(post, trackPostFiltered)
-      trackAuthorBlocked(vanity, name)
+    if (isPromotedPost(post)) {
+      if (hidePromoted) {
+        const vanity = extractAuthorVanityName(post)
+        const name = extractAuthorName(post)
+        hidePost(post, mode)
+        countOnce(post, trackPostFiltered)
+        trackAuthorBlocked(vanity, name)
+      }
       return
     }
     const isKeywordMatch = keywords.some((keyword) => post.textContent.indexOf(keyword) !== -1)

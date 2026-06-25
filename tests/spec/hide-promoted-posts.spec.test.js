@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi, beforeEach, afterEach, it, expect } from 'vitest'
-import { buildFeedDOM, baseConfig, CLEAN_POST } from './_helpers.js'
+import { buildFeedDOM, baseConfig, CLEAN_POST, SLOP_POST } from './_helpers.js'
 
 vi.mock('../../src/lib/transformers.min.js', () => ({
   pipeline: vi.fn(),
@@ -145,4 +145,45 @@ it('Scenario: Promoted hide records author in blocked-authors map', () => {
   doFeed({ ...baseConfig, 'hide-promoted': true })
 
   expect(mockTrackAuthorBlocked).toHaveBeenCalledWith('grace-hopper', 'Grace Hopper')
+})
+
+// ---------------------------------------------------------------------------
+// Requirement: Promoted posts are excluded from all other filters
+// ---------------------------------------------------------------------------
+
+const PROMOTED_SLOP_POST = `
+  <p><span>Promoted</span></p>
+  <p data-testid="expandable-text-box">${SLOP_POST}</p>
+`
+
+const PROMOTED_KEYWORD_POST = `
+  <p><span>Promoted</span></p>
+  <p data-testid="expandable-text-box">Buy our amazing sponsored product now!</p>
+`
+
+it('Scenario: Promoted slop post is not soft-hidden when hide-promoted is off', () => {
+  const posts = buildFeedDOM([PROMOTED_SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+  doFeed({ ...baseConfig, 'detect-slop': true, 'hide-promoted': false })
+
+  expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
+  expect(document.querySelector('.focusedin-slop-collapsed')).toBeNull()
+})
+
+it('Scenario: Promoted slop post is hard-hidden (not soft-hidden) when hide-promoted is on', () => {
+  const posts = buildFeedDOM([PROMOTED_SLOP_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+  doFeed({ ...baseConfig, 'detect-slop': true, 'hide-promoted': true })
+
+  expect(posts[0].classList.contains('hide')).toBe(true)
+  expect(posts[0].classList.contains('focusedin-slop-soft-hide')).toBe(false)
+  expect(document.querySelector('.focusedin-slop-collapsed')).toBeNull()
+})
+
+it('Scenario: Promoted post that matches a keyword is not keyword-filtered', () => {
+  const posts = buildFeedDOM([PROMOTED_KEYWORD_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST, CLEAN_POST])
+
+  doFeed({ ...baseConfig, 'feed-keywords': 'Buy', 'hide-promoted': false })
+
+  expect(posts[0].classList.contains('hide')).toBe(false)
 })
