@@ -1,12 +1,15 @@
 import { SLOP_PHRASES, SLOP_PATTERNS, SLOP_PATTERN_LABELS } from './slop-keywords.js'
 
 const EMOJI_THRESHOLD = 4
+const HASHTAG_THRESHOLD = 5
 const MIN_LINES_FOR_PATTERN = 5
 const LINE_PATTERN_RATIO = 0.6
 const HEAVY_LINE_COUNT = 15
 const HEAVY_LINE_RATIO = 0.8
 
 const SLOP_THRESHOLD = 2
+
+const hasExcessiveHashtags = (text) => (text.match(/#\w+/g) ?? []).length >= HASHTAG_THRESHOLD
 
 const countMatchingPhrases = (text) => {
   const lower = text.toLowerCase()
@@ -70,7 +73,17 @@ export const getSlopScore = (text) =>
   (hasMarkdownFormatting(text) ? 2 : 0) +
   linePatternScore(text) +
   patternScore(text) +
-  (hasEmojiBullets(text) ? 1 : 0)
+  (hasEmojiBullets(text) ? 1 : 0) +
+  (hasExcessiveHashtags(text) ? 1 : 0)
+
+const BOOL_SIGNALS = [
+  [hasEmojiBullets, 'emoji bullets'],
+  [hasHighEmojiDensity, 'emoji overload'],
+  [hasMarkdownFormatting, 'raw markdown'],
+  [hasExcessiveHashtags, 'hashtag spam'],
+]
+
+const LINE_STACKING_LABELS = { 1: 'line stacking', 2: 'extreme line stacking' }
 
 export const getSlopSignals = (text) => {
   const signals = []
@@ -85,12 +98,12 @@ export const getSlopSignals = (text) => {
     if (pattern.test(text)) signals.push(SLOP_PATTERN_LABELS[i])
   })
 
-  if (hasEmojiBullets(text)) signals.push('emoji bullets')
-  if (hasHighEmojiDensity(text)) signals.push('emoji overload')
-  if (hasMarkdownFormatting(text)) signals.push('raw markdown')
-  const lps = linePatternScore(text)
-  if (lps === 2) signals.push('extreme line stacking')
-  else if (lps === 1) signals.push('line stacking')
+  for (const [check, label] of BOOL_SIGNALS) {
+    if (check(text)) signals.push(label)
+  }
+
+  const lpsLabel = LINE_STACKING_LABELS[linePatternScore(text)]
+  if (lpsLabel) signals.push(lpsLabel)
   return signals
 }
 

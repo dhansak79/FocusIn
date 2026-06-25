@@ -530,6 +530,39 @@ describe("getSlopScore - here's why hook", () => {
 })
 
 // ---------------------------------------------------------------------------
+// Hashtag spam signal — 1 point when post contains 5 or more hashtags
+// ---------------------------------------------------------------------------
+
+describe('getSlopScore - hashtag spam', () => {
+  it('triggers the signal for exactly 5 hashtags (boundary)', () => {
+    const text = 'Great post today. #leadership #growth #mindset #career #success'
+    expect(getSlopScore(text)).toBeGreaterThanOrEqual(1)
+    expect(getSlopSignals(text)).toContain('hashtag spam')
+  })
+
+  it('does not trigger the signal for 4 hashtags (below threshold)', () => {
+    const text = 'Great post today. #leadership #growth #mindset #career'
+    expect(getSlopSignals(text)).not.toContain('hashtag spam')
+  })
+
+  it('triggers the signal for 10 hashtags (well above threshold)', () => {
+    const text = 'Great post. #leadership #growth #mindset #career #success #hiring #jobs #tech #ai #innovation'
+    expect(getSlopScore(text)).toBeGreaterThanOrEqual(1)
+    expect(getSlopSignals(text)).toContain('hashtag spam')
+  })
+
+  it('does not affect score or signals for a post with no hashtags', () => {
+    const text = 'Great post today with absolutely no hashtags at all.'
+    expect(getSlopSignals(text)).not.toContain('hashtag spam')
+  })
+
+  it('hashtag signal combined with emoji overload reaches isSlop threshold', () => {
+    const text = 'Big news! 🚀 💡 🔥 💪 ⚡ #leadership #growth #mindset #career #success'
+    expect(isSlop(text)).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // getSlopSignals — human-readable labels for each triggered signal
 // ---------------------------------------------------------------------------
 
