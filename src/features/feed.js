@@ -14,6 +14,7 @@ import {
 import { getSlopSignals, isSlop } from './slop-detector.js'
 import { trackAuthorBlocked, trackPostFiltered, trackSlopCollapsed } from '../stats.js'
 import { unfollowAuthor } from './unfollow.js'
+import { initSlopReaction, disconnectSlopReaction } from './slop-reaction.js'
 
 let feedObserver = null
 let scrollTimerId = null
@@ -65,7 +66,7 @@ const getAuthorFromStrongLinks = (post) => {
   return null
 }
 
-const extractAuthorName = (post) =>
+export const extractAuthorName = (post) =>
   getAuthorFromActorDiv(post) ?? getAuthorFromFollowBtn(post) ?? getAuthorFromStrongLinks(post)
 
 const vanityFromHref = (href) => (href ?? '').match(/\/in\/([^/?#]+)/)?.[1] ?? null
@@ -82,7 +83,7 @@ const getVanityFromStrongLinks = (post) => {
   return null
 }
 
-const extractAuthorVanityName = (post) => {
+export const extractAuthorVanityName = (post) => {
   const actorEl = post.querySelector(
     '[aria-label*=" Profile"],[aria-label*="st+"],[aria-label*="nd+"],[aria-label*="rd+"]'
   )
@@ -483,6 +484,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     })
 
     feedObserver.observe(feedContainer, { childList: true, subtree: true })
+    initSlopReaction(feedContainer, extractAuthorVanityName, extractAuthorName)
   }
 
   if (keywords.length || detectSlop || semanticTopics.length || detectSlopArchetype || toneFilterEnabled || hidePromoted) connectObserver()
@@ -491,6 +493,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
 const disconnectObserver = () => {
   feedObserver?.disconnect()
   feedObserver = null
+  disconnectSlopReaction()
   if (scrollTimerId !== null) {
     clearTimeout(scrollTimerId)
     scrollTimerId = null

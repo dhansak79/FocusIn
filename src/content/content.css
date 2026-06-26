@@ -1,12 +1,14 @@
 @supports (-webkit-user-select: none) {
   :root {
     --hide-icon: url('chrome-extension://__MSG_@@extension_id__/src/icons/forbidden.svg');
+    --slop-btn-icon: url('chrome-extension://__MSG_@@extension_id__/assets/ai_slop_button.png');
   }
 }
 
 @supports (-moz-user-select: none) {
   :root {
     --hide-icon: url('moz-extension://__MSG_@@extension_id__/src/icons/forbidden.svg');
+    --slop-btn-icon: url('moz-extension://__MSG_@@extension_id__/assets/ai_slop_button.png');
   }
 }
 
@@ -123,6 +125,41 @@
   background: rgba(220, 38, 38, 0.18);
   border-color: rgba(220, 38, 38, 0.75);
   color: #fff;
+}
+
+.focusedin-slop-reaction-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.8;
+  transition: opacity 0.15s, transform 0.15s;
+  vertical-align: middle;
+  border-radius: 50%;
+  padding: 0;
+}
+
+/* Custom image overlays the emoji fallback when the extension URL resolves */
+.focusedin-slop-reaction-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--slop-btn-icon, none);
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-radius: 50%;
+}
+
+.focusedin-slop-reaction-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
 }
 
 .focusedin-slop-tag {

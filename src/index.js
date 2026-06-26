@@ -11,7 +11,7 @@ const loadAndApply = async () => {
   } catch (_) { /* context invalidated */ }
 }
 
-const STATS_KEYS = new Set(['focusin-stats', 'focusin-stats-date'])
+const STATS_KEYS = new Set(['focusin-stats', 'focusin-stats-date', 'focusin-slop-reactions'])
 
 // Storage listener — skip if only stats keys changed to avoid re-applying on every stat flush
 chrome.storage.onChanged.addListener((changes) => {

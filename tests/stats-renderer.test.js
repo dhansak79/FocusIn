@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { renderAuthorTally, renderDamageReport } from '../src/stats-renderer.js'
+import { renderAuthorTally, renderDamageReport, renderHallOfShame } from '../src/stats-renderer.js'
 
 const makeEl = (text = '0') => ({ textContent: text, innerHTML: '' })
 
@@ -63,6 +63,41 @@ describe('renderAuthorTally', () => {
     renderAuthorTally({ 'xss': { name: '<img src=x onerror=alert(1)>', count: 1 } }, el)
     expect(el.innerHTML).not.toContain('<img')
     expect(el.innerHTML).toContain('&lt;img')
+  })
+})
+
+describe('renderHallOfShame', () => {
+  it('Scenario: Hall of Shame panel shows empty-state message when no authors flagged', () => {
+    const el = makeContainer()
+    renderHallOfShame({}, el)
+    expect(el.innerHTML).toContain('No authors in the Hall of Shame yet')
+  })
+
+  it('Scenario: Hall of Shame panel renders author list ranked by count descending', () => {
+    const el = makeContainer()
+    renderHallOfShame({
+      'alice': { name: 'Alice', count: 2 },
+      'bob': { name: 'Bob', count: 9 },
+      'carol': { name: 'Carol', count: 5 },
+    }, el)
+    const names = [...el.innerHTML.matchAll(/class="author-tally-name">([^<]+)</g)].map((m) => m[1])
+    expect(names).toEqual(['Bob', 'Carol', 'Alice'])
+  })
+
+  it('does not cap list at 20 entries (all-time list is uncapped)', () => {
+    const el = makeContainer()
+    const authors = Object.fromEntries(
+      Array.from({ length: 25 }, (_, i) => [`author-${i}`, { name: `Author ${i}`, count: 25 - i }])
+    )
+    renderHallOfShame(authors, el)
+    const items = el.innerHTML.match(/author-tally-item/g) ?? []
+    expect(items.length).toBe(25)
+  })
+
+  it('renders null stats as empty state', () => {
+    const el = makeContainer()
+    renderHallOfShame(null, el)
+    expect(el.innerHTML).toContain('No authors in the Hall of Shame yet')
   })
 })
 

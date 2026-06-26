@@ -46,6 +46,7 @@
   "web_accessible_resources": [
     {
       "resources": [
+        "assets/ai_slop_button.png",
         "src/icons/forbidden.svg",
         "src/index.js",
         "src/utils.js",
@@ -53,6 +54,7 @@
         "src/features/feed.js",
         "src/features/slop-detector.js",
         "src/features/slop-keywords.js",
+        "src/features/slop-reaction.js",
         "src/features/unfollow.js",
         "src/stats.js"
       ],

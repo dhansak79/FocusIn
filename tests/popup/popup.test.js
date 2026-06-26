@@ -35,6 +35,7 @@ beforeEach(async () => {
         <button type="button" id="tab-filters" class="tab-btn active">Filters</button>
         <button type="button" id="tab-authors" class="tab-btn">Authors</button>
         <button type="button" id="tab-blocked" class="tab-btn">Blocked</button>
+        <button type="button" id="tab-hall-of-shame" class="tab-btn">Hall of Shame</button>
       </div>
       <div id="settings-panel" class="tab-panel active">
         <input id="tone-filter" class="switch is-rounded" type="checkbox" />
@@ -46,6 +47,9 @@ beforeEach(async () => {
       </div>
       <div id="blocked-panel" class="tab-panel">
         <div id="author-tally-list"></div>
+      </div>
+      <div id="hall-of-shame-panel" class="tab-panel">
+        <div id="hall-of-shame-list"></div>
       </div>
     </div>
     <input id="hide-by-keywords" />
@@ -190,6 +194,15 @@ describe('popup', () => {
     expect(document.getElementById('blocked-panel').classList.contains('active')).toBe(true)
     expect(document.getElementById('settings-panel').classList.contains('active')).toBe(false)
     expect(document.getElementById('authors-panel').classList.contains('active')).toBe(false)
+  })
+
+  it('switches to Hall of Shame tab and shows hall-of-shame panel', () => {
+    document.getElementById('tab-hall-of-shame').click()
+    expect(document.getElementById('tab-hall-of-shame').classList.contains('active')).toBe(true)
+    expect(document.getElementById('hall-of-shame-panel').classList.contains('active')).toBe(true)
+    expect(document.getElementById('settings-panel').classList.contains('active')).toBe(false)
+    expect(document.getElementById('authors-panel').classList.contains('active')).toBe(false)
+    expect(document.getElementById('blocked-panel').classList.contains('active')).toBe(false)
   })
 
   it('switches back to Filters tab from Blocked tab', () => {

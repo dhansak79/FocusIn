@@ -16,6 +16,7 @@ export default defineConfig({
         'src/features/semantic-filter.js',
         'src/features/tone-filter.js',
         'src/features/feed.js',
+        'src/features/slop-reaction.js',
         'src/features/unfollow.js',
         'src/utils.js',
         'src/stats.js',

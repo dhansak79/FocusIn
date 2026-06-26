@@ -1,5 +1,5 @@
-import { readAuthorStats, readStats } from '../stats.js'
-import { renderAuthorTally, renderDamageReport } from '../stats-renderer.js'
+import { readAuthorStats, readHallOfShame, readStats } from '../stats.js'
+import { renderAuthorTally, renderDamageReport, renderHallOfShame } from '../stats-renderer.js'
 
 /*
  * Settings functionality
@@ -29,20 +29,25 @@ document.addEventListener('DOMContentLoaded', function () {
   const tabFilters = document.getElementById('tab-filters')
   const tabAuthors = document.getElementById('tab-authors')
   const tabBlocked = document.getElementById('tab-blocked')
+  const tabHallOfShame = document.getElementById('tab-hall-of-shame')
   const settingsPanel = document.getElementById('settings-panel')
   const authorsPanel = document.getElementById('authors-panel')
   const blockedPanel = document.getElementById('blocked-panel')
+  const hallOfShamePanel = document.getElementById('hall-of-shame-panel')
   const switchTab = (name) => {
     tabFilters.classList.toggle('active', name === 'filters')
     tabAuthors.classList.toggle('active', name === 'authors')
     tabBlocked.classList.toggle('active', name === 'blocked')
+    tabHallOfShame.classList.toggle('active', name === 'hall-of-shame')
     settingsPanel.classList.toggle('active', name === 'filters')
     authorsPanel.classList.toggle('active', name === 'authors')
     blockedPanel.classList.toggle('active', name === 'blocked')
+    hallOfShamePanel.classList.toggle('active', name === 'hall-of-shame')
   }
   tabFilters.addEventListener('click', () => switchTab('filters'))
   tabAuthors.addEventListener('click', () => switchTab('authors'))
   tabBlocked.addEventListener('click', () => switchTab('blocked'))
+  tabHallOfShame.addEventListener('click', () => switchTab('hall-of-shame'))
 
   // Set initial checked state from storage
   chrome.storage.local.get(
@@ -206,5 +211,9 @@ window.onload = function () {
 
   readAuthorStats((authorStats) =>
     renderAuthorTally(authorStats, document.getElementById('author-tally-list'))
+  )
+
+  readHallOfShame((shameStats) =>
+    renderHallOfShame(shameStats, document.getElementById('hall-of-shame-list'))
   )
 }

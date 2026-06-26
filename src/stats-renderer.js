@@ -23,6 +23,23 @@ export const renderAuthorTally = (authorStats, containerEl) => {
     .join('')
 }
 
+export const renderHallOfShame = (shameStats, containerEl) => {
+  if (!containerEl) return
+  const entries = Object.entries(shameStats || {})
+    .sort(([, a], [, b]) => b.count - a.count)
+
+  if (!entries.length) {
+    containerEl.innerHTML = '<div class="author-tally-empty">No authors in the Hall of Shame yet — use the 🤖 button in the reaction picker to flag them.</div>'
+    return
+  }
+
+  containerEl.innerHTML = entries
+    .map(([, { name, count }]) =>
+      `<div class="author-tally-item"><span class="author-tally-name">${escapeHtml(name)}</span><span class="author-tally-count">${count}</span></div>`
+    )
+    .join('')
+}
+
 export const renderDamageReport = (stats, { slopEl, filteredEl, signalsEl }) => {
   slopEl.textContent = stats.slopCollapsed || 0
   filteredEl.textContent = stats.postsFiltered || 0

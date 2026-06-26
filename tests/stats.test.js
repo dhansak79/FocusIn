@@ -305,6 +305,98 @@ describe('extension context invalidated', () => {
 })
 
 // ---------------------------------------------------------------------------
+// trackManualSlopReaction
+// ---------------------------------------------------------------------------
+
+describe('trackManualSlopReaction', () => {
+  it('writes to focusin-slop-reactions, not focusin-stats', async () => {
+    withStorage({})
+    const mod = await importStats()
+
+    await flush(mod, ({ trackManualSlopReaction }) => trackManualSlopReaction('john-doe', 'John Doe'))
+
+    const setCall = mockSet.mock.calls[0][0]
+    expect(setCall).toHaveProperty('focusin-slop-reactions')
+    expect(setCall).not.toHaveProperty('focusin-stats')
+  })
+
+  it('increments count for the same author across multiple calls', async () => {
+    withStorage({})
+    const mod = await importStats()
+
+    await flush(mod, ({ trackManualSlopReaction }) => {
+      trackManualSlopReaction('john-doe', 'John Doe')
+      trackManualSlopReaction('john-doe', 'John Doe')
+    })
+
+    expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+      'focusin-slop-reactions': { 'john-doe': { name: 'John Doe', count: 2 } },
+    }))
+  })
+
+  it('accumulates onto existing stored Hall of Shame data', async () => {
+    mockGet.mockImplementation((key, cb) => cb({
+      'focusin-slop-reactions': { 'john-doe': { name: 'John Doe', count: 5 } },
+    }))
+    const mod = await importStats()
+
+    await flush(mod, ({ trackManualSlopReaction }) => trackManualSlopReaction('john-doe', 'John Doe'))
+
+    expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+      'focusin-slop-reactions': { 'john-doe': { name: 'John Doe', count: 6 } },
+    }))
+  })
+
+  it('does nothing when both vanity and display name are null', async () => {
+    withStorage({})
+    const mod = await importStats()
+
+    await flush(mod, ({ trackManualSlopReaction }) => trackManualSlopReaction(null, null))
+
+    expect(mockSet).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// readHallOfShame
+// ---------------------------------------------------------------------------
+
+describe('readHallOfShame', () => {
+  it('returns stored Hall of Shame map', async () => {
+    const shame = { 'john-doe': { name: 'John Doe', count: 3 } }
+    mockGet.mockImplementation((key, cb) => cb({ 'focusin-slop-reactions': shame }))
+    const { readHallOfShame } = await importStats()
+
+    const result = await new Promise((resolve) => readHallOfShame(resolve))
+    expect(result).toEqual(shame)
+  })
+
+  it('returns empty object when no Hall of Shame data stored', async () => {
+    withStorage({})
+    const { readHallOfShame } = await importStats()
+
+    const result = await new Promise((resolve) => readHallOfShame(resolve))
+    expect(result).toEqual({})
+  })
+
+  it('returns empty object when chrome is unavailable', async () => {
+    vi.unstubAllGlobals()
+    const { readHallOfShame } = await importStats()
+
+    const result = await new Promise((resolve) => readHallOfShame(resolve))
+    expect(result).toEqual({})
+  })
+
+  it('returns empty object when s.get throws', async () => {
+    mockGet.mockImplementation(() => { throw new Error('Extension context invalidated.') })
+    const { readHallOfShame } = await importStats()
+
+    const result = await new Promise((resolve) => readHallOfShame(resolve))
+    expect(result).toEqual({})
+  })
+})
+
+// ---------------------------------------------------------------------------
 // no chrome — does not throw
 // ---------------------------------------------------------------------------
 
