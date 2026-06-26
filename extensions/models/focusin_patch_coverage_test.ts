@@ -114,6 +114,12 @@ Deno.test("findUncoveredLines: skips test files in extensions/models", () => {
   assertEquals(findUncoveredLines(coverage, staged), []);
 });
 
+Deno.test("findUncoveredLines: skips staged line not present in file coverage data", () => {
+  const coverage = { "src/utils.js": { 10: 1 } };
+  const staged = { "src/utils.js": new Set([99]) };
+  assertEquals(findUncoveredLines(coverage, staged), []);
+});
+
 Deno.test("findUncoveredLines: skips files not in coverage scope", () => {
   const coverage: Record<string, Record<number, number>> = {};
   const staged = { "src/utils.js": new Set([10]) };

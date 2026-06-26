@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
-import { model, parseDenoTestOutput } from "./focusin_deno_ext_tests.ts";
+import { buildDenoEnv, model, parseDenoTestOutput } from "./focusin_deno_ext_tests.ts";
 
 type MockOutput = { code: number; stdout: Uint8Array; stderr: Uint8Array };
 type CommandFactory = (cmd: string, opts: { args: string[] }) => { output: () => Promise<MockOutput> };
@@ -56,6 +56,11 @@ async function runDenoExtTests(
   return { written, threw };
 }
 
+Deno.test("buildDenoEnv: uses empty string fallback when HOME and PATH are absent", () => {
+  const result = buildDenoEnv({});
+  assertEquals(result.PATH, "/.swamp/deno:");
+});
+
 Deno.test("parseDenoTestOutput: parses all-pass millisecond summary", () => {
   assertEquals(parseDenoTestOutput(ALL_PASS_SUMMARY), {
     total: 12, passing: 12, failing: 0, durationMs: 185,
@@ -96,6 +101,29 @@ Deno.test("model.run.execute: writes resource then throws when tests fail", asyn
   assertEquals(written.length, 1, "resource written before throw");
   assertEquals(written[0].passed, false);
   assertEquals(written[0].failing, 2);
+});
+
+Deno.test("model.run.execute: handles lcov command failure gracefully", async () => {
+  const written: Record<string, unknown>[] = [];
+  const ctx = {
+    globalArgs: { projectDir: "/proj" },
+    writeResource: async (_s: string, _i: string, data: Record<string, unknown>) => {
+      written.push(data);
+      return { name: "testResult/current" };
+    },
+  };
+  let callCount = 0;
+  await withMockCommand(
+    () => ({
+      output: async () => {
+        callCount++;
+        if (callCount === 1) return { code: 0, stdout: enc(ALL_PASS_SUMMARY), stderr: enc("") };
+        throw new Error("deno coverage failed");
+      },
+    }),
+    async () => { await model.methods.run.execute({}, ctx as never); },
+  );
+  assertEquals(written[0].passed, true);
 });
 
 Deno.test("model.run.execute: throws with assertRejects on failure", async () => {
