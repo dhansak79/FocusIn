@@ -20,6 +20,12 @@ jobs:
           type: model_method
           modelIdOrName: focusin-tests
           methodName: test
+      - name: codescene-health
+        description: Run cs delta main and store degraded file scores
+        task:
+          type: model_method
+          modelIdOrName: focusin-codescene
+          methodName: check
 
   - name: coverage
     description: Run vitest with coverage and verify thresholds (90% lines/branches/functions/statements)

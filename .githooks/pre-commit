@@ -5,7 +5,7 @@ command -v deno >/dev/null 2>&1 && DENO="deno"
 npm run lint && \
   npm run knip && \
   npm run coverage && \
-  "$DENO" test --allow-read --allow-write --coverage=.deno-coverage extensions/models/ && \
+  "$DENO" test --allow-read --allow-write --allow-env --coverage=.deno-coverage extensions/models/ && \
   "$DENO" coverage .deno-coverage --lcov >> coverage/lcov.info && \
   node scripts/check-patch-coverage.js && \
   node scripts/check-codescene-health.js

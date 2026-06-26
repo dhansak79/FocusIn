@@ -20,7 +20,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Run Deno tests with coverage
-        run: deno test --allow-read --allow-write --coverage=.deno-coverage extensions/models/
+        run: deno test --allow-read --allow-write --allow-env --coverage=.deno-coverage extensions/models/
       - name: Append Deno coverage to lcov
         run: deno coverage .deno-coverage --lcov >> coverage/lcov.info
       - name: Install CodeScene coverage CLI

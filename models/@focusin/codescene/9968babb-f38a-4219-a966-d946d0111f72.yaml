@@ -1,0 +1,9 @@
+type: '@focusin/codescene'
+typeVersion: 2026.06.26.1
+id: 9968babb-f38a-4219-a966-d946d0111f72
+name: focusin-codescene
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}
