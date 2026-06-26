@@ -1,0 +1,9 @@
+type: '@focusin/knip'
+typeVersion: 2026.06.26.1
+id: 9701a98a-093e-4e78-9edb-3607ab82a8b6
+name: focusin-knip
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}

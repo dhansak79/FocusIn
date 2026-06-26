@@ -1,6 +1,6 @@
-id: adb5a2c2-eee7-4dbb-a708-86c7f53cd81a
-name: quality-gate
-description: Full quality pipeline — lint, knip, spec-coverage, tests, and CodeScene in parallel, then coverage, deno ext tests, patch-coverage, then mutation
+id: 8ea0fc6a-5c9e-411f-b9d3-90202e7e9c62
+name: quality-gate-fast
+description: Fast quality pipeline — lint, knip, spec-coverage, tests, and CodeScene in parallel, then coverage, deno ext tests, and patch-coverage
 tags: {}
 version: 1
 jobs:
@@ -80,17 +80,3 @@ jobs:
           type: model_method
           modelIdOrName: focusin-patch-coverage
           methodName: check
-
-  - name: mutation
-    description: Run Stryker mutation testing — only if all preceding jobs pass
-    dependsOn:
-      - job: patch-coverage
-        condition:
-          type: succeeded
-    steps:
-      - name: mutation
-        description: Run Stryker and store per-file mutation scores
-        task:
-          type: model_method
-          modelIdOrName: focusin-mutation
-          methodName: run

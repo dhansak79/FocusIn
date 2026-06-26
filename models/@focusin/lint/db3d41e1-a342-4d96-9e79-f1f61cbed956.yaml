@@ -1,0 +1,9 @@
+type: '@focusin/lint'
+typeVersion: 2026.06.26.1
+id: db3d41e1-a342-4d96-9e79-f1f61cbed956
+name: focusin-lint
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}

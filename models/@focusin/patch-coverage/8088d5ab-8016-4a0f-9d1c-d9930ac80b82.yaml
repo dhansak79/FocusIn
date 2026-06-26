@@ -1,0 +1,9 @@
+type: '@focusin/patch-coverage'
+typeVersion: 2026.06.26.1
+id: 8088d5ab-8016-4a0f-9d1c-d9930ac80b82
+name: focusin-patch-coverage
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}

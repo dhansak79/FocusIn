@@ -1,0 +1,9 @@
+type: '@focusin/deno-ext-tests'
+typeVersion: 2026.06.26.1
+id: 0d475f26-2963-4afc-9ad8-785f3356ff5a
+name: focusin-deno-ext-tests
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}
