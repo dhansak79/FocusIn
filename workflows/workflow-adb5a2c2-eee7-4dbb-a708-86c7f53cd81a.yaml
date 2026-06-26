@@ -22,7 +22,6 @@ jobs:
           methodName: test
       - name: codescene-health
         description: Run cs delta main and store degraded file scores
-        allowFailure: true
         task:
           type: model_method
           modelIdOrName: focusin-codescene

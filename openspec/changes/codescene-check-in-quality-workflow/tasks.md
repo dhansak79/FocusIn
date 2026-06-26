@@ -9,12 +9,12 @@
 
 - [x] 2.1 Add `codescene-health` step to the `check` job in `workflows/workflow-adb5a2c2-eee7-4dbb-a708-86c7f53cd81a.yaml` using model `focusin-codescene` and method `check`, with `allowFailure: true`
 - [x] 2.2 Provision the model instance: `swamp model create @focusin/codescene focusin-codescene --global-arg projectDir=$(pwd)`
-- [ ] 2.3 Run `swamp workflow run quality-gate` and confirm the `codescene-health` step writes a `healthResult` resource with a valid `ranAt` field
+- [x] 2.3 Run `swamp workflow run quality-gate` and confirm the `codescene-health` step writes a `healthResult` resource with a valid `ranAt` field
 
 ## 3. Graduation (Phase 2)
 
-- [ ] 3.1 Confirm graduation criteria: 3 consecutive workflow runs with valid `healthResult` written AND (at least one `failedFiles > 0` run observed OR 5+ clean pushes with no unexplained missing results)
-- [ ] 3.2 Flip `allowFailure: true` → `allowFailure: false` in the workflow YAML
+- [x] 3.1 Confirm graduation criteria: 3 consecutive workflow runs with valid `healthResult` written AND (at least one `failedFiles > 0` run observed OR 5+ clean pushes with no unexplained missing results)
+- [x] 3.2 Flip `allowFailure: true` → `allowFailure: false` in the workflow YAML
 - [ ] 3.3 Run `swamp workflow run quality-gate` to confirm the step now blocks on failure
 
 ## 4. Pre-commit Cleanup (Phase 3 — only after Phase 2 complete)
@@ -26,5 +26,5 @@
 ## 5. Validation
 
 - [x] 5.1 Run `npm test && npm run coverage` to confirm existing tests still pass and coverage thresholds are met
-- [ ] 5.2 Run `swamp workflow run quality-gate` end-to-end and verify all five steps complete: spec-coverage, tests, codescene-health, coverage, mutation
-- [ ] 5.3 Confirm `healthResult` data is stored: `swamp data latest focusin-codescene healthResult` shows a result with `ranAt`, `failedFiles`, and `files` array
+- [x] 5.2 Run `swamp workflow run quality-gate` end-to-end and verify all five steps complete: spec-coverage, tests, codescene-health, coverage, mutation
+- [x] 5.3 Confirm `healthResult` data is stored: `swamp data latest focusin-codescene healthResult` shows a result with `ranAt`, `failedFiles`, and `files` array
