@@ -28,6 +28,18 @@ jobs:
       - name: Post summary to job page
         if: always()
         run: cat reports/mutation/mutation-summary.md >> $GITHUB_STEP_SUMMARY
+      - name: Generate guardrails dashboard
+        if: always()
+        run: node scripts/generate-guardrails-dashboard.js
+      - name: Inject dashboard link into mutation report
+        if: always()
+        run: node scripts/inject-dashboard-link.js
+      - name: Assemble Pages staging directory
+        if: always()
+        run: |
+          mkdir -p reports/pages/insights
+          cp -r reports/mutation/. reports/pages/
+          cp reports/workflow-insights/index.html reports/pages/insights/index.html
       - name: Upload mutation report artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -38,7 +50,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: reports/mutation/
+          path: reports/pages/
 
   deploy-pages:
     needs: mutation

@@ -3,6 +3,9 @@ name: quality-gate
 description: Full quality pipeline — lint, knip, spec-coverage, tests, and CodeScene in parallel, then coverage, deno ext tests, patch-coverage, then mutation
 tags: {}
 version: 1
+reports:
+  require:
+    - "@focusin/quality-gate-summary"
 jobs:
   - name: check
     description: Lint, knip, spec-coverage, tests, and CodeScene health — run in parallel
@@ -21,7 +24,7 @@ jobs:
           methodName: check
       - name: spec-coverage
         description: Check which spec scenarios have boundary tests
-        allowFailure: true
+        allowFailure: false
         task:
           type: model_method
           modelIdOrName: focusin-spec-coverage

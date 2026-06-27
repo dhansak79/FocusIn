@@ -21,7 +21,7 @@ jobs:
           methodName: check
       - name: spec-coverage
         description: Check which spec scenarios have boundary tests
-        allowFailure: true
+        allowFailure: false
         task:
           type: model_method
           modelIdOrName: focusin-spec-coverage

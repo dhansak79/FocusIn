@@ -1,0 +1,1177 @@
+id: 232996df-68d8-4efa-a8e2-95228255ff0d
+workflowId: 8ea0fc6a-5c9e-411f-b9d3-90202e7e9c62
+workflowName: quality-gate-fast
+status: succeeded
+startedAt: '2026-06-26T22:16:48.772Z'
+completedAt: '2026-06-26T22:17:02.827Z'
+jobs:
+  - jobName: check
+    status: succeeded
+    startedAt: '2026-06-26T22:16:48.777Z'
+    completedAt: '2026-06-26T22:16:56.285Z'
+    steps:
+      - stepName: lint
+        status: succeeded
+        startedAt: '2026-06-26T22:16:48.779Z'
+        completedAt: '2026-06-26T22:16:52.902Z'
+        output:
+          type: model_method
+          model: focusin-lint
+          method: check
+          resources:
+            lintResult:
+              current:
+                id: b09b9736-ce34-4c1a-a794-10d78b3fb123
+                name: current
+                version: 7
+                isLatest: true
+                createdAt: '2026-06-26T22:16:52.892Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  issueCount: 0
+                  ranAt: '2026-06-26T22:16:48.816Z'
+                tags:
+                  type: resource
+                  specName: lintResult
+                  modelName: focusin-lint
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: lint
+                modelName: focusin-lint
+                modelId: db3d41e1-a342-4d96-9e79-f1f61cbed956
+                modelType: '@focusin/lint'
+                specName: lintResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 65
+                content: ''
+                ownerRef: db3d41e1-a342-4d96-9e79-f1f61cbed956
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                workflowName: quality-gate-fast
+                jobName: check
+                stepName: lint
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: b09b9736-ce34-4c1a-a794-10d78b3fb123
+              name: current
+              version: 7
+              tags:
+                type: resource
+                specName: lintResult
+                modelName: focusin-lint
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: lint
+            - dataId: e4a6d8bf-7cd2-4104-b34c-f83c485a48cd
+              name: report-swamp-method-summary
+              version: 7
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: af63d51d-030c-4ffe-abe4-90789157d1f2
+              name: report-swamp-method-summary-json
+              version: 7
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: lintResult
+              kind: resource
+              dataId: b09b9736-ce34-4c1a-a794-10d78b3fb123
+              version: 7
+              size: 65
+              tags:
+                type: resource
+                specName: lintResult
+                modelName: focusin-lint
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: lint
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: lintResult
+                  modelName: focusin-lint
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: lint
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: db3d41e1-a342-4d96-9e79-f1f61cbed956
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  workflowName: quality-gate-fast
+                  jobName: check
+                  stepName: lint
+                  source: step-output
+        dataArtifacts:
+          - dataId: b09b9736-ce34-4c1a-a794-10d78b3fb123
+            name: current
+            version: 7
+            tags:
+              type: resource
+              specName: lintResult
+              modelName: focusin-lint
+              source: step-output
+              workflow: quality-gate-fast
+              workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+              job: check
+              step: lint
+          - dataId: e4a6d8bf-7cd2-4104-b34c-f83c485a48cd
+            name: report-swamp-method-summary
+            version: 7
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: af63d51d-030c-4ffe-abe4-90789157d1f2
+            name: report-swamp-method-summary-json
+            version: 7
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+      - stepName: knip
+        status: succeeded
+        startedAt: '2026-06-26T22:16:48.779Z'
+        completedAt: '2026-06-26T22:16:53.418Z'
+        output:
+          type: model_method
+          model: focusin-knip
+          method: check
+          resources:
+            knipResult:
+              current:
+                id: bd4b645e-063e-4400-bb3e-c520d2249edf
+                name: current
+                version: 7
+                isLatest: true
+                createdAt: '2026-06-26T22:16:53.405Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  issueCount: 0
+                  ranAt: '2026-06-26T22:16:48.818Z'
+                tags:
+                  type: resource
+                  specName: knipResult
+                  modelName: focusin-knip
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: knip
+                modelName: focusin-knip
+                modelId: 9701a98a-093e-4e78-9edb-3607ab82a8b6
+                modelType: '@focusin/knip'
+                specName: knipResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 65
+                content: ''
+                ownerRef: 9701a98a-093e-4e78-9edb-3607ab82a8b6
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                workflowName: quality-gate-fast
+                jobName: check
+                stepName: knip
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: bd4b645e-063e-4400-bb3e-c520d2249edf
+              name: current
+              version: 7
+              tags:
+                type: resource
+                specName: knipResult
+                modelName: focusin-knip
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: knip
+            - dataId: 22fbbb72-688b-4fb5-8fb9-2182146051b2
+              name: report-swamp-method-summary
+              version: 7
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 110ffaf3-196a-42b8-8731-69e960040157
+              name: report-swamp-method-summary-json
+              version: 7
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: knipResult
+              kind: resource
+              dataId: bd4b645e-063e-4400-bb3e-c520d2249edf
+              version: 7
+              size: 65
+              tags:
+                type: resource
+                specName: knipResult
+                modelName: focusin-knip
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: knip
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: knipResult
+                  modelName: focusin-knip
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: knip
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 9701a98a-093e-4e78-9edb-3607ab82a8b6
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  workflowName: quality-gate-fast
+                  jobName: check
+                  stepName: knip
+                  source: step-output
+        dataArtifacts:
+          - dataId: bd4b645e-063e-4400-bb3e-c520d2249edf
+            name: current
+            version: 7
+            tags:
+              type: resource
+              specName: knipResult
+              modelName: focusin-knip
+              source: step-output
+              workflow: quality-gate-fast
+              workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+              job: check
+              step: knip
+          - dataId: 22fbbb72-688b-4fb5-8fb9-2182146051b2
+            name: report-swamp-method-summary
+            version: 7
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 110ffaf3-196a-42b8-8731-69e960040157
+            name: report-swamp-method-summary-json
+            version: 7
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+      - stepName: spec-coverage
+        status: succeeded
+        startedAt: '2026-06-26T22:16:48.779Z'
+        completedAt: '2026-06-26T22:16:48.947Z'
+        output:
+          type: model_method
+          model: focusin-spec-coverage
+          method: run
+          resources:
+            result:
+              current:
+                id: 013d3bdb-9ef3-46a3-bfc1-21c579596164
+                name: current
+                version: 35
+                isLatest: true
+                createdAt: '2026-06-26T22:16:48.932Z'
+                namespace: ''
+                attributes:
+                  passed: false
+                  covered: 43
+                  total: 134
+                  pct: 32.08955223880597
+                  ranAt: '2026-06-26T22:16:48.830Z'
+                tags:
+                  type: resource
+                  specName: result
+                  modelName: focusin-spec-coverage
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: spec-coverage
+                modelName: focusin-spec-coverage
+                modelId: f7e50eaf-460c-45a1-8ece-6c04eec50bbc
+                modelType: '@focusin/spec-coverage'
+                specName: result
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 100
+                content: ''
+                ownerRef: f7e50eaf-460c-45a1-8ece-6c04eec50bbc
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                workflowName: quality-gate-fast
+                jobName: check
+                stepName: spec-coverage
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: 013d3bdb-9ef3-46a3-bfc1-21c579596164
+              name: current
+              version: 35
+              tags:
+                type: resource
+                specName: result
+                modelName: focusin-spec-coverage
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: spec-coverage
+            - dataId: 1e2a86d4-06a8-488c-94d0-b4174e2f294a
+              name: report-swamp-method-summary
+              version: 35
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 95b016bd-4361-419c-a876-f506aea3bdf9
+              name: report-swamp-method-summary-json
+              version: 35
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: result
+              kind: resource
+              dataId: 013d3bdb-9ef3-46a3-bfc1-21c579596164
+              version: 35
+              size: 100
+              tags:
+                type: resource
+                specName: result
+                modelName: focusin-spec-coverage
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: spec-coverage
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: result
+                  modelName: focusin-spec-coverage
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: spec-coverage
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: f7e50eaf-460c-45a1-8ece-6c04eec50bbc
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  workflowName: quality-gate-fast
+                  jobName: check
+                  stepName: spec-coverage
+                  source: step-output
+        dataArtifacts:
+          - dataId: 013d3bdb-9ef3-46a3-bfc1-21c579596164
+            name: current
+            version: 35
+            tags:
+              type: resource
+              specName: result
+              modelName: focusin-spec-coverage
+              source: step-output
+              workflow: quality-gate-fast
+              workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+              job: check
+              step: spec-coverage
+          - dataId: 1e2a86d4-06a8-488c-94d0-b4174e2f294a
+            name: report-swamp-method-summary
+            version: 35
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 95b016bd-4361-419c-a876-f506aea3bdf9
+            name: report-swamp-method-summary-json
+            version: 35
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+      - stepName: tests
+        status: succeeded
+        startedAt: '2026-06-26T22:16:48.779Z'
+        completedAt: '2026-06-26T22:16:53.068Z'
+        output:
+          type: model_method
+          model: focusin-tests
+          method: test
+          resources:
+            testResult:
+              current:
+                id: 47359263-c99c-4211-9434-935b8e64e743
+                name: current
+                version: 68
+                isLatest: true
+                createdAt: '2026-06-26T22:16:53.059Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  total: 682
+                  passing: 682
+                  failing: 0
+                  durationMs: 4222
+                  ranAt: '2026-06-26T22:16:48.831Z'
+                tags:
+                  type: resource
+                  specName: testResult
+                  modelName: focusin-tests
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: tests
+                modelName: focusin-tests
+                modelId: a56242b9-b056-4576-9d69-acd8f2f43d94
+                modelType: '@focusin/tests'
+                specName: testResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 106
+                content: ''
+                ownerRef: a56242b9-b056-4576-9d69-acd8f2f43d94
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                workflowName: quality-gate-fast
+                jobName: check
+                stepName: tests
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: 47359263-c99c-4211-9434-935b8e64e743
+              name: current
+              version: 68
+              tags:
+                type: resource
+                specName: testResult
+                modelName: focusin-tests
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: tests
+            - dataId: 9b7bc148-b44a-46f7-a789-05947447986d
+              name: report-swamp-method-summary
+              version: 68
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 90ac5a6f-a201-4837-9858-287a07cdb7c6
+              name: report-swamp-method-summary-json
+              version: 68
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: testResult
+              kind: resource
+              dataId: 47359263-c99c-4211-9434-935b8e64e743
+              version: 68
+              size: 106
+              tags:
+                type: resource
+                specName: testResult
+                modelName: focusin-tests
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: tests
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: testResult
+                  modelName: focusin-tests
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: tests
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: a56242b9-b056-4576-9d69-acd8f2f43d94
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  workflowName: quality-gate-fast
+                  jobName: check
+                  stepName: tests
+                  source: step-output
+        dataArtifacts:
+          - dataId: 47359263-c99c-4211-9434-935b8e64e743
+            name: current
+            version: 68
+            tags:
+              type: resource
+              specName: testResult
+              modelName: focusin-tests
+              source: step-output
+              workflow: quality-gate-fast
+              workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+              job: check
+              step: tests
+          - dataId: 9b7bc148-b44a-46f7-a789-05947447986d
+            name: report-swamp-method-summary
+            version: 68
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 90ac5a6f-a201-4837-9858-287a07cdb7c6
+            name: report-swamp-method-summary-json
+            version: 68
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+      - stepName: codescene-health
+        status: succeeded
+        startedAt: '2026-06-26T22:16:48.779Z'
+        completedAt: '2026-06-26T22:16:56.282Z'
+        output:
+          type: model_method
+          model: focusin-codescene
+          method: check
+          resources:
+            healthResult:
+              current:
+                id: 53f4fc30-8fe4-42b4-8f06-29dd696f67fd
+                name: current
+                version: 17
+                isLatest: true
+                createdAt: '2026-06-26T22:16:56.267Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  failedFiles: 0
+                  ranAt: '2026-06-26T22:16:48.800Z'
+                  files: []
+                tags:
+                  type: resource
+                  specName: healthResult
+                  modelName: focusin-codescene
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: codescene-health
+                modelName: focusin-codescene
+                modelId: 9968babb-f38a-4219-a966-d946d0111f72
+                modelType: '@focusin/codescene'
+                specName: healthResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 77
+                content: ''
+                ownerRef: 9968babb-f38a-4219-a966-d946d0111f72
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                workflowName: quality-gate-fast
+                jobName: check
+                stepName: codescene-health
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: 53f4fc30-8fe4-42b4-8f06-29dd696f67fd
+              name: current
+              version: 17
+              tags:
+                type: resource
+                specName: healthResult
+                modelName: focusin-codescene
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: codescene-health
+            - dataId: 183a3f8b-b64e-4e03-8956-fe236471aa71
+              name: report-swamp-method-summary
+              version: 17
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: a43d4568-27ed-4163-9ad2-4c2c858de253
+              name: report-swamp-method-summary-json
+              version: 17
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: healthResult
+              kind: resource
+              dataId: 53f4fc30-8fe4-42b4-8f06-29dd696f67fd
+              version: 17
+              size: 77
+              tags:
+                type: resource
+                specName: healthResult
+                modelName: focusin-codescene
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: check
+                step: codescene-health
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: healthResult
+                  modelName: focusin-codescene
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: check
+                  step: codescene-health
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 9968babb-f38a-4219-a966-d946d0111f72
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  workflowName: quality-gate-fast
+                  jobName: check
+                  stepName: codescene-health
+                  source: step-output
+        dataArtifacts:
+          - dataId: 53f4fc30-8fe4-42b4-8f06-29dd696f67fd
+            name: current
+            version: 17
+            tags:
+              type: resource
+              specName: healthResult
+              modelName: focusin-codescene
+              source: step-output
+              workflow: quality-gate-fast
+              workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+              job: check
+              step: codescene-health
+          - dataId: 183a3f8b-b64e-4e03-8956-fe236471aa71
+            name: report-swamp-method-summary
+            version: 17
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: a43d4568-27ed-4163-9ad2-4c2c858de253
+            name: report-swamp-method-summary-json
+            version: 17
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: coverage
+    status: succeeded
+    startedAt: '2026-06-26T22:16:56.290Z'
+    completedAt: '2026-06-26T22:17:00.521Z'
+    steps:
+      - stepName: coverage
+        status: succeeded
+        startedAt: '2026-06-26T22:16:56.290Z'
+        completedAt: '2026-06-26T22:17:00.520Z'
+        output:
+          type: model_method
+          model: focusin-tests
+          method: coverage
+          resources:
+            coverageResult:
+              current:
+                id: bd3e0b63-7595-4f6c-b7cb-706b712769af
+                name: current
+                version: 69
+                isLatest: true
+                createdAt: '2026-06-26T22:17:00.509Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  lines: 100
+                  functions: 98.73
+                  branches: 90.76
+                  statements: 98.48
+                  ranAt: '2026-06-26T22:16:56.300Z'
+                tags:
+                  type: resource
+                  specName: coverageResult
+                  modelName: focusin-tests
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: coverage
+                  step: coverage
+                modelName: focusin-tests
+                modelId: a56242b9-b056-4576-9d69-acd8f2f43d94
+                modelType: '@focusin/tests'
+                specName: coverageResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 116
+                content: ''
+                ownerRef: a56242b9-b056-4576-9d69-acd8f2f43d94
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                workflowName: quality-gate-fast
+                jobName: coverage
+                stepName: coverage
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: bd3e0b63-7595-4f6c-b7cb-706b712769af
+              name: current
+              version: 69
+              tags:
+                type: resource
+                specName: coverageResult
+                modelName: focusin-tests
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: coverage
+                step: coverage
+            - dataId: 76815432-8e30-43a5-a6e4-4e960621d543
+              name: report-swamp-method-summary
+              version: 69
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 5926dc7f-15ce-467d-b6ad-d8e3cc99e1df
+              name: report-swamp-method-summary-json
+              version: 69
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: coverageResult
+              kind: resource
+              dataId: bd3e0b63-7595-4f6c-b7cb-706b712769af
+              version: 69
+              size: 116
+              tags:
+                type: resource
+                specName: coverageResult
+                modelName: focusin-tests
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: coverage
+                step: coverage
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: coverageResult
+                  modelName: focusin-tests
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: coverage
+                  step: coverage
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: a56242b9-b056-4576-9d69-acd8f2f43d94
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  workflowName: quality-gate-fast
+                  jobName: coverage
+                  stepName: coverage
+                  source: step-output
+        dataArtifacts:
+          - dataId: bd3e0b63-7595-4f6c-b7cb-706b712769af
+            name: current
+            version: 69
+            tags:
+              type: resource
+              specName: coverageResult
+              modelName: focusin-tests
+              source: step-output
+              workflow: quality-gate-fast
+              workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+              job: coverage
+              step: coverage
+          - dataId: 76815432-8e30-43a5-a6e4-4e960621d543
+            name: report-swamp-method-summary
+            version: 69
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 5926dc7f-15ce-467d-b6ad-d8e3cc99e1df
+            name: report-swamp-method-summary-json
+            version: 69
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: deno-ext
+    status: succeeded
+    startedAt: '2026-06-26T22:17:00.529Z'
+    completedAt: '2026-06-26T22:17:02.771Z'
+    steps:
+      - stepName: deno-ext-tests
+        status: succeeded
+        startedAt: '2026-06-26T22:17:00.529Z'
+        completedAt: '2026-06-26T22:17:02.771Z'
+        output:
+          type: model_method
+          model: focusin-deno-ext-tests
+          method: run
+          resources:
+            testResult:
+              current:
+                id: db5f64c0-838f-4497-8781-3d6c9deb1821
+                name: current
+                version: 6
+                isLatest: true
+                createdAt: '2026-06-26T22:17:02.762Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  total: 85
+                  passing: 85
+                  failing: 0
+                  durationMs: 1000
+                  ranAt: '2026-06-26T22:17:00.554Z'
+                tags:
+                  type: resource
+                  specName: testResult
+                  modelName: focusin-deno-ext-tests
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: deno-ext
+                  step: deno-ext-tests
+                modelName: focusin-deno-ext-tests
+                modelId: 0d475f26-2963-4afc-9ad8-785f3356ff5a
+                modelType: '@focusin/deno-ext-tests'
+                specName: testResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 104
+                content: ''
+                ownerRef: 0d475f26-2963-4afc-9ad8-785f3356ff5a
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                workflowName: quality-gate-fast
+                jobName: deno-ext
+                stepName: deno-ext-tests
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: db5f64c0-838f-4497-8781-3d6c9deb1821
+              name: current
+              version: 6
+              tags:
+                type: resource
+                specName: testResult
+                modelName: focusin-deno-ext-tests
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: deno-ext
+                step: deno-ext-tests
+            - dataId: 81600339-9485-45d5-b1f5-61cbb62cae71
+              name: report-swamp-method-summary
+              version: 7
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 007a5cef-0bc3-4abf-9257-89a081a34389
+              name: report-swamp-method-summary-json
+              version: 7
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: testResult
+              kind: resource
+              dataId: db5f64c0-838f-4497-8781-3d6c9deb1821
+              version: 6
+              size: 104
+              tags:
+                type: resource
+                specName: testResult
+                modelName: focusin-deno-ext-tests
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: deno-ext
+                step: deno-ext-tests
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: testResult
+                  modelName: focusin-deno-ext-tests
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: deno-ext
+                  step: deno-ext-tests
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 0d475f26-2963-4afc-9ad8-785f3356ff5a
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  workflowName: quality-gate-fast
+                  jobName: deno-ext
+                  stepName: deno-ext-tests
+                  source: step-output
+        dataArtifacts:
+          - dataId: db5f64c0-838f-4497-8781-3d6c9deb1821
+            name: current
+            version: 6
+            tags:
+              type: resource
+              specName: testResult
+              modelName: focusin-deno-ext-tests
+              source: step-output
+              workflow: quality-gate-fast
+              workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+              job: deno-ext
+              step: deno-ext-tests
+          - dataId: 81600339-9485-45d5-b1f5-61cbb62cae71
+            name: report-swamp-method-summary
+            version: 7
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 007a5cef-0bc3-4abf-9257-89a081a34389
+            name: report-swamp-method-summary-json
+            version: 7
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: patch-coverage
+    status: succeeded
+    startedAt: '2026-06-26T22:17:02.776Z'
+    completedAt: '2026-06-26T22:17:02.822Z'
+    steps:
+      - stepName: patch-coverage
+        status: succeeded
+        startedAt: '2026-06-26T22:17:02.777Z'
+        completedAt: '2026-06-26T22:17:02.821Z'
+        output:
+          type: model_method
+          model: focusin-patch-coverage
+          method: check
+          resources:
+            patchCoverageResult:
+              current:
+                id: 4c1d45d8-96f9-423d-80d2-3ad6cfe08024
+                name: current
+                version: 6
+                isLatest: true
+                createdAt: '2026-06-26T22:17:02.812Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  uncoveredLines: 0
+                  ranAt: '2026-06-26T22:17:02.786Z'
+                tags:
+                  type: resource
+                  specName: patchCoverageResult
+                  modelName: focusin-patch-coverage
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: patch-coverage
+                  step: patch-coverage
+                modelName: focusin-patch-coverage
+                modelId: 8088d5ab-8016-4a0f-9d1c-d9930ac80b82
+                modelType: '@focusin/patch-coverage'
+                specName: patchCoverageResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 69
+                content: ''
+                ownerRef: 8088d5ab-8016-4a0f-9d1c-d9930ac80b82
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                workflowName: quality-gate-fast
+                jobName: patch-coverage
+                stepName: patch-coverage
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: 4c1d45d8-96f9-423d-80d2-3ad6cfe08024
+              name: current
+              version: 6
+              tags:
+                type: resource
+                specName: patchCoverageResult
+                modelName: focusin-patch-coverage
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: patch-coverage
+                step: patch-coverage
+            - dataId: b4dcade7-dc66-40b8-a8dd-2eb78919172d
+              name: report-swamp-method-summary
+              version: 6
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: df3fec19-6724-428e-824a-4c3c2a5db64f
+              name: report-swamp-method-summary-json
+              version: 6
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: patchCoverageResult
+              kind: resource
+              dataId: 4c1d45d8-96f9-423d-80d2-3ad6cfe08024
+              version: 6
+              size: 69
+              tags:
+                type: resource
+                specName: patchCoverageResult
+                modelName: focusin-patch-coverage
+                source: step-output
+                workflow: quality-gate-fast
+                workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                job: patch-coverage
+                step: patch-coverage
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: patchCoverageResult
+                  modelName: focusin-patch-coverage
+                  source: step-output
+                  workflow: quality-gate-fast
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  job: patch-coverage
+                  step: patch-coverage
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 8088d5ab-8016-4a0f-9d1c-d9930ac80b82
+                  workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+                  workflowName: quality-gate-fast
+                  jobName: patch-coverage
+                  stepName: patch-coverage
+                  source: step-output
+        dataArtifacts:
+          - dataId: 4c1d45d8-96f9-423d-80d2-3ad6cfe08024
+            name: current
+            version: 6
+            tags:
+              type: resource
+              specName: patchCoverageResult
+              modelName: focusin-patch-coverage
+              source: step-output
+              workflow: quality-gate-fast
+              workflowRunId: 232996df-68d8-4efa-a8e2-95228255ff0d
+              job: patch-coverage
+              step: patch-coverage
+          - dataId: b4dcade7-dc66-40b8-a8dd-2eb78919172d
+            name: report-swamp-method-summary
+            version: 6
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: df3fec19-6724-428e-824a-4c3c2a5db64f
+            name: report-swamp-method-summary-json
+            version: 6
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+tags: {}
+logFile: >-
+  .swamp/workflow-runs/8ea0fc6a-5c9e-411f-b9d3-90202e7e9c62/workflow-run-232996df-68d8-4efa-a8e2-95228255ff0d.log
+workflowDataArtifacts:
+  - dataId: 8e2cdde7-79a1-4b3f-ab66-fcf9bab20fc8
+    name: report-swamp-workflow-summary
+    version: 4
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
+  - dataId: ba541b16-ec9e-46ce-a1c9-9fa27f0d7399
+    name: report-swamp-workflow-summary-json
+    version: 4
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow

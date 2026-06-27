@@ -68,7 +68,9 @@ The keyword filter is exact match. The semantic filter understands meaning, so i
 
 ## AI-assisted development
 
-This project uses [Claude Code](https://claude.ai/code) as the primary coding assistant, with [CodeScene](https://codescene.io) enforcing code health gates on every commit and PR.
+This project uses [Claude Code](https://claude.ai/code) as the primary coding assistant, with hard quality gates enforcing code health, mutation testing, patch coverage, and spec coverage on every push. See [GUARDRAILS.md](GUARDRAILS.md) for the full methodology — why each gate exists, what failure modes it catches, and how this differs from advisory rules in a `CLAUDE.md`.
+
+[CodeScene](https://codescene.io) provides code health measurement.
 
 **OpenSpec** (currently in evaluation) adds a spec-driven layer to that workflow. Before implementing a feature, `/opsx:propose` generates a proposal, technical design, and task checklist. `/opsx:apply` drives implementation against those artifacts. The intent is to reduce ambiguity in AI-generated code by aligning on *what* to build before any code is written. Archived change specs live in `openspec/changes/archive/` and serve as a decision log.
 
