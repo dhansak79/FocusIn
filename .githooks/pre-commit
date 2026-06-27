@@ -2,4 +2,5 @@
 SWAMP="${HOME}/.swamp/bin/swamp"
 command -v swamp >/dev/null 2>&1 && SWAMP="swamp"
 
-"$SWAMP" workflow run quality-gate-fast
+# Skip if all staged changes are in telemetry/
+git diff --cached --name-only | grep -qv '^telemetry/' && "$SWAMP" workflow run quality-gate-fast
