@@ -47,7 +47,6 @@ the full tree, and `swamp help model method run` scopes to a subtree.
 
 - **Code Health is authoritative.** Treat it as the single source of truth for maintainability.
 - **Target Code Health 10.0.** This is the standard for AI-friendly code. 9+ is not “good enough.”
-- **Safeguard all AI-touched code** before suggesting a commit.
 - If Code Health regresses or violates goals, **refactor — don’t declare done.**
 - Use Code Health to guide **incremental, high-impact refactorings.**
 - When in doubt, **call the appropriate CodeScene MCP tool — don’t guess.**
@@ -56,22 +55,7 @@ the full tree, and `swamp help model method run` scopes to a subtree.
 
 # Core Use Cases
 
-## 1️⃣ Safeguard All AI-Generated or Modified Code (Mandatory)
-
-Two tools enforce Code Health at different scopes:
-
-- **`pre_commit_code_health_safeguard`** — uncommitted/staged files only. Run before each commit.
-- **`analyze_change_set`** — full branch vs base ref (PR pre-flight). Run before opening a PR.
-
-If either reports a regression:
-
-1. Run `code_health_review` for details.
-2. Refactor until Code Health is restored.
-3. Do **not** mark changes as ready unless risks are explicitly accepted.
-
----
-
-## 2️⃣ Guide Refactoring with Code Health
+## 1️⃣ Guide Refactoring with Code Health
 
 When refactoring or improving code:
 
@@ -119,21 +103,14 @@ When users ask why Code Health matters:
 
 ---
 
-# Testing Gate (Mandatory)
+# Quality Gates
 
-Two gates apply at different scopes:
+All quality checks are enforced exclusively by the swamp workflows in the git hooks. Do not run tests, coverage, or CodeScene checks manually before committing — let the hooks capture everything as telemetry.
 
-**Pre-commit (run after every implementation change):**
-```
-npm test && npm run coverage
-```
-Both must exit 0 before the work is done. Do not suggest a commit or declare done until they pass. See `.claude/skills/testing/SKILL.md` for how to interpret failures and what counts as sufficient coverage.
+- **Pre-commit** (`.githooks/pre-commit`): `swamp workflow run quality-gate-fast` — lint, knip, spec-coverage, tests, CodeScene, coverage, patch-coverage in parallel/sequence.
+- **Pre-push** (`.githooks/pre-push`): `swamp workflow run quality-gate` — full pipeline including mutation testing.
 
-**Pre-push (runs automatically via `.githooks/pre-push`):**
-```
-swamp workflow run quality-gate
-```
-This runs spec-coverage + tests in parallel, then coverage thresholds, then mutation testing. It fires automatically on `git push`. If it fails, do not push — fix the issue first. You cannot run this directly (swamp may not be in the agent PATH); prompt the user to push and check the result.
+Both fire automatically. Do not bypass them. If either fails, fix the issue and let the hook re-run — do not manually pre-flight the failing check.
 
 ---
 

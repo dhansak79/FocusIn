@@ -128,7 +128,7 @@ Deno.test("findUncoveredLines: reports uncovered lines in deno extension files",
   assertEquals(result, [{ file: "extensions/models/focusin_lint.ts", line: 5 }]);
 });
 
-Deno.test("findUncoveredLines: skips test files in extensions/models", () => {
+Deno.test("findUncoveredLines: skips test files (not present in lcov)", () => {
   const coverage: Record<string, Record<number, number>> = {};
   const staged = { "extensions/models/focusin_lint_test.ts": new Set([10]) };
   assertEquals(findUncoveredLines(coverage, staged), []);
@@ -140,19 +140,38 @@ Deno.test("findUncoveredLines: skips staged line not present in file coverage da
   assertEquals(findUncoveredLines(coverage, staged), []);
 });
 
-Deno.test("findUncoveredLines: skips files not in coverage scope", () => {
+Deno.test("findUncoveredLines: skips files not in lcov (e.g. markdown, yaml, content files)", () => {
   const coverage: Record<string, Record<number, number>> = {};
-  const staged = { "src/utils.js": new Set([10]) };
+  const staged = {
+    "src/utils.js": new Set([10]),
+    "src/content/foo.js": new Set([1]),
+    "README.md": new Set([5]),
+  };
   assertEquals(findUncoveredLines(coverage, staged), []);
 });
 
-Deno.test("findUncoveredLines: skips src/content/ and src/popup/ js files", () => {
-  const coverage = { "src/content/foo.js": { 1: 0 }, "src/popup/bar.js": { 1: 0 } };
-  const staged = {
-    "src/content/foo.js": new Set([1]),
-    "src/popup/bar.js": new Set([1]),
-  };
-  assertEquals(findUncoveredLines(coverage, staged), []);
+Deno.test("findUncoveredLines: reports uncovered lines in scripts/ files", () => {
+  const coverage = { "scripts/generate-guardrails-dashboard.js": { 10: 0, 11: 1 } };
+  const staged = { "scripts/generate-guardrails-dashboard.js": new Set([10, 11]) };
+  assertEquals(findUncoveredLines(coverage, staged), [
+    { file: "scripts/generate-guardrails-dashboard.js", line: 10 },
+  ]);
+});
+
+Deno.test("findUncoveredLines: reports uncovered lines in extensions/reports/ files", () => {
+  const coverage = { "extensions/reports/quality_gate_summary.ts": { 90: 0, 91: 1 } };
+  const staged = { "extensions/reports/quality_gate_summary.ts": new Set([90, 91]) };
+  assertEquals(findUncoveredLines(coverage, staged), [
+    { file: "extensions/reports/quality_gate_summary.ts", line: 90 },
+  ]);
+});
+
+Deno.test("findUncoveredLines: reports uncovered lines in src/popup/ files when in lcov", () => {
+  const coverage = { "src/popup/popup.js": { 1: 0 } };
+  const staged = { "src/popup/popup.js": new Set([1]) };
+  assertEquals(findUncoveredLines(coverage, staged), [
+    { file: "src/popup/popup.js", line: 1 },
+  ]);
 });
 
 // ---- model.check.execute ----

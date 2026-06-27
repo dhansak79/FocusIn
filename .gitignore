@@ -5,7 +5,7 @@
 node_modules
 /.claude/settings.local.json
 .stryker-tmp
-reports
+/reports
 coverage
 .deno-coverage
 .tmp
