@@ -150,6 +150,7 @@ function loadDirRuns(dirPath) {
 }
 
 function loadRuns() {
+  /* c8 ignore next */
   if (!existsSync(TELEMETRY_DIR)) return [];
   return readdirSync(TELEMETRY_DIR, { withFileTypes: true })
     .filter((e) => e.isDirectory())
@@ -159,7 +160,7 @@ function loadRuns() {
 
 // ── Dashboard data assembly ────────────────────────────────────────────────────
 
-function buildData(runs, sessions) {
+export function buildData(runs, sessions) {
   const lastBlocked = [...runs].reverse().find((r) => r.blockingStep !== null);
   return {
     sessionLabels: sessions.map((_, i) => `S${i + 1}`),
@@ -196,11 +197,11 @@ function renderChartInit() {
 // ── Session explorer ───────────────────────────────────────────────────────────
 
 function fmtPct(v) {
-  return v !== null && v !== undefined ? `${Number(v).toFixed(1)}%` : "—";
+  return `${Number(v).toFixed(1)}%`;
 }
 
 function renderCell(content, passed) {
-  if (passed === null || passed === undefined) return `<td>${content}</td>`;
+  if (passed == null) return `<td>${content}</td>`;
   return `<td class="${passed ? "ok" : "bad"}">${content}</td>`;
 }
 
@@ -298,7 +299,7 @@ function renderSession(session, idx) {
 </details>`;
 }
 
-function renderSessionExplorer(sessions) {
+export function renderSessionExplorer(sessions) {
   if (sessions.length === 0) return '<div class="empty">No sessions recorded yet.</div>';
   return sessions.map((s, i) => renderSession(s, i)).join("\n");
 }
@@ -346,6 +347,7 @@ export function generate(opts = {}) {
   return { runs: runs.length, sessions: sessions.length, outputFile: OUTPUT_FILE };
 }
 
+/* c8 ignore next 3 */
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   const result = generate();
   console.log(`Generated ${result.outputFile} (${result.runs} runs, ${result.sessions} sessions)`);

@@ -23,6 +23,7 @@ export default defineConfig({
         'src/stats-renderer.js',
         'src/popup/popup.js',
         'scripts/spec-coverage.js',
+        'scripts/generate-guardrails-dashboard.js',
       ],
       thresholds: {
         lines: 90,
