@@ -97,3 +97,21 @@ jobs:
           type: model_method
           modelIdOrName: focusin-mutation
           methodName: run
+
+  - name: dashboard
+    description: Sync telemetry and regenerate guardrails dashboard locally
+    dependsOn:
+      - job: mutation
+        condition:
+          type: completed
+    steps:
+      - name: generate-dashboard
+        description: Sync new YAML files from .swamp/ and rebuild reports/workflow-insights/index.html
+        allowFailure: true
+        task:
+          type: model_method
+          modelType: "command/shell"
+          modelName: focusin-dashboard
+          methodName: execute
+          inputs:
+            run: "node scripts/sync-telemetry.js && node scripts/generate-guardrails-dashboard.js"
