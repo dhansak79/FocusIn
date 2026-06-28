@@ -62,33 +62,37 @@ export function buildFeatureFile(featureName, scenarios) {
   return lines.join('\n')
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-mkdirSync(FEATURES_DIR, { recursive: true })
+export function migrate(specsDir, featuresDir) {
+  mkdirSync(featuresDir, { recursive: true })
 
-const specDirs = readdirSync(SPECS_DIR, { withFileTypes: true })
-  .filter((e) => e.isDirectory())
-  .map((e) => e.name)
+  const specDirs = readdirSync(specsDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
 
-let totalScenarios = 0
-let totalFiles = 0
+  let totalScenarios = 0
+  let totalFiles = 0
 
-for (const specName of specDirs) {
-  const specFile = join(SPECS_DIR, specName, 'spec.md')
-  if (!existsSync(specFile)) continue
+  for (const specName of specDirs) {
+    const specFile = join(specsDir, specName, 'spec.md')
+    if (!existsSync(specFile)) continue
 
-  const content = readFileSync(specFile, 'utf8')
-  const scenarios = parseSpecScenarios(content)
-  if (scenarios.length === 0) continue
+    const content = readFileSync(specFile, 'utf8')
+    const scenarios = parseSpecScenarios(content)
+    if (scenarios.length === 0) continue
 
-  const featureContent = buildFeatureFile(specName, scenarios)
-  const outputPath = join(FEATURES_DIR, `${specName}.feature`)
-  writeFileSync(outputPath, featureContent)
+    const featureContent = buildFeatureFile(specName, scenarios)
+    const outputPath = join(featuresDir, `${specName}.feature`)
+    writeFileSync(outputPath, featureContent)
 
-  console.log(`✓ ${specName}.feature (${scenarios.length} scenarios @wip)`)
-  totalScenarios += scenarios.length
-  totalFiles++
+    totalScenarios += scenarios.length
+    totalFiles++
+  }
+
+  return { totalFiles, totalScenarios }
 }
 
-console.log(`\nGenerated ${totalFiles} feature files with ${totalScenarios} @wip scenarios.`)
-console.log(`Output: ${FEATURES_DIR}`)
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const { totalFiles, totalScenarios } = migrate(SPECS_DIR, FEATURES_DIR)
+  console.log(`\nGenerated ${totalFiles} feature files with ${totalScenarios} @wip scenarios.`)
+  console.log(`Output: ${FEATURES_DIR}`)
 }

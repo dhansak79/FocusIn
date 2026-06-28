@@ -1,5 +1,12 @@
-import { it, expect } from 'vitest'
-import { parseSpecScenarios, buildFeatureFile } from '../../scripts/migrate-specs-to-features.js'
+import { it, expect, beforeEach, afterEach } from 'vitest'
+import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
+import { parseSpecScenarios, buildFeatureFile, migrate } from '../../scripts/migrate-specs-to-features.js'
+
+let tmp
+beforeEach(() => { tmp = join(tmpdir(), `migrate-test-${Date.now()}`); mkdirSync(tmp, { recursive: true }) })
+afterEach(() => rmSync(tmp, { recursive: true }))
 
 // ---------------------------------------------------------------------------
 // parseSpecScenarios
@@ -91,4 +98,48 @@ it('buildFeatureFile: emits And for extra steps', () => {
 it('buildFeatureFile: omits Given block when given is empty', () => {
   const out = buildFeatureFile('f', [{ name: 'S', given: [], when: ['act'], then: ['check'] }])
   expect(out).not.toContain('Given')
+})
+
+// ---------------------------------------------------------------------------
+// migrate
+// ---------------------------------------------------------------------------
+
+it('migrate: writes feature files for specs with scenarios', () => {
+  const specsDir = join(tmp, 'specs')
+  const featuresDir = join(tmp, 'features')
+  mkdirSync(join(specsDir, 'my-spec'), { recursive: true })
+  writeFileSync(join(specsDir, 'my-spec', 'spec.md'), [
+    '#### Scenario: First scenario',
+    '- **GIVEN** a condition',
+    '- **WHEN** something happens',
+    '- **THEN** result follows',
+  ].join('\n'))
+
+  const result = migrate(specsDir, featuresDir)
+
+  expect(result.totalFiles).toBe(1)
+  expect(result.totalScenarios).toBe(1)
+  const content = readFileSync(join(featuresDir, 'my-spec.feature'), 'utf8')
+  expect(content).toContain('Feature: my-spec')
+  expect(content).toContain('  @wip')
+  expect(content).toContain('  Scenario: First scenario')
+})
+
+it('migrate: skips spec dirs without spec.md', () => {
+  const specsDir = join(tmp, 'specs')
+  const featuresDir = join(tmp, 'features')
+  mkdirSync(join(specsDir, 'no-spec-file'), { recursive: true })
+
+  const result = migrate(specsDir, featuresDir)
+  expect(result.totalFiles).toBe(0)
+})
+
+it('migrate: skips spec files with no parseable scenarios', () => {
+  const specsDir = join(tmp, 'specs')
+  const featuresDir = join(tmp, 'features')
+  mkdirSync(join(specsDir, 'empty-spec'), { recursive: true })
+  writeFileSync(join(specsDir, 'empty-spec', 'spec.md'), '# No scenarios here')
+
+  const result = migrate(specsDir, featuresDir)
+  expect(result.totalFiles).toBe(0)
 })
