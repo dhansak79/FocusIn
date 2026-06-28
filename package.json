@@ -16,6 +16,9 @@
     "spec:coverage": "node scripts/spec-coverage.js"
   },
   "devDependencies": {
+    "chart.js": "^4.4.9",
+    "cheerio": "^1.0.0",
+    "js-yaml": "^4.1.0",
     "@creativebulma/bulma-divider": "^1.1.0",
     "@creativebulma/bulma-tooltip": "^1.2.0",
     "@playwright/test": "^1.60.0",

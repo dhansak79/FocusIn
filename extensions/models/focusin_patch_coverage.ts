@@ -85,21 +85,16 @@ export function parseStagedDiff(diff: string): Record<string, Set<number>> {
   return added;
 }
 
-/** Find staged added lines with zero coverage hits. Skips files outside coverage scope. */
+/** Find staged added lines with zero coverage hits. Checks any file present in the lcov report,
+ * matching Codecov patch behaviour exactly. Files absent from the lcov are silently skipped. */
 export function findUncoveredLines(
   coverage: Record<string, Record<number, number>>,
   staged: Record<string, Set<number>>,
 ): { file: string; line: number }[] {
   const uncovered: { file: string; line: number }[] = [];
   for (const [f, lines] of Object.entries(staged)) {
-    const isJsSource = f.startsWith("src/") && f.endsWith(".js") &&
-      !f.startsWith("src/content/") && !f.startsWith("src/popup/");
-    const isDenoExt = f.startsWith("extensions/models/") && f.endsWith(".ts") &&
-      !f.endsWith("_test.ts");
-    if (!isJsSource && !isDenoExt) continue;
-
     const fileCov = coverage[f];
-    if (!fileCov) continue; // file not in coverage scope — skip
+    if (!fileCov) continue; // file not in lcov — skip (markdown, yaml, test files, etc.)
 
     for (const ln of lines) {
       if (ln in fileCov && fileCov[ln] === 0) {
@@ -112,7 +107,7 @@ export function findUncoveredLines(
 
 export const model = {
   type: "@focusin/patch-coverage",
-  version: "2026.06.26.1",
+  version: "2026.06.27.1",
   globalArguments: GlobalArgsSchema,
   resources: {
     patchCoverageResult: {
