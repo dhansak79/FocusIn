@@ -1,4 +1,4 @@
-[![CodeScene Average Code Health](https://codescene.io/projects/81232/status-badges/average-code-health)](https://codescene.io/projects/81232)[![CodeScene Hotspot Code Health](https://codescene.io/projects/81232/status-badges/hotspot-code-health)](https://codescene.io/projects/81232)[![CodeScene System Mastery](https://codescene.io/projects/81232/status-badges/system-mastery)](https://codescene.io/projects/81232)[![Mutation Tests](https://github.com/dhansak79/FocusIn/actions/workflows/mutation.yml/badge.svg)](https://github.com/dhansak79/FocusIn/actions/workflows/mutation.yml)[![codecov](https://codecov.io/gh/dhansak79/FocusIn/graph/badge.svg)](https://codecov.io/gh/dhansak79/FocusIn)
+[![CodeScene Average Code Health](https://codescene.io/projects/81232/status-badges/average-code-health)](https://codescene.io/projects/81232)[![CodeScene Hotspot Code Health](https://codescene.io/projects/81232/status-badges/hotspot-code-health)](https://codescene.io/projects/81232)[![CodeScene System Mastery](https://codescene.io/projects/81232/status-badges/system-mastery)](https://codescene.io/projects/81232)[![Pages](https://github.com/dhansak79/FocusIn/actions/workflows/pages.yml/badge.svg)](https://github.com/dhansak79/FocusIn/actions/workflows/pages.yml)
 
 # FocusIn: LinkedIn Attention Filter
 
@@ -9,6 +9,8 @@ You can feel it when you scroll. The same rhythm, the same phrases, the same sta
 FocusIn filters that out. Posts that match enough AI writing patterns get collapsed to a one-line summary with a reveal button. You can still read them. You just don't have to scroll through a wall of them to find the ones worth reading.
 
 > Forked from [njelich/LinkOff](https://github.com/njelich/LinkOff)
+
+![FocusIn collapsing AI-generated and pattern-matched posts in a LinkedIn feed](assets/sample_feed.png)
 
 ## How it works
 
@@ -85,11 +87,6 @@ See [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) for more detai
 | `npm run knip` | Dead code check |
 | `npm run mutate` | Mutation tests |
 
-The pre-commit hook runs lint, dead code, coverage, patch coverage, and CodeScene health on every commit.
+The pre-commit hook (`quality-gate-fast`) runs lint, dead code, spec coverage, tests, CodeScene health, coverage, extension tests, and patch coverage on every commit. The pre-push hook (`quality-gate`) adds mutation testing.
 
-CI enforces two quality gates on every PR:
-
-- Unit test coverage >= 90% across lines, functions, branches, and statements
-- Mutation score >= 75%
-
-The latest [mutation report](https://dhansak79.github.io/FocusIn/) is published to GitHub Pages on each merge to `main`.
+The latest [mutation report](https://dhansak79.github.io/FocusIn/) and [guardrails dashboard](https://dhansak79.github.io/FocusIn/insights/) are published to GitHub Pages on each merge to `main`.
