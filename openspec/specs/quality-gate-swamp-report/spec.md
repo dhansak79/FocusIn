@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines the requirements for the swamp workflow-scope report that runs after every `quality-gate` execution, producing a per-run summary and structured JSON artifact for downstream dashboard consumption.
+
+## Requirements
 
 ### Requirement: Workflow-scope report runs after every quality-gate execution
 A swamp report extension SHALL be registered on the `quality-gate` workflow with scope `workflow`. It SHALL execute after every quality-gate run regardless of whether the run succeeded or failed, and SHALL produce both markdown and JSON output.

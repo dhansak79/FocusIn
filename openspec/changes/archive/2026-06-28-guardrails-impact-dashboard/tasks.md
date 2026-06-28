@@ -10,8 +10,8 @@
 
 - [x] 2.1 In the `quality-gate` workflow definition, change the `spec-coverage` step from `allowFailure: true` to `allowFailure: false`
 - [x] 2.2 Harden `quality-gate-fast` spec-coverage the same way (`allowFailure: true` → `allowFailure: false`) — running spec-coverage as advisory on the fast gate was pointless
-- [ ] 2.3 Run `swamp workflow validate quality-gate` to confirm the DAG is valid after the change
-- [ ] 2.4 Run the quality gate once locally to confirm it blocks at the current coverage level and the failure message is clear
+- [x] 2.3 Run `swamp workflow validate quality-gate` to confirm the DAG is valid after the change
+- [x] 2.4 Run the quality gate once locally to confirm it blocks at the current coverage level and the failure message is clear
 
 ## 3. Swamp Report Extension
 
