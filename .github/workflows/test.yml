@@ -30,12 +30,10 @@ jobs:
         run: cs-coverage upload --format "lcov" --metric "line-coverage" "coverage/lcov.info"
         env:
           CS_ACCESS_TOKEN: ${{ secrets.CS_ACCESS_TOKEN }}
+      - name: Install Codecov CLI
+        run: pip install codecov-cli
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage/lcov.info
-          disable_search: true
+        run: codecovcli --verbose upload-process --disable-search -t ${{ secrets.CODECOV_TOKEN }} -f coverage/lcov.info
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         if: always()
