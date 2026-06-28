@@ -12,7 +12,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SPECS_DIR = join(ROOT, 'openspec', 'specs')
 const FEATURES_DIR = join(ROOT, 'tests', 'cucumber', 'features')
 
-function parseSpecScenarios(content) {
+export function parseSpecScenarios(content) {
   const lines = content.split('\n')
   const scenarios = []
   let currentScenario = null
@@ -40,7 +40,7 @@ function parseSpecScenarios(content) {
   return scenarios
 }
 
-function buildFeatureFile(featureName, scenarios) {
+export function buildFeatureFile(featureName, scenarios) {
   const lines = [`Feature: ${featureName}`, '']
   for (const s of scenarios) {
     lines.push('  @wip')
@@ -62,6 +62,7 @@ function buildFeatureFile(featureName, scenarios) {
   return lines.join('\n')
 }
 
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
 mkdirSync(FEATURES_DIR, { recursive: true })
 
 const specDirs = readdirSync(SPECS_DIR, { withFileTypes: true })
@@ -90,3 +91,4 @@ for (const specName of specDirs) {
 
 console.log(`\nGenerated ${totalFiles} feature files with ${totalScenarios} @wip scenarios.`)
 console.log(`Output: ${FEATURES_DIR}`)
+}
