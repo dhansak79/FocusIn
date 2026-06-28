@@ -115,3 +115,13 @@ jobs:
           methodName: execute
           inputs:
             run: "node scripts/sync-telemetry.js && node scripts/generate-guardrails-dashboard.js"
+      - name: commit-telemetry
+        description: Auto-commit any newly synced telemetry YAML files
+        allowFailure: true
+        task:
+          type: model_method
+          modelType: "command/shell"
+          modelName: focusin-telemetry-commit
+          methodName: execute
+          inputs:
+            run: "git add telemetry/ && git diff --cached --quiet || git commit -m 'telemetry: sync'"
