@@ -20,7 +20,7 @@ function makeRun(offsetMs, status = "succeeded") {
     startedAt,
     completedAt: new Date(base + offsetMs + 5 * MIN).toISOString(),
     blockingStep: status === "failed" ? "mutation" : null,
-    metrics: { tests: null, coverage: null, mutation: null, codescene: null, patchCoverage: null },
+    metrics: { lint: null, knip: null, specCoverage: null, tests: null, denoExtTests: null, coverage: null, mutation: null, codescene: null, patchCoverage: null },
   };
 }
 
@@ -28,12 +28,17 @@ function makeFullRun(offsetMs, overrides = {}) {
   const base = new Date("2026-06-25T10:00:00Z").getTime();
   return {
     id: `run-full-${offsetMs}`,
+    workflowName: overrides.workflowName ?? "quality-gate",
     status: overrides.status ?? "succeeded",
     startedAt: new Date(base + offsetMs).toISOString(),
     completedAt: new Date(base + offsetMs + 5 * MIN).toISOString(),
     blockingStep: overrides.blockingStep ?? null,
     metrics: {
+      lint: overrides.lint ?? { passed: true, issueCount: 0 },
+      knip: overrides.knip ?? { passed: true, issueCount: 0 },
+      specCoverage: overrides.specCoverage ?? { passed: true, pct: 100, covered: 42, total: 42 },
       tests: overrides.tests ?? { passed: true, total: 699, passing: 699, failing: 0 },
+      denoExtTests: overrides.denoExtTests ?? { passed: true, total: 12, passing: 12, failing: 0 },
       coverage: overrides.coverage ?? { passed: true, lines: 100.0, functions: 98.7, branches: 90.8, statements: 98.5 },
       mutation: overrides.mutation ?? { passed: true, score: 81.0, files: [
         { path: "src/feed.js", score: 76.4 },
@@ -136,16 +141,33 @@ describe("parseRun", () => {
     expect(run.metrics.mutation).toBeNull();
   });
 
-  it("synthesises passed:false for a failed step with no embedded output", () => {
+  it("parses file count and path from codescene error message when no embedded output", () => {
     const doc = {
       id: "run-fast-2",
       workflowName: "quality-gate-fast",
       status: "failed",
       startedAt: "2026-06-25T10:00:00Z",
-      jobs: [{ steps: [{ stepName: "codescene-health", status: "failed" }] }],
+      jobs: [{ steps: [{
+        stepName: "codescene-health",
+        status: "failed",
+        error: "CodeScene health gate failed — 1 file(s) introduced degradations:\n  /repo/src/slop-detector.js  (8.13/10)",
+      }] }],
     };
     const run = parseRun(doc);
-    expect(run.metrics.codescene).toEqual({ passed: false, failedFiles: 0, files: [] });
+    expect(run.metrics.codescene).toEqual({ passed: false, failedFiles: 1, files: [{ path: "/repo/src/slop-detector.js" }] });
+  });
+
+  it("defaults to 1 degraded when codescene error has no file count", () => {
+    const doc = {
+      id: "run-fast-4",
+      workflowName: "quality-gate-fast",
+      status: "failed",
+      startedAt: "2026-06-25T10:00:00Z",
+      jobs: [{ steps: [{ stepName: "codescene-health", status: "failed", error: "something went wrong" }] }],
+    };
+    const run = parseRun(doc);
+    expect(run.metrics.codescene?.passed).toBe(false);
+    expect(run.metrics.codescene?.failedFiles).toBe(1);
   });
 
   it("synthesises null numeric fields for all failed steps without embedded output", () => {
@@ -155,15 +177,47 @@ describe("parseRun", () => {
       status: "failed",
       startedAt: "2026-06-25T10:00:00Z",
       jobs: [{ steps: [
+        { stepName: "lint", status: "failed" },
+        { stepName: "knip", status: "failed" },
+        { stepName: "spec-coverage", status: "failed" },
         { stepName: "tests", status: "failed" },
+        { stepName: "deno-ext-tests", status: "failed" },
         { stepName: "coverage", status: "failed" },
         { stepName: "patch-coverage", status: "failed" },
       ]}],
     };
     const run = parseRun(doc);
+    expect(run.metrics.lint).toEqual({ passed: false, issueCount: null });
+    expect(run.metrics.knip).toEqual({ passed: false, issueCount: null });
+    expect(run.metrics.specCoverage).toEqual({ passed: false, pct: null, covered: null, total: null });
     expect(run.metrics.tests).toEqual({ passed: false, total: null, passing: null, failing: null });
+    expect(run.metrics.denoExtTests).toEqual({ passed: false, total: null, passing: null, failing: null });
     expect(run.metrics.coverage).toEqual({ passed: false, lines: null, functions: null, branches: null, statements: null });
     expect(run.metrics.patchCoverage).toEqual({ passed: false, uncoveredLines: null });
+  });
+
+  it("parses knip and lint metrics from a quality-gate run", () => {
+    const doc = {
+      id: "run-knip-1",
+      workflowName: "quality-gate",
+      status: "succeeded",
+      startedAt: "2026-06-25T10:00:00Z",
+      jobs: [{ steps: [
+        {
+          stepName: "knip",
+          status: "succeeded",
+          output: { resources: { knipResult: { current: { attributes: { passed: true, issueCount: 0, ranAt: "2026-06-25T10:00:01Z" } } } } },
+        },
+        {
+          stepName: "lint",
+          status: "succeeded",
+          output: { resources: { lintResult: { current: { attributes: { passed: true, issueCount: 0, ranAt: "2026-06-25T10:00:01Z" } } } } },
+        },
+      ]}],
+    };
+    const run = parseRun(doc);
+    expect(run.metrics.knip).toEqual({ passed: true, issueCount: 0 });
+    expect(run.metrics.lint).toEqual({ passed: true, issueCount: 0 });
   });
 
   it("parses tests metrics from a quality-gate run", () => {
@@ -426,8 +480,16 @@ describe("renderSessionExplorer", () => {
 
   it("renders column headers per attempt", () => {
     const html = renderSessionExplorer([makeSession([makeFullRun(0), makeFullRun(30 * MIN)])]);
-    expect(html).toContain("<th>A1</th>");
-    expect(html).toContain("<th>A2</th>");
+    expect(html).toContain("<th>push</th>");
+    expect(html).toContain("<th>push 2</th>");
+  });
+
+  it("renders commit header for quality-gate-fast runs", () => {
+    const fastRun = { ...makeFullRun(0), workflowName: "quality-gate-fast" };
+    const fastRun2 = { ...makeFullRun(5 * MIN), workflowName: "quality-gate-fast" };
+    const html = renderSessionExplorer([makeSession([fastRun, fastRun2])]);
+    expect(html).toContain("<th>commit</th>");
+    expect(html).toContain("<th>commit 2</th>");
   });
 
   it("falls back to total when tests.passing is undefined", () => {
@@ -454,6 +516,36 @@ describe("renderSessionExplorer", () => {
     const run = makeFullRun(0, { patchCoverage: { passed: false, uncoveredLines: null } });
     const html = renderSessionExplorer([makeSession([run])]);
     expect(html).toContain("✗");
+  });
+
+  it("shows knip issue count when issues found", () => {
+    const run = makeFullRun(0, { knip: { passed: false, issueCount: 3 } });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain("3 issues");
+  });
+
+  it("shows ✓ for knip when issueCount is 0", () => {
+    const run = makeFullRun(0, { knip: { passed: true, issueCount: 0 } });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain(">✓<");
+  });
+
+  it("shows ✗ for knip when issueCount is null (failed step with no embedded data)", () => {
+    const run = makeFullRun(0, { knip: { passed: false, issueCount: null } });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain("✗");
+  });
+
+  it("shows spec-coverage covered/total", () => {
+    const run = makeFullRun(0, { specCoverage: { passed: true, pct: 95, covered: 38, total: 40 } });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain("38/40");
+  });
+
+  it("shows deno-ext test counts", () => {
+    const run = makeFullRun(0, { denoExtTests: { passed: true, total: 15, passing: 15, failing: 0 } });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain("15/15");
   });
 });
 

@@ -70,10 +70,6 @@ function extractStepAttrs(step) {
   return { attrs: null, status: step.status };
 }
 
-function getStepAttrs(jobs, stepName) {
-  return extractStepAttrs(findStep(jobs, stepName));
-}
-
 function findBlockingStep(jobs) {
   for (const job of jobs ?? []) {
     const failed = (job.steps ?? []).find((s) => s.status === "failed");
@@ -82,37 +78,76 @@ function findBlockingStep(jobs) {
   return null;
 }
 
+// ── Per-step metric parsers ────────────────────────────────────────────────────
+
+function parseIssueStep(step) {
+  const { attrs } = extractStepAttrs(step);
+  return attrs ? { passed: attrs.passed, issueCount: attrs.issueCount ?? null } : null;
+}
+
+function parseTestsStep(step) {
+  const { attrs } = extractStepAttrs(step);
+  return attrs
+    ? { passed: attrs.passed, total: attrs.total ?? null, passing: attrs.passing ?? null, failing: attrs.failing ?? null }
+    : null;
+}
+
+function parseSpecCovStep(step) {
+  const { attrs } = extractStepAttrs(step);
+  return attrs
+    ? { passed: attrs.passed, pct: attrs.pct ?? null, covered: attrs.covered ?? null, total: attrs.total ?? null }
+    : null;
+}
+
+function parseCovStep(step) {
+  const { attrs } = extractStepAttrs(step);
+  return attrs
+    ? { passed: attrs.passed, lines: attrs.lines ?? null, functions: attrs.functions ?? null, branches: attrs.branches ?? null, statements: attrs.statements ?? null }
+    : null;
+}
+
+function parseMutStep(step) {
+  const { attrs } = extractStepAttrs(step);
+  return attrs ? { passed: attrs.passed, score: attrs.overallScore ?? null, files: attrs.files ?? [] } : null;
+}
+
+function parseCodeSceneStep(step) {
+  const { attrs } = extractStepAttrs(step);
+  if (!attrs) return null;
+  if (attrs.failedFiles !== undefined) return { passed: attrs.passed, failedFiles: attrs.failedFiles, files: attrs.files ?? [] };
+  // Synthesised failure — parse count and paths from error message
+  const error = step?.error ?? "";
+  const countMatch = error.match(/(\d+) file\(s\)/);
+  const fileMatches = [...error.matchAll(/^\s{2,}(\S+\.(?:js|ts))\b/gm)];
+  const files = fileMatches.map((m) => ({ path: m[1] }));
+  return { passed: false, failedFiles: countMatch ? parseInt(countMatch[1], 10) : Math.max(files.length, 1), files };
+}
+
+function parsePatchStep(step) {
+  const { attrs } = extractStepAttrs(step);
+  return attrs ? { passed: attrs.passed, uncoveredLines: attrs.uncoveredLines ?? null } : null;
+}
+
 export function parseRun(doc) {
   if (doc.workflowName !== QUALITY_GATE_WORKFLOW && doc.workflowName !== QUALITY_GATE_FAST_WORKFLOW) return null;
   const jobs = doc.jobs ?? [];
-  const tests = getStepAttrs(jobs, "tests");
-  const cov = getStepAttrs(jobs, "coverage");
-  const mut = getStepAttrs(jobs, "mutation");
-  const cs = getStepAttrs(jobs, "codescene-health");
-  const patch = getStepAttrs(jobs, "patch-coverage");
-
   return {
     id: doc.id,
+    workflowName: doc.workflowName,
     status: doc.status,
     startedAt: doc.startedAt,
     completedAt: doc.completedAt ?? null,
     blockingStep: findBlockingStep(jobs),
     metrics: {
-      tests: tests.attrs
-        ? { passed: tests.attrs.passed, total: tests.attrs.total ?? null, passing: tests.attrs.passing ?? null, failing: tests.attrs.failing ?? null }
-        : null,
-      coverage: cov.attrs
-        ? { passed: cov.attrs.passed, lines: cov.attrs.lines ?? null, functions: cov.attrs.functions ?? null, branches: cov.attrs.branches ?? null, statements: cov.attrs.statements ?? null }
-        : null,
-      mutation: mut.attrs
-        ? { passed: mut.attrs.passed, score: mut.attrs.overallScore ?? null, files: mut.attrs.files ?? [] }
-        : null,
-      codescene: cs.attrs
-        ? { passed: cs.attrs.passed, failedFiles: cs.attrs.failedFiles ?? 0, files: cs.attrs.files ?? [] }
-        : null,
-      patchCoverage: patch.attrs
-        ? { passed: patch.attrs.passed, uncoveredLines: patch.attrs.uncoveredLines ?? null }
-        : null,
+      lint: parseIssueStep(findStep(jobs, "lint")),
+      knip: parseIssueStep(findStep(jobs, "knip")),
+      specCoverage: parseSpecCovStep(findStep(jobs, "spec-coverage")),
+      tests: parseTestsStep(findStep(jobs, "tests")),
+      denoExtTests: parseTestsStep(findStep(jobs, "deno-ext-tests")),
+      coverage: parseCovStep(findStep(jobs, "coverage")),
+      mutation: parseMutStep(findStep(jobs, "mutation")),
+      codescene: parseCodeSceneStep(findStep(jobs, "codescene-health")),
+      patchCoverage: parsePatchStep(findStep(jobs, "patch-coverage")),
     },
   };
 }
@@ -209,14 +244,34 @@ function renderCell(content, passed) {
   return `<td class="${passed ? "ok" : "bad"}">${content}</td>`;
 }
 
-function renderTestsRow(runs) {
+function renderIssueCountRow(label, key, runs) {
   const cells = runs.map((r) => {
-    const m = r.metrics.tests;
+    const m = r.metrics[key];
+    if (!m) return "<td>—</td>";
+    if (m.issueCount === null) return renderCell("✗", false);
+    return renderCell(m.issueCount === 0 ? "✓" : `${m.issueCount} issues`, m.passed);
+  }).join("");
+  return `<tr><td>${label}</td>${cells}</tr>`;
+}
+
+function renderSpecCoverageRow(runs) {
+  const cells = runs.map((r) => {
+    const m = r.metrics.specCoverage;
+    if (!m) return "<td>—</td>";
+    if (m.pct === null) return renderCell("✗", false);
+    return renderCell(`${m.covered}/${m.total}`, m.passed);
+  }).join("");
+  return `<tr><td>spec-coverage</td>${cells}</tr>`;
+}
+
+function renderTestsRow(label, key, runs) {
+  const cells = runs.map((r) => {
+    const m = r.metrics[key];
     if (!m) return "<td>—</td>";
     if (m.total === null) return renderCell("✗", false);
     return renderCell(`${m.passing ?? m.total}/${m.total}`, m.passed);
   }).join("");
-  return `<tr><td>tests</td>${cells}</tr>`;
+  return `<tr><td>${label}</td>${cells}</tr>`;
 }
 
 function renderCoverageSubRow(label, key, runs) {
@@ -284,12 +339,24 @@ function renderPatchCoverageRow(runs) {
 }
 
 function renderSessionTable(runs) {
-  const headers = runs.map((_, i) => `<th>A${i + 1}</th>`).join("");
+  const counters = { push: 0, commit: 0 };
+  const headers = runs.map((r) => {
+    if (r.workflowName === QUALITY_GATE_FAST_WORKFLOW) {
+      counters.commit += 1;
+      return `<th>commit${counters.commit > 1 ? ` ${counters.commit}` : ""}</th>`;
+    }
+    counters.push += 1;
+    return `<th>push${counters.push > 1 ? ` ${counters.push}` : ""}</th>`;
+  }).join("");
   return `<table class="check-table"><thead><tr><th>Check</th>${headers}</tr></thead><tbody>
-${renderTestsRow(runs)}
+${renderIssueCountRow("lint", "lint", runs)}
+${renderIssueCountRow("knip", "knip", runs)}
+${renderSpecCoverageRow(runs)}
+${renderTestsRow("tests", "tests", runs)}
+${renderTestsRow("deno-ext", "denoExtTests", runs)}
 ${renderCoverageRows(runs)}
-${renderMutationRows(runs)}
 ${renderCodeSceneRow(runs)}
+${renderMutationRows(runs)}
 ${renderPatchCoverageRow(runs)}
 </tbody></table>`;
 }
