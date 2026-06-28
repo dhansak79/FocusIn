@@ -64,6 +64,9 @@ function extractStepAttrs(step) {
     const instance = resource.current ?? Object.values(resource)[0];
     if (instance?.attributes) return { attrs: instance.attributes, status: step.status };
   }
+  // Failed steps store output as external dataArtifacts refs — no embedded attributes.
+  // Synthesise a minimal attrs so the render shows ✗ rather than —.
+  if (step.status === "failed") return { attrs: { passed: false }, status: "failed" };
   return { attrs: null, status: step.status };
 }
 
@@ -96,19 +99,19 @@ export function parseRun(doc) {
     blockingStep: findBlockingStep(jobs),
     metrics: {
       tests: tests.attrs
-        ? { passed: tests.attrs.passed, total: tests.attrs.total, passing: tests.attrs.passing, failing: tests.attrs.failing }
+        ? { passed: tests.attrs.passed, total: tests.attrs.total ?? null, passing: tests.attrs.passing ?? null, failing: tests.attrs.failing ?? null }
         : null,
       coverage: cov.attrs
-        ? { passed: cov.attrs.passed, lines: cov.attrs.lines, functions: cov.attrs.functions, branches: cov.attrs.branches, statements: cov.attrs.statements }
+        ? { passed: cov.attrs.passed, lines: cov.attrs.lines ?? null, functions: cov.attrs.functions ?? null, branches: cov.attrs.branches ?? null, statements: cov.attrs.statements ?? null }
         : null,
       mutation: mut.attrs
-        ? { passed: mut.attrs.passed, score: mut.attrs.overallScore, files: mut.attrs.files ?? [] }
+        ? { passed: mut.attrs.passed, score: mut.attrs.overallScore ?? null, files: mut.attrs.files ?? [] }
         : null,
       codescene: cs.attrs
-        ? { passed: cs.attrs.passed, failedFiles: cs.attrs.failedFiles, files: cs.attrs.files ?? [] }
+        ? { passed: cs.attrs.passed, failedFiles: cs.attrs.failedFiles ?? 0, files: cs.attrs.files ?? [] }
         : null,
       patchCoverage: patch.attrs
-        ? { passed: patch.attrs.passed, uncoveredLines: patch.attrs.uncoveredLines }
+        ? { passed: patch.attrs.passed, uncoveredLines: patch.attrs.uncoveredLines ?? null }
         : null,
     },
   };
@@ -210,6 +213,7 @@ function renderTestsRow(runs) {
   const cells = runs.map((r) => {
     const m = r.metrics.tests;
     if (!m) return "<td>—</td>";
+    if (m.total === null) return renderCell("✗", false);
     return renderCell(`${m.passing ?? m.total}/${m.total}`, m.passed);
   }).join("");
   return `<tr><td>tests</td>${cells}</tr>`;
@@ -251,7 +255,8 @@ function renderMutationFileRow(filePath, runs) {
 function renderMutationRows(runs) {
   const headerCells = runs.map((r) => {
     const m = r.metrics.mutation;
-    return renderCell(m ? fmtPct(m.score) : "—", m?.passed ?? null);
+    if (!m) return "<td>—</td>";
+    return renderCell(m.score !== null ? fmtPct(m.score) : "✗", m.passed);
   }).join("");
   const allFiles = [...new Set(runs.flatMap((r) => (r.metrics.mutation?.files ?? []).map((f) => f.path)))];
   const fileRows = allFiles.map((p) => renderMutationFileRow(p, runs));
@@ -272,6 +277,7 @@ function renderPatchCoverageRow(runs) {
   const cells = runs.map((r) => {
     const m = r.metrics.patchCoverage;
     if (!m) return "<td>—</td>";
+    if (m.uncoveredLines === null) return renderCell("✗", false);
     return renderCell(`${m.uncoveredLines} uncov`, m.passed);
   }).join("");
   return `<tr><td>patch-coverage</td>${cells}</tr>`;

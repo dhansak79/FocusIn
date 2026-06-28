@@ -136,6 +136,36 @@ describe("parseRun", () => {
     expect(run.metrics.mutation).toBeNull();
   });
 
+  it("synthesises passed:false for a failed step with no embedded output", () => {
+    const doc = {
+      id: "run-fast-2",
+      workflowName: "quality-gate-fast",
+      status: "failed",
+      startedAt: "2026-06-25T10:00:00Z",
+      jobs: [{ steps: [{ stepName: "codescene-health", status: "failed" }] }],
+    };
+    const run = parseRun(doc);
+    expect(run.metrics.codescene).toEqual({ passed: false, failedFiles: 0, files: [] });
+  });
+
+  it("synthesises null numeric fields for all failed steps without embedded output", () => {
+    const doc = {
+      id: "run-fast-3",
+      workflowName: "quality-gate-fast",
+      status: "failed",
+      startedAt: "2026-06-25T10:00:00Z",
+      jobs: [{ steps: [
+        { stepName: "tests", status: "failed" },
+        { stepName: "coverage", status: "failed" },
+        { stepName: "patch-coverage", status: "failed" },
+      ]}],
+    };
+    const run = parseRun(doc);
+    expect(run.metrics.tests).toEqual({ passed: false, total: null, passing: null, failing: null });
+    expect(run.metrics.coverage).toEqual({ passed: false, lines: null, functions: null, branches: null, statements: null });
+    expect(run.metrics.patchCoverage).toEqual({ passed: false, uncoveredLines: null });
+  });
+
   it("parses tests metrics from a quality-gate run", () => {
     const doc = {
       id: "run-1",
@@ -372,6 +402,14 @@ describe("renderSessionExplorer", () => {
     expect(html).toContain("slop-detector.js");
   });
 
+  it("falls back to raw file entry when codescene file has no path", () => {
+    const run = makeFullRun(0, {
+      codescene: { passed: false, failedFiles: 1, files: [{ score: 6.8 }] },
+    });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain('class="bad"');
+  });
+
   it("shows failedFiles count when files[] is empty", () => {
     const run = makeFullRun(0, {
       codescene: { passed: false, failedFiles: 2, files: [] },
@@ -398,6 +436,24 @@ describe("renderSessionExplorer", () => {
     });
     const html = renderSessionExplorer([makeSession([run])]);
     expect(html).toContain("42/42");
+  });
+
+  it("shows ✗ for tests when total is null (failed step with no embedded data)", () => {
+    const run = makeFullRun(0, { tests: { passed: false, total: null, passing: null, failing: null } });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain("✗");
+  });
+
+  it("shows ✗ for mutation when score is null (failed step with no embedded data)", () => {
+    const run = makeFullRun(0, { mutation: { passed: false, score: null, files: [] } });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain("✗");
+  });
+
+  it("shows ✗ for patch-coverage when uncoveredLines is null (failed step with no embedded data)", () => {
+    const run = makeFullRun(0, { patchCoverage: { passed: false, uncoveredLines: null } });
+    const html = renderSessionExplorer([makeSession([run])]);
+    expect(html).toContain("✗");
   });
 });
 
