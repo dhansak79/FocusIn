@@ -74,6 +74,7 @@ export const model = {
           ranAt,
         });
 
+        if (code !== 0) throw new Error(`Spec coverage failed: ${covered}/${total} scenarios covered (${pct.toFixed(1)}%)`);
         return { dataHandles: [handle] };
       },
     },

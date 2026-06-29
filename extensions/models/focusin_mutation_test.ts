@@ -1,4 +1,4 @@
-import { assertEquals, assertAlmostEquals } from "jsr:@std/assert";
+import { assertEquals, assertAlmostEquals, assertRejects } from "jsr:@std/assert";
 import { aggregateScores, model, scoreMutants } from "./focusin_mutation.ts";
 
 type MockOutput = { code: number; stdout: Uint8Array; stderr: Uint8Array };
@@ -106,7 +106,7 @@ Deno.test("model.run.execute: reads mutation report and writes correct resource"
   await Deno.remove(dir, { recursive: true });
 });
 
-Deno.test("model.run.execute: handles missing mutation report gracefully", async () => {
+Deno.test("model.run.execute: throws and writes passed=false when stryker fails", async () => {
   const written: Record<string, unknown>[] = [];
   const ctx = {
     globalArgs: { projectDir: "/nonexistent-dir-abc123" },
@@ -119,7 +119,7 @@ Deno.test("model.run.execute: handles missing mutation report gracefully", async
   await withMockCommand(
     () => ({ output: async () => ({ code: 1, stdout: new Uint8Array(), stderr: new Uint8Array() }) }),
     async () => {
-      await model.methods.run.execute({}, ctx as never);
+      await assertRejects(() => model.methods.run.execute({}, ctx as never), Error, "Mutation testing failed");
       assertEquals(written[0].overallScore, 0);
       assertEquals(written[0].total, 0);
       assertEquals(written[0].passed, false);

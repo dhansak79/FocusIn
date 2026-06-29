@@ -20,9 +20,14 @@ fi
 
 # Run quality-gate unless every changed file is under telemetry/.
 # Note: avoid grep -qv (BSD grep quirk — -q and -v interact unexpectedly).
+gate_exit=0
 if [ -z "$files" ] || echo "$files" | grep -v '^telemetry/' | grep -q .; then
   "$SWAMP" workflow run quality-gate
+  gate_exit=$?
 fi
 
-# Final sync after workflow completes — captures the current run's own YAML
+# Final sync after workflow completes — captures the current run's own YAML.
+# Runs regardless of gate result so telemetry is always recorded.
 node scripts/sync-telemetry.js && git add telemetry/ && git diff --cached --quiet || git commit -m "telemetry: sync"
+
+exit $gate_exit

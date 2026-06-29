@@ -417,20 +417,9 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     trackAuthorBlocked(vanity, extractAuthorName(post))
   }
 
-  const applyKeywordToPost = (post) => {
-    if (post.dataset.focusinInjected) return
-    if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-semantic-checked]')) return
-    postsProcessed++
-    if (isPromotedPost(post)) {
-      if (hidePromoted) {
-        const vanity = extractAuthorVanityName(post)
-        const name = extractAuthorName(post)
-        hidePost(post, mode)
-        countOnce(post, trackPostFiltered)
-        trackAuthorBlocked(vanity, name)
-      }
-      return
-    }
+  const noFiltersActive = !keywords.length && !detectSlop && !semanticTopics.length && !detectSlopArchetype && !toneFilterEnabled && !hidePromoted
+
+  const applyFiltersToPost = (post) => {
     const isKeywordMatch = keywords.some((keyword) => post.textContent.indexOf(keyword) !== -1)
     const slopSignals = checkSlop(post)
     if (isKeywordMatch) {
@@ -445,6 +434,24 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
       post.dataset.hidden = false
       requestSemanticChecks(post)
     }
+  }
+
+  const applyKeywordToPost = (post) => {
+    if (noFiltersActive) return
+    if (post.dataset.focusinInjected) return
+    if (post.parentElement?.closest('[data-hidden="true"],[data-focusin-banner],[data-semantic-checked]')) return
+    postsProcessed++
+    if (isPromotedPost(post)) {
+      if (hidePromoted) {
+        const vanity = extractAuthorVanityName(post)
+        const name = extractAuthorName(post)
+        hidePost(post, mode)
+        countOnce(post, trackPostFiltered)
+        trackAuthorBlocked(vanity, name)
+      }
+      return
+    }
+    applyFiltersToPost(post)
   }
 
   const processAddedNode = (node) => {

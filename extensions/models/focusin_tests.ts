@@ -100,8 +100,12 @@ export const model = {
           stderr: "piped",
         }).output();
 
-        const cucumberResult = await new Deno.Command("npx", {
-          args: ["cucumber-js", "--tags", "not @wip", "--format", "progress"],
+        const cucumberResult = await new Deno.Command("node", {
+          args: [
+            "node_modules/@cucumber/cucumber/bin/cucumber-js",
+            "--tags", "not @wip",
+            "--format", "progress",
+          ],
           cwd: projectDir,
           stdout: "piped",
           stderr: "piped",
@@ -129,6 +133,7 @@ export const model = {
           ranAt,
         });
 
+        if (code !== 0) throw new Error(`Tests failed: ${failing} failing out of ${total}`);
         return { dataHandles: [handle] };
       },
     },
@@ -161,6 +166,7 @@ export const model = {
           ranAt,
         });
 
+        if (code !== 0) throw new Error(`Coverage run failed (exit ${code})`);
         return { dataHandles: [handle] };
       },
     },
