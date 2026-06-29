@@ -109,7 +109,10 @@ Then(/the output ends with a line matching `Summary: N \/ T scenarios covered`/,
 })
 
 Given('at least one scenario in the features directory is tagged @wip', function () {
-  // The feature files always have @wip scenarios during active development
+  // Create a temporary @wip feature file so the CLI detects it
+  const tmp = join(ROOT, `tests/cucumber/features/.tmp-wip-${Date.now()}.feature`)
+  writeFileSync(tmp, 'Feature: temp\n\n  @wip\n  Scenario: Not done\n    Given something pending\n')
+  this.tmpWipFeature = tmp
 })
 
 When('the CLI runs', function () {

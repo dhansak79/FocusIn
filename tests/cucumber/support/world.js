@@ -3,6 +3,7 @@ import { JSDOM } from 'jsdom';
 import { setWorldConstructor, Before, After } from '@cucumber/cucumber';
 import FakeTimers from '@sinonjs/fake-timers';
 import esmock from 'esmock';
+import { rmSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { resetStatsState } from '../../../src/stats.js';
@@ -110,6 +111,10 @@ After(function () {
   delete global.chrome;
   for (const key of DOM_GLOBALS) {
     delete global[key];
+  }
+  if (this.tmpWipFeature) {
+    try { rmSync(this.tmpWipFeature); } catch (_) { /* ignore */ }
+    delete this.tmpWipFeature;
   }
 });
 

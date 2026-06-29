@@ -99,8 +99,14 @@ it('Scenario: Summary line shows overall counts', () => {
 })
 
 it('Scenario: Exit code 1 when any @wip scenario exists', () => {
-  const result = run()
-  expect(result.status).toBe(1)
+  const tmp = join(ROOT, `tests/cucumber/features/.tmp-wip-vitest-${Date.now()}.feature`)
+  writeFileSync(tmp, 'Feature: temp\n\n  @wip\n  Scenario: Pending\n    Given something pending\n')
+  try {
+    const result = run()
+    expect(result.status).toBe(1)
+  } finally {
+    rmSync(tmp, { force: true })
+  }
 })
 
 it('Scenario: npm script invokes the parser', () => {
