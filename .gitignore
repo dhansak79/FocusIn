@@ -6,6 +6,7 @@ node_modules
 /.claude/settings.local.json
 .stryker-tmp
 /reports
+/cucumber-report.json
 coverage
 .deno-coverage
 .tmp
