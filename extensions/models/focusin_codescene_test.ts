@@ -120,33 +120,48 @@ Deno.test("model.check.execute: no degradations — writes passed result and ret
   );
 });
 
-Deno.test("model.check.execute: degraded file — writes result then throws", async () => {
+async function runWithDegradedOutput(
+  globalArgs: Record<string, unknown>,
+  degradedJson: string,
+): Promise<Record<string, unknown>> {
   const written: Record<string, unknown>[] = [];
   const ctx = {
-    globalArgs: { projectDir: "/tmp/focusin" },
+    globalArgs,
     writeResource: async (_s: string, _i: string, data: Record<string, unknown>) => {
       written.push(data);
       return { name: "healthResult/current" };
     },
   };
-
-  const degraded = JSON.stringify([
-    { name: "src/foo.js", "old-score": 10.0, "new-score": 8.54, findings: [{ category: "Complex Method" }] },
-  ]);
-
   await withMockCommand(
-    () => ({ output: async () => ({ code: 0, stdout: enc.encode(degraded), stderr: new Uint8Array() }) }),
+    () => ({ output: async () => ({ code: 0, stdout: enc.encode(degradedJson), stderr: new Uint8Array() }) }),
     async () => {
       await assertRejects(
         () => model.methods.check.execute({}, ctx as never),
         Error,
         "CodeScene health gate failed",
       );
-      // Resource was written before the throw
-      assertEquals(written[0].passed, false);
-      assertEquals(written[0].failedFiles, 1);
     },
   );
+  return written[0];
+}
+
+Deno.test("model.check.execute: degraded file — writes result then throws", async () => {
+  const degraded = JSON.stringify([
+    { name: "src/foo.js", "old-score": 10.0, "new-score": 8.54, findings: [{ category: "Complex Method" }] },
+  ]);
+  const result = await runWithDegradedOutput({ projectDir: "/tmp/focusin" }, degraded);
+  assertEquals(result.passed, false);
+  assertEquals(result.failedFiles, 1);
+});
+
+Deno.test("model.check.execute: excludePaths filters matching files before health check", async () => {
+  const output = JSON.stringify([
+    { name: "src/foo.js", "old-score": 10.0, "new-score": 8.54, findings: [{}] },
+    { name: "telemetry/workflow-runs/run.yaml", "old-score": null, "new-score": 7.0, findings: [{}] },
+  ]);
+  const result = await runWithDegradedOutput({ projectDir: "/tmp/focusin", excludePaths: ["telemetry/"] }, output);
+  assertEquals(result.failedFiles, 1);
+  assertEquals((result.files as Array<{ name: string }>)[0].name, "src/foo.js");
 });
 
 Deno.test("model.check.execute: cs binary not found — throws with install message", async () => {

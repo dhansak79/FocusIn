@@ -7,6 +7,10 @@ import { z } from "npm:zod@4";
 
 const GlobalArgsSchema = z.object({
   projectDir: z.string().describe("Absolute path to the FocusIn project root"),
+  excludePaths: z
+    .array(z.string())
+    .optional()
+    .describe("Path prefixes to exclude from health check results"),
 });
 
 type GlobalArgs = z.infer<typeof GlobalArgsSchema>;
@@ -130,7 +134,10 @@ export const model = {
         });
 
         const raw = new TextDecoder().decode(result.stdout);
-        const files = parseDeltaOutput(raw);
+        const { excludePaths = [] } = context.globalArgs;
+        const files = parseDeltaOutput(raw).filter(
+          (f) => !excludePaths.some((p) => f.name.startsWith(p)),
+        );
         const health = buildHealthResult(files, ranAt);
 
         const handle = await context.writeResource("healthResult", "current", health);
