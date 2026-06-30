@@ -1,4 +1,4 @@
-import { assertEquals, assertAlmostEquals } from "jsr:@std/assert";
+import { assertEquals, assertAlmostEquals, assertRejects } from "jsr:@std/assert";
 import { model, parseSpecCoverageOutput } from "./focusin_spec_coverage.ts";
 
 type MockOutput = { code: number; stdout: Uint8Array; stderr: Uint8Array };
@@ -64,7 +64,7 @@ Deno.test("model.run.execute: writes correct resource on success", async () => {
   );
 });
 
-Deno.test("model.run.execute: handles command failure and empty stdout", async () => {
+Deno.test("model.run.execute: throws and writes passed=false on command failure", async () => {
   const written: Record<string, unknown>[] = [];
   const ctx = {
     globalArgs: { projectDir: "/tmp/fake-focusin" },
@@ -77,10 +77,9 @@ Deno.test("model.run.execute: handles command failure and empty stdout", async (
   await withMockCommand(
     () => ({ output: async () => ({ code: 1, stdout: new Uint8Array(), stderr: new Uint8Array() }) }),
     async () => {
-      await model.methods.run.execute({}, ctx as never);
+      await assertRejects(() => model.methods.run.execute({}, ctx as never), Error, "Spec coverage failed");
       assertEquals(written[0].covered, 0);
       assertEquals(written[0].total, 0);
-      assertEquals(written[0].pct, 100);
       assertEquals(written[0].passed, false);
     },
   );

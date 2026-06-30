@@ -2,24 +2,32 @@
 SWAMP="${HOME}/.swamp/bin/swamp"
 command -v swamp >/dev/null 2>&1 && SWAMP="swamp"
 
-# Skip if all pushed changes are in telemetry/
-run_check=0
-while read local_ref local_sha remote_ref remote_sha; do
-  zero="0000000000000000000000000000000000000000"
-  if [ "$remote_sha" = "$zero" ]; then
-    files=$(git log --name-only --pretty=format: "$local_sha" --not --remotes 2>/dev/null | grep '.')
-  else
-    files=$(git diff --name-only "${remote_sha}..${local_sha}" 2>/dev/null)
-  fi
-  if [ -n "$files" ] && echo "$files" | grep -qv '^telemetry/'; then
-    run_check=1
-    break
-  fi
-done
-
-if [ "$run_check" -eq 1 ]; then
-  "$SWAMP" workflow run quality-gate
+# Determine the diff base without relying on stdin (which is absent in
+# non-interactive environments such as Claude Code / CI scripts).
+# Prefer the upstream tracking branch; fall back to merge-base with origin/main.
+upstream=$(git rev-parse --abbrev-ref "@{u}" 2>/dev/null)
+if [ -n "$upstream" ]; then
+  base=$(git rev-parse "$upstream" 2>/dev/null)
+else
+  base=$(git merge-base HEAD origin/main 2>/dev/null)
 fi
 
-# Final sync after workflow completes — captures the current run's own YAML
+if [ -n "$base" ]; then
+  files=$(git diff --name-only "$base"..HEAD 2>/dev/null)
+else
+  files=$(git log --name-only --pretty=format: HEAD 2>/dev/null | grep '.')
+fi
+
+# Run quality-gate unless every changed file is under telemetry/.
+# Note: avoid grep -qv (BSD grep quirk — -q and -v interact unexpectedly).
+gate_exit=0
+if [ -z "$files" ] || echo "$files" | grep -v '^telemetry/' | grep -q .; then
+  "$SWAMP" workflow run quality-gate
+  gate_exit=$?
+fi
+
+# Final sync after workflow completes — captures the current run's own YAML.
+# Runs regardless of gate result so telemetry is always recorded.
 node scripts/sync-telemetry.js && git add telemetry/ && git diff --cached --quiet || git commit -m "telemetry: sync"
+
+exit $gate_exit

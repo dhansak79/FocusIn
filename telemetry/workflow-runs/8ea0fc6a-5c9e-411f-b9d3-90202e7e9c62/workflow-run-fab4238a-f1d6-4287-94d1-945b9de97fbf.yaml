@@ -1,0 +1,37 @@
+id: fab4238a-f1d6-4287-94d1-945b9de97fbf
+workflowId: 8ea0fc6a-5c9e-411f-b9d3-90202e7e9c62
+workflowName: quality-gate-fast
+status: running
+startedAt: '2026-06-30T00:24:30.484Z'
+jobs:
+  - jobName: check
+    status: pending
+    steps:
+      - stepName: lint
+        status: pending
+      - stepName: knip
+        status: pending
+      - stepName: tests
+        status: pending
+      - stepName: codescene-health
+        status: pending
+      - stepName: spec-coverage
+        status: pending
+  - jobName: coverage
+    status: pending
+    steps:
+      - stepName: coverage
+        status: pending
+  - jobName: deno-ext
+    status: pending
+    steps:
+      - stepName: deno-ext-tests
+        status: pending
+  - jobName: patch-coverage
+    status: pending
+    steps:
+      - stepName: patch-coverage
+        status: pending
+tags: {}
+logFile: >-
+  .swamp/workflow-runs/8ea0fc6a-5c9e-411f-b9d3-90202e7e9c62/workflow-run-fab4238a-f1d6-4287-94d1-945b9de97fbf.log

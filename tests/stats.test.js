@@ -419,3 +419,18 @@ describe('without chrome', () => {
     expect(await awaitStats(readStats)).toEqual(ZERO)
   })
 })
+
+describe('resetStatsState', () => {
+  it('clears active timers and resets pending state', async () => {
+    const { resetStatsState, trackPostFiltered, trackManualSlopReaction } = await importStats()
+    emptyStorage()
+    trackPostFiltered()
+    trackManualSlopReaction('user123', 'User Name')
+    expect(() => resetStatsState()).not.toThrow()
+  })
+
+  it('handles reset when no timers are active', async () => {
+    const { resetStatsState } = await importStats()
+    expect(() => resetStatsState()).not.toThrow()
+  })
+})

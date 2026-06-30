@@ -25,8 +25,10 @@ const enc = (s: string) => new TextEncoder().encode(s);
 async function runPatchCoverageCheck(
   dir: string,
   diff: string,
-): Promise<{ written: Record<string, unknown>[]; threw: boolean }> {
+  mode: "staged" | "branch" = "staged",
+): Promise<{ written: Record<string, unknown>[]; threw: boolean; capturedArgs: string[][] }> {
   const written: Record<string, unknown>[] = [];
+  const capturedArgs: string[][] = [];
   const ctx = {
     globalArgs: { projectDir: dir },
     writeResource: async (_s: string, _i: string, data: Record<string, unknown>) => {
@@ -36,12 +38,15 @@ async function runPatchCoverageCheck(
   };
   let threw = false;
   await withMockCommand(
-    () => ({ output: async () => ({ code: 0, stdout: enc(diff), stderr: enc("") }) }),
+    (_cmd: string, opts: { args: string[] }) => {
+      capturedArgs.push(opts.args);
+      return { output: async () => ({ code: 0, stdout: enc(diff), stderr: enc("") }) };
+    },
     async () => {
-      try { await model.methods.check.execute({}, ctx as never); } catch { threw = true; }
+      try { await model.methods.check.execute({ mode }, ctx as never); } catch { threw = true; }
     },
   );
-  return { written, threw };
+  return { written, threw, capturedArgs };
 }
 
 // ---- parseLcov ----
@@ -174,47 +179,49 @@ Deno.test("findUncoveredLines: reports uncovered lines in src/popup/ files when 
   ]);
 });
 
+async function withLcov(
+  lcov: string,
+  fn: (dir: string) => Promise<void>,
+): Promise<void> {
+  const dir = await Deno.makeTempDir();
+  await Deno.mkdir(`${dir}/coverage`);
+  await Deno.writeTextFile(`${dir}/coverage/lcov.info`, lcov);
+  try {
+    await fn(dir);
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+}
+
 // ---- model.check.execute ----
 
 Deno.test("model.check.execute: vacuous pass when no staged changes", async () => {
-  const dir = await Deno.makeTempDir();
-  await Deno.mkdir(`${dir}/coverage`);
-  await Deno.writeTextFile(`${dir}/coverage/lcov.info`, "SF:src/utils.js\nDA:1,2\nend_of_record\n");
-  const { written, threw } = await runPatchCoverageCheck(dir, "");
-  assertEquals(threw, false);
-  assertEquals(written[0].passed, true);
-  assertEquals(written[0].uncoveredLines, 0);
-  await Deno.remove(dir, { recursive: true });
+  await withLcov("SF:src/utils.js\nDA:1,2\nend_of_record\n", async (dir) => {
+    const { written, threw } = await runPatchCoverageCheck(dir, "");
+    assertEquals(threw, false);
+    assertEquals(written[0].passed, true);
+    assertEquals(written[0].uncoveredLines, 0);
+  });
 });
 
 Deno.test("model.check.execute: passes when all staged lines are covered", async () => {
-  const dir = await Deno.makeTempDir();
-  await Deno.mkdir(`${dir}/coverage`);
-  await Deno.writeTextFile(
-    `${dir}/coverage/lcov.info`,
-    `SF:${dir}/src/utils.js\nDA:1,2\nend_of_record\n`,
-  );
-  const diff = `+++ b/src/utils.js\n@@ -0,0 +1 @@\n+added\n`;
-  const { written, threw } = await runPatchCoverageCheck(dir, diff);
-  assertEquals(threw, false);
-  assertEquals(written[0].passed, true);
-  await Deno.remove(dir, { recursive: true });
+  await withLcov("", async (dir) => {
+    await Deno.writeTextFile(`${dir}/coverage/lcov.info`, `SF:${dir}/src/utils.js\nDA:1,2\nend_of_record\n`);
+    const { written, threw } = await runPatchCoverageCheck(dir, `+++ b/src/utils.js\n@@ -0,0 +1 @@\n+added\n`);
+    assertEquals(threw, false);
+    assertEquals(written[0].passed, true);
+  });
 });
 
 Deno.test("model.check.execute: writes resource then throws when staged lines uncovered", async () => {
-  const dir = await Deno.makeTempDir();
-  await Deno.mkdir(`${dir}/coverage`);
-  await Deno.writeTextFile(
-    `${dir}/coverage/lcov.info`,
-    `SF:${dir}/src/utils.js\nDA:1,0\nend_of_record\n`,
-  );
-  const diff = `+++ b/src/utils.js\n@@ -0,0 +1 @@\n+added line\n`;
-  const { written, threw } = await runPatchCoverageCheck(dir, diff);
-  assertEquals(threw, true);
-  assertEquals(written.length, 1, "resource written before throw");
-  assertEquals(written[0].passed, false);
-  assertEquals(written[0].uncoveredLines, 1);
-  await Deno.remove(dir, { recursive: true });
+  await withLcov("", async (dir) => {
+    await Deno.writeTextFile(`${dir}/coverage/lcov.info`, `SF:${dir}/src/utils.js\nDA:1,0\nend_of_record\n`);
+    const { written, threw } = await runPatchCoverageCheck(dir, `+++ b/src/utils.js\n@@ -0,0 +1 @@\n+added line\n`);
+    assertEquals(threw, true);
+    assertEquals(written.length, 1, "resource written before throw");
+    assertEquals(written[0].passed, false);
+    assertEquals(written[0].uncoveredLines, 1);
+  });
 });
 
 Deno.test("model.check.execute: passes gracefully when lcov.info missing", async () => {
@@ -226,22 +233,55 @@ Deno.test("model.check.execute: passes gracefully when lcov.info missing", async
 });
 
 Deno.test("model.check.execute: throws with assertRejects on uncovered lines", async () => {
+  await withLcov("", async (dir) => {
+    await Deno.writeTextFile(`${dir}/coverage/lcov.info`, `SF:${dir}/src/utils.js\nDA:1,0\nend_of_record\n`);
+    const diff = `+++ b/src/utils.js\n@@ -0,0 +1 @@\n+added line\n`;
+    const ctx = {
+      globalArgs: { projectDir: dir },
+      writeResource: async (_s: string, _i: string, _d: Record<string, unknown>) => ({
+        name: "patchCoverageResult/current",
+      }),
+    };
+    await withMockCommand(
+      () => ({ output: async () => ({ code: 0, stdout: enc(diff), stderr: enc("") }) }),
+      async () => {
+        await assertRejects(() => model.methods.check.execute({ mode: "staged" }, ctx as never));
+      },
+    );
+  });
+});
+
+// ---- branch mode ----
+
+Deno.test("model.check.execute: staged mode uses git diff --cached", async () => {
   const dir = await Deno.makeTempDir();
-  await Deno.mkdir(`${dir}/coverage`);
-  await Deno.writeTextFile(
-    `${dir}/coverage/lcov.info`,
-    `SF:${dir}/src/utils.js\nDA:1,0\nend_of_record\n`,
-  );
-  const diff = `+++ b/src/utils.js\n@@ -0,0 +1 @@\n+added line\n`;
-  const ctx = {
-    globalArgs: { projectDir: dir },
-    writeResource: async (_s: string, _i: string, _d: Record<string, unknown>) => ({
-      name: "patchCoverageResult/current",
-    }),
-  };
-  await withMockCommand(
-    () => ({ output: async () => ({ code: 0, stdout: enc(diff), stderr: enc("") }) }),
-    async () => { await assertRejects(() => model.methods.check.execute({}, ctx as never)); },
-  );
+  const { capturedArgs } = await runPatchCoverageCheck(dir, "", "staged");
+  assertEquals(capturedArgs[0], ["diff", "--cached", "-U0"]);
   await Deno.remove(dir, { recursive: true });
+});
+
+Deno.test("model.check.execute: branch mode uses git diff main...HEAD", async () => {
+  const dir = await Deno.makeTempDir();
+  const { capturedArgs } = await runPatchCoverageCheck(dir, "", "branch");
+  assertEquals(capturedArgs[0], ["diff", "main...HEAD", "-U0"]);
+  await Deno.remove(dir, { recursive: true });
+});
+
+Deno.test("model.check.execute: branch mode passes when all branch lines are covered", async () => {
+  await withLcov("", async (dir) => {
+    await Deno.writeTextFile(`${dir}/coverage/lcov.info`, `SF:${dir}/src/utils.js\nDA:1,3\nend_of_record\n`);
+    const { written, threw } = await runPatchCoverageCheck(dir, `+++ b/src/utils.js\n@@ -0,0 +1 @@\n+added\n`, "branch");
+    assertEquals(threw, false);
+    assertEquals(written[0].passed, true);
+  });
+});
+
+Deno.test("model.check.execute: branch mode throws when branch lines uncovered", async () => {
+  await withLcov("", async (dir) => {
+    await Deno.writeTextFile(`${dir}/coverage/lcov.info`, `SF:${dir}/src/utils.js\nDA:1,0\nend_of_record\n`);
+    const { written, threw } = await runPatchCoverageCheck(dir, `+++ b/src/utils.js\n@@ -0,0 +1 @@\n+added line\n`, "branch");
+    assertEquals(threw, true);
+    assertEquals(written[0].passed, false);
+    assertEquals(written[0].uncoveredLines, 1);
+  });
 });

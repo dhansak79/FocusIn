@@ -134,6 +134,13 @@ export const trackManualSlopReaction = (vanityName, displayName) => {
   scheduleShame()
 }
 
+export const resetStatsState = () => {
+  if (flushTimer) { clearTimeout(flushTimer); flushTimer = null }
+  pending = zero()
+  if (shameFlushTimer) { clearTimeout(shameFlushTimer); shameFlushTimer = null }
+  pendingShame = {}
+}
+
 export const readHallOfShame = (callback) => {
   const s = local()
   if (!s) { callback({}); return }

@@ -24,7 +24,6 @@ export default defineConfig({
         'src/popup/popup.js',
         'scripts/spec-coverage.js',
         'scripts/generate-guardrails-dashboard.js',
-        'scripts/migrate-specs-to-features.js',
       ],
       thresholds: {
         lines: 90,

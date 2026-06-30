@@ -54,7 +54,7 @@
 ## 6. End-to-End Validation
 
 - [x] 6.1 Write step definitions for `spec-coverage-unit` end-to-end (pure function, no DOM/timers needed)
-- [ ] 6.2 Run `/spec` skill through full propose → approve → implement → verify → archive flow on a real change
+- [x] 6.2 Run `/spec` skill through full propose → approve → implement → verify → archive flow on a real change
 - [x] 6.3 Archive guard enforced in model: `archive()` throws when scenarios are not all `pass` (covered by unit tests)
 - [x] 6.4 Quality-gate tests step runs cucumber via `focusin-tests` model; BDD failure blocks commit via same path as vitest failure
 

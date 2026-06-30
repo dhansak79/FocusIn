@@ -1,0 +1,52 @@
+id: 0cc7225e-6676-4aa4-ac9b-e53bcf4a2226
+workflowId: adb5a2c2-eee7-4dbb-a708-86c7f53cd81a
+workflowName: quality-gate
+status: running
+startedAt: '2026-06-29T23:58:11.962Z'
+jobs:
+  - jobName: check
+    status: pending
+    steps:
+      - stepName: lint
+        status: pending
+      - stepName: knip
+        status: pending
+      - stepName: tests
+        status: pending
+      - stepName: codescene-health
+        status: pending
+  - jobName: spec-coverage
+    status: pending
+    steps:
+      - stepName: spec-coverage
+        status: pending
+  - jobName: coverage
+    status: pending
+    steps:
+      - stepName: coverage
+        status: pending
+  - jobName: deno-ext
+    status: pending
+    steps:
+      - stepName: deno-ext-tests
+        status: pending
+  - jobName: patch-coverage
+    status: pending
+    steps:
+      - stepName: patch-coverage
+        status: pending
+  - jobName: mutation
+    status: pending
+    steps:
+      - stepName: mutation
+        status: pending
+  - jobName: dashboard
+    status: pending
+    steps:
+      - stepName: generate-dashboard
+        status: pending
+      - stepName: commit-telemetry
+        status: pending
+tags: {}
+logFile: >-
+  .swamp/workflow-runs/adb5a2c2-eee7-4dbb-a708-86c7f53cd81a/workflow-run-0cc7225e-6676-4aa4-ac9b-e53bcf4a2226.log

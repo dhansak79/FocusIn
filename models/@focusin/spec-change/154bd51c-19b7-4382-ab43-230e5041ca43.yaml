@@ -1,0 +1,9 @@
+type: '@focusin/spec-change'
+typeVersion: 2026.06.28.1
+id: 154bd51c-19b7-4382-ab43-230e5041ca43
+name: spec-change
+version: 1
+tags: {}
+globalArguments:
+  projectDir: /Users/daniel/Repos/FocusIn
+methods: {}

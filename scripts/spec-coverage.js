@@ -14,35 +14,29 @@ export const findFiles = (dir, predicate) => {
   return results
 }
 
-const DELTA_SECTIONS = new Set(['ADDED Requirements', 'MODIFIED Requirements'])
+export const parseScenariosFromFeature = (filePath) => {
+  const lines = readFileSync(filePath, 'utf8').split('\n')
+  const results = []
+  let pendingWip = false
 
-const sectionIncluded = (section, changeMode) => !changeMode || DELTA_SECTIONS.has(section)
-
-export const parseScenarios = (filePath, changeMode) => {
-  let requirement = null
-  let include = !changeMode
-
-  return readFileSync(filePath, 'utf8').split('\n').flatMap((line) => {
-    if (line.startsWith('## ')) {
-      include = sectionIncluded(line.slice(3).trim(), changeMode)
-      return []
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed === '@wip') {
+      pendingWip = true
+      continue
     }
-    if (line.startsWith('### Requirement: ')) {
-      requirement = line.slice('### Requirement: '.length).trim()
-      return []
+    if (trimmed.startsWith('Scenario:') || trimmed.startsWith('Scenario Outline:')) {
+      const name = trimmed.replace(/^Scenario(?: Outline)?:\s*/, '')
+      results.push({ scenario: name, wip: pendingWip })
+      pendingWip = false
+      continue
     }
-    if (!include || !requirement) return []
-    if (!line.startsWith('#### Scenario: ')) return []
-    return [{ requirement, scenario: line.slice('#### Scenario: '.length).trim() }]
-  })
+    const isNonTagContent = trimmed !== '' && !trimmed.startsWith('#') && !trimmed.startsWith('@')
+    if (isNonTagContent) pendingWip = false
+  }
+
+  return results
 }
-
-export const isCovered = (name, testContents, featureContents = '') =>
-  testContents.includes(`it('Scenario: ${name}'`) ||
-  testContents.includes(`it("Scenario: ${name}"`) ||
-  testContents.includes(`it.todo('Scenario: ${name}'`) ||
-  testContents.includes(`it.todo("Scenario: ${name}"`) ||
-  featureContents.includes(`Scenario: ${name}`)
 
 /* c8 ignore start */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -51,47 +45,39 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const changeIdx = args.indexOf('--change')
   const changeName = changeIdx !== -1 ? args[changeIdx + 1] : null
 
-  const specsDir = changeName
-    ? join(ROOT, 'openspec', 'changes', changeName, 'specs')
-    : join(ROOT, 'openspec', 'specs')
+  let featureFiles
 
-  if (!existsSync(specsDir)) {
-    console.error(`Error: spec directory not found: ${specsDir}`)
-    process.exit(1)
+  if (changeName) {
+    const featureFile = join(ROOT, 'tests', 'cucumber', 'features', `${changeName}.feature`)
+    if (!existsSync(featureFile)) {
+      console.error(`Error: feature file not found: ${featureFile}`)
+      process.exit(1)
+    }
+    featureFiles = [featureFile]
+  } else {
+    const featuresDir = join(ROOT, 'tests', 'cucumber', 'features')
+    if (!existsSync(featuresDir)) {
+      console.error(`Error: features directory not found: ${featuresDir}`)
+      process.exit(1)
+    }
+    featureFiles = findFiles(featuresDir, (n) => n.endsWith('.feature'))
   }
 
-  const testContents = findFiles(join(ROOT, 'tests'), (n) => n.endsWith('.test.js'))
-    .map((f) => readFileSync(f, 'utf8'))
-    .join('\n')
-
-  const featuresDir = join(ROOT, 'tests', 'cucumber', 'features')
-  const featureContents = existsSync(featuresDir)
-    ? findFiles(featuresDir, (n) => n.endsWith('.feature'))
-        .map((f) => readFileSync(f, 'utf8'))
-        .join('\n')
-    : ''
-
-  const specFiles = findFiles(specsDir, (n) => n === 'spec.md')
   let total = 0
   let covered = 0
 
   console.log('\nSpec Coverage Report')
   console.log('─'.repeat(60))
 
-  for (const specFile of specFiles) {
-    const entries = parseScenarios(specFile, changeName !== null)
+  for (const featureFile of featureFiles) {
+    const entries = parseScenariosFromFeature(featureFile)
     if (entries.length === 0) continue
 
-    console.log(`\n${specFile.replace(ROOT + '/', '')}`)
+    console.log(`\n${featureFile.replace(ROOT + '/', '')}`)
 
-    let lastReq = null
-    for (const { requirement, scenario } of entries) {
-      if (requirement !== lastReq) {
-        console.log(`  ${requirement}`)
-        lastReq = requirement
-      }
-      const hit = isCovered(scenario, testContents, featureContents)
-      console.log(`    ${hit ? '✓' : '✗'} ${scenario}`)
+    for (const { scenario, wip } of entries) {
+      const hit = !wip
+      console.log(`  ${hit ? '✓' : '✗'} ${scenario}`)
       total++
       if (hit) covered++
     }

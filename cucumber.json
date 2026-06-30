@@ -1,0 +1,10 @@
+{
+  "default": {
+    "paths": ["tests/cucumber/features/**/*.feature"],
+    "import": [
+      "tests/cucumber/support/world.js",
+      "tests/cucumber/step-definitions/**/*.js"
+    ],
+    "publishQuiet": true
+  }
+}

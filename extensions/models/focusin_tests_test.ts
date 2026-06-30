@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals, assertRejects } from "jsr:@std/assert";
 import { model, parseVitestOutput, readCoverageMetrics } from "./focusin_tests.ts";
 
 type MockOutput = { code: number; stdout: Uint8Array; stderr: Uint8Array };
@@ -132,11 +132,35 @@ Deno.test("model.test.execute: failing=0 when both commands succeed but output f
   assertEquals(result.failing, 0);
 });
 
-Deno.test("model.test.execute: passed=false and failing>0 when commands fail and no output file", async () => {
-  const result = await runTestExecuteNoFile(1);
-  assertEquals(result.passed, false);
-  assertEquals((result.failing as number) > 0, true);
-});
+async function assertThrowsOnFailure(
+  execute: (ctx: never) => Promise<unknown>,
+  errorMsg: string,
+  extraCheck?: (written: Record<string, unknown>[]) => void,
+) {
+  const written: Record<string, unknown>[] = [];
+  const ctx = {
+    globalArgs: { projectDir: "/nonexistent-abc" },
+    writeResource: async (_s: string, _i: string, data: Record<string, unknown>) => {
+      written.push(data);
+      return { name: "result/current" };
+    },
+  };
+  await withMockCommand(
+    () => ({ output: async () => ({ code: 1, stdout: new Uint8Array(), stderr: new Uint8Array() }) }),
+    async () => {
+      await assertRejects(() => execute(ctx as never), Error, errorMsg);
+      assertEquals(written[0].passed, false);
+      extraCheck?.(written);
+    },
+  );
+}
+
+Deno.test("model.test.execute: throws and writes passed=false when commands fail", () =>
+  assertThrowsOnFailure(
+    (ctx) => model.methods.test.execute({}, ctx),
+    "Tests failed",
+    (written) => assertEquals((written[0].failing as number) > 0, true),
+  ));
 
 Deno.test("model.coverage.execute: reads coverage-summary.json and writes resource", async () => {
   const dir = await Deno.makeTempDir();
@@ -168,3 +192,9 @@ Deno.test("model.coverage.execute: reads coverage-summary.json and writes resour
 
   await Deno.remove(dir, { recursive: true });
 });
+
+Deno.test("model.coverage.execute: throws and writes passed=false when command fails", () =>
+  assertThrowsOnFailure(
+    (ctx) => model.methods.coverage.execute({}, ctx),
+    "Coverage run failed",
+  ));

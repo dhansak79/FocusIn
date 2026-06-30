@@ -1,6 +1,6 @@
 id: 8ea0fc6a-5c9e-411f-b9d3-90202e7e9c62
 name: quality-gate-fast
-description: Fast quality pipeline — lint, knip, tests, and CodeScene in parallel, then coverage, deno ext tests, and patch-coverage
+description: Fast quality pipeline — lint, knip, tests, spec-coverage, and CodeScene in parallel, then coverage, deno ext tests, and patch-coverage (staged + branch)
 tags: {}
 version: 1
 jobs:
@@ -31,6 +31,12 @@ jobs:
           type: model_method
           modelIdOrName: focusin-codescene
           methodName: check
+      - name: spec-coverage
+        description: Check every scenario in feature files is implemented (no @wip)
+        task:
+          type: model_method
+          modelIdOrName: focusin-spec-coverage
+          methodName: run
 
   - name: coverage
     description: Run vitest with coverage and verify thresholds (90% lines/branches/functions/statements)
@@ -61,15 +67,25 @@ jobs:
           methodName: run
 
   - name: patch-coverage
-    description: Verify every staged added line is hit by the combined coverage report
+    description: Verify coverage of staged additions and all branch changes vs main
     dependsOn:
       - job: deno-ext
         condition:
           type: succeeded
     steps:
-      - name: patch-coverage
-        description: Check patch coverage against staged diff
+      - name: patch-coverage-staged
+        description: Check patch coverage against staged diff (current commit)
         task:
           type: model_method
           modelIdOrName: focusin-patch-coverage
           methodName: check
+          inputs:
+            mode: staged
+      - name: patch-coverage-branch
+        description: Check patch coverage against full branch diff vs main
+        task:
+          type: model_method
+          modelIdOrName: focusin-patch-coverage
+          methodName: check
+          inputs:
+            mode: branch

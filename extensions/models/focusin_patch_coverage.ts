@@ -62,7 +62,7 @@ function isAddedLine(line: string): boolean {
   return line.startsWith("+") && !line.startsWith("+++");
 }
 
-/** Parse git diff --cached output into a map of { filePath: Set<addedLineNumber> }. */
+/** Parse git diff output into a map of { filePath: Set<addedLineNumber> }. */
 export function parseStagedDiff(diff: string): Record<string, Set<number>> {
   const added: Record<string, Set<number>> = {};
   let cur: string | null = null;
@@ -119,10 +119,14 @@ export const model = {
   },
   methods: {
     check: {
-      description: "Check that every staged added line is hit by the coverage report",
-      arguments: z.object({}),
+      description: "Check that every added line in the diff is hit by the coverage report",
+      arguments: z.object({
+        mode: z.enum(["staged", "branch"]).default("staged").describe(
+          "staged: git diff --cached (pre-commit); branch: git diff main...HEAD (pre-push/CI)",
+        ),
+      }),
       execute: async (
-        _args: Record<string, never>,
+        { mode }: { mode: "staged" | "branch" },
         context: { globalArgs: GlobalArgs; writeResource: WriteResourceFn },
       ) => {
         const { projectDir } = context.globalArgs;
@@ -137,8 +141,12 @@ export const model = {
           // Missing lcov is treated as empty coverage
         }
 
+        const diffArgs = mode === "branch"
+          ? ["diff", "main...HEAD", "-U0"]
+          : ["diff", "--cached", "-U0"];
+
         const diffResult = await new Deno.Command("git", {
-          args: ["diff", "--cached", "-U0"],
+          args: diffArgs,
           cwd: projectDir,
           stdout: "piped",
           stderr: "piped",
@@ -161,8 +169,11 @@ export const model = {
 
         if (!result.passed) {
           const lines = uncovered.map((u) => `  UNCOVERED  ${u.file}:${u.line}`).join("\n");
+          const hint = mode === "branch"
+            ? "Add tests for the lines above — these are new lines on this branch vs main."
+            : "Add tests for the lines above before committing.";
           throw new Error(
-            `Patch coverage failed — ${uncovered.length} uncovered line(s):\n${lines}\n\nAdd tests for the lines above before committing.`,
+            `Patch coverage failed — ${uncovered.length} uncovered line(s):\n${lines}\n\n${hint}`,
           );
         }
 

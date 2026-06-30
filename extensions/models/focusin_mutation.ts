@@ -119,6 +119,7 @@ export const model = {
           ranAt,
         });
 
+        if (code !== 0) throw new Error(`Mutation testing failed: score ${overallScore.toFixed(1)}% (${killed}/${total} mutants killed)`);
         return { dataHandles: [handle] };
       },
     },

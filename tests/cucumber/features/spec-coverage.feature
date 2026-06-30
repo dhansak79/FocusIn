@@ -1,79 +1,47 @@
 Feature: spec-coverage
 
-  @wip
-  Scenario: Scenarios extracted from a spec file
-    When the parser runs against a spec file containing `#### Scenario:` headings
-    Then each scenario name is extracted and associated with its parent requirement heading and spec file path
+  Scenario: Active scenario extracted from feature file
+    Given a feature file containing a Scenario with no @wip tag
+    When parseScenariosFromFeature is called on that file
+    Then the scenario is returned with wip: false
 
-  @wip
-  Scenario: Missing spec directory is handled gracefully
-    When no `openspec/specs/` directory exists
-    Then the parser exits with a clear error message and a non-zero exit code
+  Scenario: WIP scenario detected from @wip tag
+    Given a feature file containing a Scenario preceded by @wip
+    When parseScenariosFromFeature is called on that file
+    Then the scenario is returned with wip: true
 
-  @wip
-  Scenario: Covered scenario is marked ✓
-    When a test file contains `it('Scenario: Negative post is collapsed', ...)`
-    And the spec contains `#### Scenario: Negative post is collapsed`
-    Then the parser reports that scenario as covered (✓)
+  Scenario: Mixed active and @wip scenarios in same file
+    Given a feature file with one active scenario and one @wip scenario
+    When parseScenariosFromFeature is called on that file
+    Then the active scenario has wip: false and the @wip scenario has wip: true
 
-  @wip
-  Scenario: Uncovered scenario is marked ✗
-    When no test file contains `it('Scenario: <name>', ...)`
-    And the spec contains `#### Scenario: <name>`
-    Then the parser reports that scenario as missing (✗)
+  Scenario: @wip tag only applies to immediately following scenario
+    Given a feature file where @wip precedes one scenario and a second scenario has no tag
+    When parseScenariosFromFeature is called on that file
+    Then only the first scenario has wip: true
 
-  @wip
-  Scenario: Partial name match does not count as covered
-    When a test file contains `it('Scenario: Negative post', ...)`
-    And the spec contains `#### Scenario: Negative post is collapsed`
-    Then the scenario is reported as missing (✗)
+  Scenario: findFiles returns matching files recursively
+    Given a nested directory of files with mixed extensions
+    When findFiles is called with a .feature predicate
+    Then only .feature files from all subdirectories are returned
 
-  @wip
-  Scenario: Report groups scenarios under requirements
-    When the parser completes
-    Then each spec file is listed as a section header
-    And scenarios appear under their parent requirement name
-    And each scenario line is prefixed with ✓ (covered) or ✗ (missing)
+  Scenario: Missing feature file handled gracefully with --change
+    When the CLI is run with --change and a non-existent change name
+    Then it exits with a non-zero code and prints a clear error message
 
-  @wip
   Scenario: Summary line shows overall counts
-    When the parser completes
-    Then the final line reads `Summary: N / T scenarios covered` where N is covered count and T is total
+    When the CLI scans the features directory
+    Then the output ends with a line matching `Summary: N / T scenarios covered`
 
-  @wip
-  Scenario: Exit code 0 when all scenarios covered
-    When every extracted scenario has a matching test
-    Then the parser exits with code 0
+  Scenario: Exit code 1 when any @wip scenario exists
+    Given at least one scenario in the features directory is tagged @wip
+    When the CLI runs
+    Then it exits with code 1
 
-  @wip
-  Scenario: Exit code 1 when any scenario is uncovered
-    When at least one scenario has no matching test
-    Then the parser exits with code 1
-
-  @wip
   Scenario: npm script invokes the parser
     When the developer runs `npm run spec:coverage`
     Then the parser executes and prints the coverage report to stdout
 
-  @wip
   Scenario: Core functions importable as ES module exports
     When another module imports from `scripts/spec-coverage.js`
-    Then `parseScenarios`, `isCovered`, and `findFiles` are available as named exports
-
-  @wip
-  Scenario: Boundary test name matches spec scenario exactly
-    When a spec file contains `#### Scenario: Negative post is collapsed`
-    And a boundary test file contains `it('Scenario: Negative post is collapsed', ...)`
-    Then the parser reports that scenario as covered
-
-  @wip
-  Scenario: Boundary tests drive through feed.js default export
-    When a boundary test exercises a collapse behavior
-    Then it calls `doFeed(config)` with a config object matching the scenario's preconditions
-    And it asserts on DOM state (element classes, banner presence) rather than function return values
-
-  @wip
-  Scenario: Boundary tests mock only at system boundaries
-    When a boundary test runs
-    Then only the ML pipeline (`transformers.min.js`) and `chrome.*` APIs are mocked
-    And all internal extension code between `feed.js` and those boundaries runs un-mocked
+    Then `parseScenariosFromFeature` and `findFiles` are available as named exports

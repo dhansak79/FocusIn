@@ -86,11 +86,13 @@ jobs:
           type: succeeded
     steps:
       - name: patch-coverage
-        description: Check patch coverage against staged diff
+        description: Check patch coverage against full branch diff vs main
         task:
           type: model_method
           modelIdOrName: focusin-patch-coverage
           methodName: check
+          inputs:
+            mode: branch
 
   - name: mutation
     description: Run Stryker mutation testing — only if all preceding jobs pass

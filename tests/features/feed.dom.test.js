@@ -369,3 +369,30 @@ describe('profile activity feed (.scaffold-finite-scroll--infinite)', () => {
     expect(li.classList.contains('hide')).toBe(true)
   })
 })
+
+// ---------------------------------------------------------------------------
+// focusinInjected guard — posts injected by the extension are skipped
+// ---------------------------------------------------------------------------
+
+describe('focusinInjected guard', () => {
+  it('does not process a post that has data-focusin-injected set', () => {
+    const posts = buildFeedDOM(['synergy injected', 'synergy post'])
+    posts[0].dataset.focusinInjected = 'true'
+
+    doFeed({ ...baseConfig, 'feed-keywords': 'synergy' })
+
+    expect(posts[0].dataset.hidden).toBeUndefined()
+    expect(posts[1].classList.contains('hide')).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resetFeedState — clears module-level observer and timer refs
+// ---------------------------------------------------------------------------
+
+describe('resetFeedState', () => {
+  it('clears feedObserver and scrollTimerId without throwing', async () => {
+    const { resetFeedState } = await import('../../src/features/feed.js')
+    expect(() => resetFeedState()).not.toThrow()
+  })
+})
