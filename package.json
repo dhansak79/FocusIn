@@ -13,7 +13,8 @@
     "test:visual": "playwright test",
     "mutate": "stryker run",
     "mutate:report": "stryker run && node scripts/mutation-report.js",
-    "spec:coverage": "node scripts/spec-coverage.js"
+    "spec:coverage": "node scripts/spec-coverage.js",
+    "bdd": "node node_modules/@cucumber/cucumber/bin/cucumber-js"
   },
   "devDependencies": {
     "@creativebulma/bulma-divider": "^1.1.0",

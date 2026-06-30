@@ -56,6 +56,41 @@ This gate is currently being hardened from informational to blocking. The live d
 
 The fast checks. Tests must pass, ESLint must be clean, dead code (Knip) must not accumulate. These run in parallel at the start of the gate so failures here abort before the expensive checks run.
 
+## The spec-gate: specifying before building
+
+The quality gate checks whether what the agent built is correct. The spec-gate checks whether the agent built the right thing to begin with.
+
+AI agents are fluent at producing code. They are poor at knowing when to stop, what scope is appropriate, and whether the thing they built matches the thing that was asked for. Writing a spec first is not a bureaucratic step — it is the earliest point at which drift can be caught.
+
+Every change in this repository flows through a `spec-change` model that enforces a fixed sequence:
+
+```
+propose → scenarios → design → tasks → implement → verify
+```
+
+Each phase has a hard gate:
+
+- **Proposal** — written in terms of why, what, and success criteria. Must be approved before any code is touched. Forces a clear statement of scope before the agent starts generating.
+- **Scenarios** — Given/When/Then behavioural scenarios derived from the proposal. Must be approved before design begins. These become the executable contract.
+- **Design and tasks** — technical approach and ordered implementation checklist. Generated automatically; no human gate, but stored so the agent cannot drift from them mid-session.
+- **Implement** — tasks worked in order, each marked complete as it is done. The agent cannot skip steps or batch completions retroactively.
+- **Verify** — the spec-runner executes the BDD suite and records which scenarios passed, failed, or are still pending. Results are stored against the change. Archive requires all scenarios to pass.
+
+The scenarios written at Gate 2 are the same ones that feed into the spec coverage gate on every subsequent push. A scenario that was approved but never implemented will show as uncovered. An agent that ships a feature without a corresponding scenario cannot pass spec coverage.
+
+This is what closes the loop: the spec-gate ensures behaviour is specified and verified; the quality gate ensures it stays verified as the codebase evolves.
+
+Invoke via Claude Code:
+
+```
+/spec:propose <name>    # draft and approve the proposal
+/spec:scenarios         # generate and approve scenarios
+/spec:design            # technical design (auto-continues)
+/spec:tasks             # implementation checklist (auto-continues)
+/spec:implement         # work through tasks
+/spec:verify            # run BDD suite and record results
+```
+
 ## The gate as enforcement, not suggestion
 
 The gates are wired into the git pre-push hook:

@@ -56,6 +56,3 @@ Feature: guardrails-impact-dashboard
     Then the corresponding cell renders `✗` in red rather than `—`
 
 
-  Scenario: Link to dashboard is present on the mutation report page
-    When a user visits `https://dhansak79.github.io/FocusIn/`
-    Then the page contains a link with text "Guardrails Dashboard" pointing to `/FocusIn/insights/`

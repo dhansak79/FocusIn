@@ -7,7 +7,7 @@
     "src/content/content.js"
   ],
   "project": ["src/**/*.js"],
-  "ignore": ["src/lib/**"],
+  "ignore": ["src/lib/**", "cucumber.mjs"],
   "ignoreDependencies": [
     "@xenova/transformers",
     "@creativebulma/bulma-divider",

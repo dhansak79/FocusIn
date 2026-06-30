@@ -87,4 +87,4 @@ This project uses [Claude Code](https://claude.ai/code) as the primary coding as
 
 The pre-commit hook (`quality-gate-fast`) runs lint, dead code, spec coverage, tests, CodeScene health, coverage, extension tests, and patch coverage on every commit. The pre-push hook (`quality-gate`) adds mutation testing.
 
-The latest [mutation report](https://dhansak79.github.io/FocusIn/) and [guardrails dashboard](https://dhansak79.github.io/FocusIn/insights/) are published to GitHub Pages on each merge to `main`.
+The latest [mutation report](https://dhansak79.github.io/FocusIn/), [guardrails dashboard](https://dhansak79.github.io/FocusIn/insights/), and [BDD report](https://dhansak79.github.io/FocusIn/cucumber/) are published to GitHub Pages on each merge to `main`.

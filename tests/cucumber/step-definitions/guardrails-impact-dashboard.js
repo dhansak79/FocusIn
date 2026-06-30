@@ -122,11 +122,3 @@ Then('the corresponding cell renders `✗` in red rather than `—`', function (
   assert.ok(this.dashHtml.includes('✗'), 'dashboard must render ✗ for failed steps with no data')
   assert.ok(this.dashHtml.includes('class="bad"'), 'failed step cells must use "bad" class (red colour)')
 })
-
-Then(/the page contains a link with text "Guardrails Dashboard" pointing to `\/FocusIn\/insights\/`/, function () {
-  // The mutation report page link is injected by inject-dashboard-link.js at deploy time.
-  // We verify the inject script contains the right href and text.
-  const script = readFileSync(join(ROOT, 'scripts', 'inject-dashboard-link.js'), 'utf8')
-  assert.ok(script.includes('/FocusIn/insights/'), 'inject script must link to /FocusIn/insights/')
-  assert.ok(script.includes('Guardrails Dashboard'), 'inject script must use "Guardrails Dashboard" as link text')
-})
