@@ -1,4 +1,3 @@
-/* global global */
 export class RunFeed {
   constructor(config) {
     this.config = config;

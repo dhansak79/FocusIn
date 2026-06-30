@@ -6,4 +6,5 @@ export default {
   ],
   tags: "not @wip",
   publishQuiet: true,
+  format: ["progress", "html:reports/cucumber/index.html"],
 };

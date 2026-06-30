@@ -1,0 +1,457 @@
+id: 2932f1bc-5ea7-4c8a-9307-04c4792b7063
+workflowId: b0ac9c84-598d-46f5-8ec6-c6891ec5a2ed
+workflowName: spec-gate
+status: failed
+startedAt: '2026-06-30T14:37:46.092Z'
+completedAt: '2026-06-30T14:37:46.323Z'
+jobs:
+  - jobName: generate-features
+    status: succeeded
+    startedAt: '2026-06-30T14:37:46.097Z'
+    completedAt: '2026-06-30T14:37:46.239Z'
+    steps:
+      - stepName: generate
+        status: succeeded
+        startedAt: '2026-06-30T14:37:46.098Z'
+        completedAt: '2026-06-30T14:37:46.236Z'
+        output:
+          type: model_method
+          model: spec-change
+          method: generate-features
+          resources:
+            change:
+              bdd-pages:
+                id: c70b6470-ddcc-4697-a205-d10e60efc55d
+                name: bdd-pages
+                version: 23
+                isLatest: true
+                createdAt: '2026-06-30T14:37:46.169Z'
+                namespace: ''
+                attributes:
+                  name: bdd-pages
+                  phase: implementing
+                  proposal_text: >
+                    **Why**
+
+
+                    The project currently publishes two reports to GitHub Pages:
+                    a mutation testing report and a guardrails/workflow-insights
+                    dashboard. A third first-class quality signal — 149 passing
+                    Cucumber BDD scenarios — has no published output. Its
+                    results are only visible locally via pre-commit hooks. All
+                    three reports should be accessible in one place.
+
+
+                    **What**
+
+
+                    1. **Configure HTML output** — add `--format
+                    html:reports/cucumber/index.html` to `cucumber.mjs` so
+                    running the suite produces a self-contained HTML report.
+
+
+                    2. **Create `bdd.yml`** — a new GitHub Actions workflow that
+                    runs `npx cucumber-js` on push/PR to main, generates the
+                    HTML report, and uploads it as a `cucumber-report` artifact.
+
+
+                    3. **Update `pages.yml`** — extend the trigger to include
+                    the BDD workflow (in addition to Mutation), download the
+                    `cucumber-report` artifact alongside the existing
+                    `mutation-report`, and include it at `/cucumber/` in the
+                    Pages staging directory. Use a concurrency group to prevent
+                    double-deploys when both workflows complete
+                    near-simultaneously.
+
+
+                    4. **Delete `pages.yml`** is NOT the goal — the existing
+                    mutation and insights reports stay on Pages. This adds a
+                    third section.
+
+
+                    **Out of scope**
+
+                    - No new BDD scenarios or step definition changes
+
+                    - No changes to local pre-commit hook behaviour
+
+                    - No coverage integration for BDD results
+
+
+                    **Success criteria**
+
+                    - `npx cucumber-js` produces `reports/cucumber/index.html`
+                    locally
+
+                    - A GitHub Actions BDD workflow run uploads a
+                    `cucumber-report` artifact
+
+                    - The GitHub Pages site includes all three reports:
+                    mutation, insights, and cucumber
+
+                    - No regression to the existing mutation or insights Pages
+                    sections
+                  design_text: >
+                    ## Approach
+
+
+                    Three files change. The core insight is that `pages.yml`
+                    currently uses `github.event.workflow_run.id` (the
+                    triggering run) to download artifacts — this only works when
+                    the trigger and the artifact are in the same run. Adding a
+                    second workflow as a trigger means the triggering run ID
+                    will sometimes be BDD (no mutation artifact) and sometimes
+                    Mutation (no cucumber artifact). The fix is to look up each
+                    workflow's latest successful run via the GitHub API,
+                    decoupling artifact download from which workflow triggered
+                    the deployment.
+
+
+                    ## Files to change
+
+
+                    **`cucumber.mjs`** — already updated. Added `format:
+                    ["progress", "html:reports/cucumber/index.html"]` alongside
+                    the existing default `"progress"` terminal output. The
+                    `/reports` directory is already gitignored, so local HTML
+                    output is harmless.
+
+
+                    **`.github/workflows/bdd.yml`** — create new. Triggers on
+                    push/PR to main. Runs `npm ci` + `npx cucumber-js`. Uploads
+                    `reports/cucumber/` as `cucumber-report` artifact with `if:
+                    always()` so the report is available even when scenarios
+                    fail (visible failure state is useful). Mirrors the shape of
+                    `mutation.yml`.
+
+
+                    **`.github/workflows/pages.yml`** — three changes:
+
+                    1. Extend `workflow_run` trigger to `workflows: ["Mutation",
+                    "BDD"]` — pages redeploys when either completes on main.
+
+                    2. Add `concurrency: { group: github-pages,
+                    cancel-in-progress: false }` — if both workflows finish
+                    close together, deployments queue rather than run in
+                    parallel. The second deploy always has the freshest
+                    artifacts.
+
+                    3. Replace the hardcoded `run-id: ${{
+                    github.event.workflow_run.id }}` artifact download with a
+                    `github-script` step that looks up the latest successful run
+                    ID for `mutation.yml` and `bdd.yml` independently via
+                    `listWorkflowRuns`. Download each artifact using its own run
+                    ID. Cucumber download uses `continue-on-error: true` and a
+                    conditional assemble step so Pages is not broken on the
+                    first-ever push before a BDD run exists.
+
+                    4. Remove the erroneously added "Run Cucumber BDD scenarios"
+                    step (running tests in Pages is wrong — Pages should only
+                    publish).
+
+
+                    ## Key decisions
+
+
+                    - **API lookup over triggering run ID**: decouples pages
+                    from which workflow triggered it. Both sections always
+                    reflect the latest successful data for their respective
+                    workflow.
+
+                    - **`cancel-in-progress: false`**: the second deploy queues,
+                    not cancels. A cancelled mid-flight deployment can leave
+                    Pages in an inconsistent state.
+
+                    - **`if: always()` on BDD artifact upload**: a failing BDD
+                    run still uploads the report. You can see exactly which
+                    scenarios broke on the Pages site.
+
+                    - **`continue-on-error` on cucumber artifact download**:
+                    graceful degradation — if no BDD run exists yet, Pages
+                    deploys without the cucumber section rather than failing
+                    entirely.
+
+
+                    ## Step definition strategy
+
+
+                    The single scenario ("Cucumber generates an HTML report when
+                    run") tests the `cucumber.mjs` config change — it is a
+                    meta-test that verifies the formatter is wired up.
+                    Implementation: a simple step definition that runs `npx
+                    cucumber-js` in a subprocess and asserts
+                    `reports/cucumber/index.html` exists afterwards. However,
+                    given the circularity (cucumber testing cucumber), this
+                    scenario will be tagged `@wip` and excluded from the main
+                    suite. Verification is done by inspecting the CI artifact
+                    after the first BDD workflow run.
+
+
+                    ## Risk / trade-offs
+
+
+                    - **Timing**: if BDD finishes before Mutation and triggers
+                    Pages first, the Pages deploy will fetch the latest
+                    successful Mutation run — which may be from the previous
+                    commit. The second Pages deploy (triggered by Mutation
+                    finishing) corrects this. End state is always correct;
+                    intermediate state is stale-but-valid.
+
+                    - **GitHub API rate limits**: `listWorkflowRuns` adds two
+                    API calls per Pages run. No concern for a single small repo.
+
+                    - **First-ever BDD run**: Pages deploys without the cucumber
+                    section. `continue-on-error` and the conditional assemble
+                    guard handle this cleanly.
+                  scenarios:
+                    - name: Cucumber generates an HTML report when run
+                      feature: bdd-pages
+                      given:
+                        - >-
+                          cucumber.mjs is configured with HTML format output to
+                          reports/cucumber/index.html
+                      when:
+                        - npx cucumber-js is executed
+                      then:
+                        - an HTML file exists at reports/cucumber/index.html
+                      status: pending
+                  tasks:
+                    - id: '1.1'
+                      description: >-
+                        Confirm cucumber.mjs has format: ["progress",
+                        "html:reports/cucumber/index.html"] — already applied
+                        this session, verify the file is correct
+                      done: true
+                    - id: '2.1'
+                      description: >-
+                        Create .github/workflows/bdd.yml: name BDD, trigger on
+                        push/PR to main, single job that runs npm ci then npx
+                        cucumber-js, uploads reports/cucumber/ as
+                        cucumber-report artifact with if: always()
+                      done: true
+                    - id: '3.1'
+                      description: >-
+                        Remove the erroneously added Run Cucumber BDD scenarios
+                        step from pages.yml (tests must not run in the Pages
+                        workflow)
+                      done: true
+                    - id: '3.2'
+                      description: >-
+                        Extend pages.yml workflow_run trigger from workflows:
+                        [Mutation] to workflows: [Mutation, BDD]
+                      done: true
+                    - id: '3.3'
+                      description: >-
+                        Add concurrency group to pages.yml publish job: group:
+                        github-pages, cancel-in-progress: false
+                      done: true
+                    - id: '3.4'
+                      description: >-
+                        Add a github-script step in pages.yml that calls
+                        listWorkflowRuns for mutation.yml and bdd.yml (branch:
+                        main, status: success, per_page: 1) and sets outputs
+                        mutation-run-id and bdd-run-id
+                      done: true
+                    - id: '3.5'
+                      description: >-
+                        Update the existing Download mutation report artifact
+                        step in pages.yml to use run-id: ${{
+                        steps.find-runs.outputs.mutation-run-id }} instead of
+                        github.event.workflow_run.id
+                      done: true
+                    - id: '3.6'
+                      description: >-
+                        Add Download cucumber report artifact step in pages.yml
+                        after the mutation download: uses
+                        actions/download-artifact@v4, path reports/cucumber/,
+                        run-id from steps.find-runs.outputs.bdd-run-id,
+                        continue-on-error: true
+                      done: true
+                    - id: '3.7'
+                      description: >-
+                        Update the Assemble Pages staging directory step in
+                        pages.yml to mkdir -p reports/pages/cucumber and
+                        conditionally cp -r reports/cucumber/.
+                        reports/pages/cucumber/ only if the directory exists and
+                        is non-empty
+                      done: true
+                    - id: '4.1'
+                      description: >-
+                        The single scenario is infrastructure-only and cannot be
+                        tested with Cucumber step definitions without
+                        circularity — tag it @wip in the feature file generated
+                        by spec:verify to exclude it from the main suite.
+                        Document this decision in a comment in the feature file.
+                      done: true
+                    - id: '5.1'
+                      description: >-
+                        Run npx cucumber-js locally and verify
+                        reports/cucumber/index.html is created and contains
+                        scenario results
+                      done: true
+                    - id: '5.2'
+                      description: >-
+                        Validate workflow YAML syntax with yamllint or
+                        actionlint on bdd.yml and pages.yml
+                      done: true
+                  proposal_approved_at: '2026-06-30T13:54:00.322Z'
+                  scenarios_approved_at: '2026-06-30T13:54:15.438Z'
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: 2932f1bc-5ea7-4c8a-9307-04c4792b7063
+                  job: generate-features
+                  step: generate
+                modelName: spec-change
+                modelId: 154bd51c-19b7-4382-ab43-230e5041ca43
+                modelType: '@focusin/spec-change'
+                specName: change
+                dataType: resource
+                contentType: application/json
+                lifetime: 365d
+                ownerType: model-method
+                streaming: false
+                size: 8544
+                content: ''
+                ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                workflowRunId: 2932f1bc-5ea7-4c8a-9307-04c4792b7063
+                workflowName: spec-gate
+                jobName: generate-features
+                stepName: generate
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: c70b6470-ddcc-4697-a205-d10e60efc55d
+              name: bdd-pages
+              version: 23
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: 2932f1bc-5ea7-4c8a-9307-04c4792b7063
+                job: generate-features
+                step: generate
+            - dataId: 3f14e426-3db5-4cc8-ab1d-d9e1f7e1699e
+              name: report-swamp-method-summary
+              version: 33
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: c00c4342-68c5-45c8-a93f-f76aae397b64
+              name: report-swamp-method-summary-json
+              version: 33
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: bdd-pages
+              specName: change
+              kind: resource
+              dataId: c70b6470-ddcc-4697-a205-d10e60efc55d
+              version: 23
+              size: 8544
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: 2932f1bc-5ea7-4c8a-9307-04c4792b7063
+                job: generate-features
+                step: generate
+              metadata:
+                contentType: application/json
+                lifetime: 365d
+                garbageCollection: 100
+                streaming: false
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: 2932f1bc-5ea7-4c8a-9307-04c4792b7063
+                  job: generate-features
+                  step: generate
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                  workflowRunId: 2932f1bc-5ea7-4c8a-9307-04c4792b7063
+                  workflowName: spec-gate
+                  jobName: generate-features
+                  stepName: generate
+                  source: step-output
+        dataArtifacts:
+          - dataId: c70b6470-ddcc-4697-a205-d10e60efc55d
+            name: bdd-pages
+            version: 23
+            tags:
+              type: resource
+              specName: change
+              modelName: spec-change
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: 2932f1bc-5ea7-4c8a-9307-04c4792b7063
+              job: generate-features
+              step: generate
+          - dataId: 3f14e426-3db5-4cc8-ab1d-d9e1f7e1699e
+            name: report-swamp-method-summary
+            version: 33
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: c00c4342-68c5-45c8-a93f-f76aae397b64
+            name: report-swamp-method-summary-json
+            version: 33
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: run-runner
+    status: failed
+    startedAt: '2026-06-30T14:37:46.244Z'
+    completedAt: '2026-06-30T14:37:46.270Z'
+    steps:
+      - stepName: run
+        status: failed
+        startedAt: '2026-06-30T14:37:46.244Z'
+        completedAt: '2026-06-30T14:37:46.267Z'
+        error: 'Model not found: focusin-spec-runner'
+  - jobName: record-results
+    status: failed
+    startedAt: '2026-06-30T14:37:46.276Z'
+    completedAt: '2026-06-30T14:37:46.318Z'
+    steps:
+      - stepName: record
+        status: failed
+        startedAt: '2026-06-30T14:37:46.277Z'
+        completedAt: '2026-06-30T14:37:46.316Z'
+        error: >-
+          No such file or directory (os error 2): readfile
+          'cucumber-report.json'
+tags: {}
+logFile: >-
+  .swamp/workflow-runs/b0ac9c84-598d-46f5-8ec6-c6891ec5a2ed/workflow-run-2932f1bc-5ea7-4c8a-9307-04c4792b7063.log
+workflowDataArtifacts:
+  - dataId: 98317fce-f817-4c92-ae93-cc98520616d0
+    name: report-swamp-workflow-summary
+    version: 1
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
+  - dataId: fa2d6bf5-9d09-4841-8945-9221110812b1
+    name: report-swamp-workflow-summary-json
+    version: 1
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow

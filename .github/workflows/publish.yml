@@ -1,9 +1,7 @@
-name: Pages
+name: Publish
 
 on:
-  workflow_run:
-    workflows: ["Mutation"]
-    types: [completed]
+  push:
     branches: [main]
 
 permissions:
@@ -13,9 +11,16 @@ permissions:
   actions: read
 
 jobs:
+  mutation:
+    uses: ./.github/workflows/mutation.yml
+
+  bdd:
+    uses: ./.github/workflows/bdd.yml
+
   publish:
+    needs: [mutation, bdd]
+    if: always() && needs.mutation.result == 'success'
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,17 +33,25 @@ jobs:
         with:
           name: mutation-report
           path: reports/mutation/
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+      - name: Download cucumber report artifact
+        if: needs.bdd.result == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: cucumber-report
+          path: reports/cucumber/
       - name: Generate guardrails dashboard
         run: node scripts/generate-guardrails-dashboard.js
       - name: Inject dashboard link into mutation report
         run: node scripts/inject-dashboard-link.js
       - name: Assemble Pages staging directory
         run: |
-          mkdir -p reports/pages/insights
+          mkdir -p reports/pages/insights reports/pages/cucumber
           cp -r reports/mutation/. reports/pages/
           cp reports/workflow-insights/index.html reports/pages/insights/index.html
+          if [ -d reports/cucumber ] && [ "$(ls -A reports/cucumber 2>/dev/null)" ]; then
+            cp -r reports/cucumber/. reports/pages/cucumber/
+          fi
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

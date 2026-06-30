@@ -13,7 +13,8 @@
     "test:visual": "playwright test",
     "mutate": "stryker run",
     "mutate:report": "stryker run && node scripts/mutation-report.js",
-    "spec:coverage": "node scripts/spec-coverage.js"
+    "spec:coverage": "node scripts/spec-coverage.js",
+    "bdd": "node node_modules/@cucumber/cucumber/bin/cucumber-js"
   },
   "devDependencies": {
     "@creativebulma/bulma-divider": "^1.1.0",
@@ -31,6 +32,7 @@
     "cheerio": "^1.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^4.0.0",
     "esmock": "^2.7.6",
     "js-yaml": "^4.1.0",

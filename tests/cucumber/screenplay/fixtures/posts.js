@@ -15,8 +15,6 @@ export const CLEAN_WITH_ACTOR = `<a href="/in/jane-smith/"><div aria-label="Jane
 
 export const POST_WITH_AUTHOR = `<a href="/in/grace-hopper/"><strong>Grace Hopper</strong></a>${CLEAN_POST}`
 
-export const SLOP_WITH_NAMED_ACTOR = `<a href="/in/john-doe/"><div aria-label="John Doe Profile 2nd">John Doe</div></a><br>${SLOP_POST}`
-
 export const PROMOTED_POST = `
   <p><span>Promoted</span></p>
   <p data-testid="expandable-text-box">Buy our amazing product now!</p>
@@ -31,10 +29,6 @@ export const PROMOTED_POST_WITH_AUTHOR = `
   <a href="/in/grace-hopper/"><div aria-label="Grace Hopper Profile 1st">Grace Hopper</div></a>
   <p><span>Promoted</span></p>
   <p data-testid="expandable-text-box">Buy our amazing product now!</p>
-`
-
-export const POST_WITH_PROMOTED_IN_BODY = `
-  <p data-testid="expandable-text-box">Our campaign was Promoted across all channels this quarter.</p>
 `
 
 export const REACTIONS_BAR = `

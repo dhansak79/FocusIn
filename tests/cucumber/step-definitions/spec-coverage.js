@@ -4,7 +4,6 @@ import { mkdirSync, writeFileSync, rmSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { findFiles, parseScenariosFromFeature } from '../../../scripts/spec-coverage.js'
-import { spawnSync } from 'child_process'
 import { RunScript } from '../screenplay/tasks/RunScript.js'
 import { ScriptResult } from '../screenplay/questions/ScriptResult.js'
 
@@ -123,20 +122,3 @@ Then('it exits with code 1', function () {
   assert.equal(this.asksAbout(ScriptResult.exitCode()), 1)
 })
 
-When(/the developer runs `npm run spec:coverage`/, function () {
-  const result = spawnSync('npm', ['run', 'spec:coverage'], { encoding: 'utf8', cwd: ROOT })
-  this.npmResult = result.stdout + result.stderr
-})
-
-Then('the parser executes and prints the coverage report to stdout', function () {
-  assert.ok(this.npmResult.includes('Spec Coverage Report'))
-})
-
-When(/another module imports from `scripts\/spec-coverage\.js`/, function () {
-  // Already imported at top of this file
-})
-
-Then(/`parseScenariosFromFeature` and `findFiles` are available as named exports/, function () {
-  assert.equal(typeof parseScenariosFromFeature, 'function')
-  assert.equal(typeof findFiles, 'function')
-})

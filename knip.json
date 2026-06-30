@@ -4,10 +4,13 @@
     "src/index.js",
     "src/service_worker.js",
     "src/popup/popup.js",
-    "src/content/content.js"
+    "src/content/content.js",
+    "tests/cucumber/step-definitions/**/*.js",
+    "tests/cucumber/support/**/*.js",
+    "scripts/sync-telemetry.js"
   ],
-  "project": ["src/**/*.js"],
-  "ignore": ["src/lib/**"],
+  "project": ["src/**/*.js", "tests/cucumber/**/*.js", "scripts/**/*.js"],
+  "ignore": ["src/lib/**", "cucumber.mjs"],
   "ignoreDependencies": [
     "@xenova/transformers",
     "@creativebulma/bulma-divider",

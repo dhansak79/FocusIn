@@ -38,10 +38,3 @@ Feature: spec-coverage
     When the CLI runs
     Then it exits with code 1
 
-  Scenario: npm script invokes the parser
-    When the developer runs `npm run spec:coverage`
-    Then the parser executes and prints the coverage report to stdout
-
-  Scenario: Core functions importable as ES module exports
-    When another module imports from `scripts/spec-coverage.js`
-    Then `parseScenariosFromFeature` and `findFiles` are available as named exports

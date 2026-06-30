@@ -12,6 +12,27 @@
     "chrome": true,
     "Tagify": true
   },
-  "plugins": ["prettier"],
-  "extends": ["eslint:recommended", "prettier"]
+  "plugins": ["prettier", "import"],
+  "extends": ["eslint:recommended", "prettier"],
+  "rules": {
+    "import/no-unresolved": ["error", { "ignore": ["^node:", "^vitest", "^@vitest"] }]
+  },
+  "overrides": [
+    {
+      "files": ["tests/cucumber/**/*.js", "scripts/**/*.js"],
+      "env": {
+        "browser": false,
+        "node": true
+      },
+      "rules": {
+        "import/named": "error"
+      }
+    },
+    {
+      "files": ["tests/**/*.js"],
+      "env": {
+        "node": true
+      }
+    }
+  ]
 }

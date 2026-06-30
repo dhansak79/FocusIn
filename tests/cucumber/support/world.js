@@ -1,4 +1,3 @@
-/* global global */
 import { JSDOM } from 'jsdom';
 import { setWorldConstructor, Before, After } from '@cucumber/cucumber';
 import FakeTimers from '@sinonjs/fake-timers';
