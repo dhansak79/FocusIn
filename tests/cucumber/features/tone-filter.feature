@@ -1,5 +1,10 @@
 Feature: tone-filter
 
+  Scenario: Default tone threshold is 85%
+    Given the tone filter is enabled with no user-configured threshold
+    When a user installs the extension for the first time
+    Then the tone-threshold setting defaults to 85
+
   Scenario: Tone filter toggle is off by default
     When a user installs the extension for the first time
     Then the `tone-filter` setting is `false` and no tone checking is performed

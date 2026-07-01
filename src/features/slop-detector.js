@@ -30,6 +30,8 @@ const hasMarkdownFormatting = (text) =>
   // Asterisk bullet lists: lines starting with "* text"
   /^\* \S/m.test(text)
 
+const hasEmDash = (text) => /—/.test(text)
+
 // Two or more lines each starting with an emoji used as a bullet point.
 // Common AI formatting pattern; individual emoji use in normal posts is fine.
 const hasEmojiBullets = (text) => {
@@ -67,21 +69,26 @@ const phraseScore = (text) => {
 const patternScore = (text) =>
   SLOP_PATTERNS.some((pattern) => pattern.test(text)) ? 2 : 0
 
-export const getSlopScore = (text) =>
-  phraseScore(text) +
-  (hasHighEmojiDensity(text) ? 1 : 0) +
-  (hasMarkdownFormatting(text) ? 2 : 0) +
-  linePatternScore(text) +
-  patternScore(text) +
-  (hasEmojiBullets(text) ? 1 : 0) +
-  (hasExcessiveHashtags(text) ? 1 : 0)
-
 const BOOL_SIGNALS = [
-  [hasEmojiBullets, 'emoji bullets'],
-  [hasHighEmojiDensity, 'emoji overload'],
-  [hasMarkdownFormatting, 'raw markdown'],
-  [hasExcessiveHashtags, 'hashtag spam'],
+  [hasEmojiBullets, 1, 'emoji bullets'],
+  [hasHighEmojiDensity, 1, 'emoji overload'],
+  [hasMarkdownFormatting, 2, 'raw markdown'],
+  [hasExcessiveHashtags, 1, 'hashtag spam'],
+  [hasEmDash, 1, 'em dash'],
 ]
+
+const lineScore = (lps, otherScore) => {
+  if (lps === 2) return 2
+  if (lps === 1 && otherScore > 0) return 1
+  return 0
+}
+
+export const getSlopScore = (text) => {
+  const lps = linePatternScore(text)
+  const boolScore = BOOL_SIGNALS.reduce((sum, [fn, weight]) => sum + Number(fn(text)) * weight, 0)
+  const otherScore = phraseScore(text) + patternScore(text) + boolScore
+  return otherScore + lineScore(lps, otherScore)
+}
 
 const LINE_STACKING_LABELS = { 1: 'line stacking', 2: 'extreme line stacking' }
 
@@ -98,7 +105,7 @@ export const getSlopSignals = (text) => {
     if (pattern.test(text)) signals.push(SLOP_PATTERN_LABELS[i])
   })
 
-  for (const [check, label] of BOOL_SIGNALS) {
+  for (const [check, , label] of BOOL_SIGNALS) {
     if (check(text)) signals.push(label)
   }
 
