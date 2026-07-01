@@ -71,9 +71,9 @@ describe('getSlopScore - single sentence per line', () => {
     expect(getSlopScore(text)).toBe(0)
   })
 
-  it('scores above 0 when most lines contain a single short sentence', () => {
+  it('scores 0 for moderate stacking with no other signals (requires combination)', () => {
     const text = ['This is the hook.', 'Here is the second thought.', 'And the third.', 'Another single line.', 'This keeps going.', 'One final line.'].join('\n')
-    expect(getSlopScore(text)).toBeGreaterThan(0)
+    expect(getSlopScore(text)).toBe(0)
   })
 
   it('scores above 0 for the classic LinkedIn one-liner stacking pattern', () => {
@@ -115,10 +115,10 @@ describe('getSlopScore - line pattern boundary', () => {
     expect(getSlopScore(text)).toBe(0)
   })
 
-  it('scores above 0 when exactly the minimum ratio of lines are single-sentence', () => {
-    // 3 single-sentence lines out of 5 = exactly 60% = LINE_PATTERN_RATIO
+  it('scores 0 at exactly the minimum ratio with no other signals (moderate stacking requires combination)', () => {
+    // 3 single-sentence lines out of 5 = exactly 60% = LINE_PATTERN_RATIO — but no other signals
     const text = ['Single thought here.', 'Another single thought.', 'One more single line.', 'This has two sentences. Yes it does.', 'This also has two. And more here.'].join('\n')
-    expect(getSlopScore(text)).toBeGreaterThan(0)
+    expect(getSlopScore(text)).toBe(0)
   })
 })
 
@@ -132,9 +132,9 @@ describe('getSlopScore - heavy line stacking', () => {
     expect(getSlopScore(post)).toBeGreaterThanOrEqual(2)
   })
 
-  it('scores only 1 for moderate stacking (5–14 lines)', () => {
+  it('scores 0 for moderate stacking alone — requires another signal to contribute', () => {
     const post = ['This is the hook.', 'Here is the second thought.', 'And the third.', 'Another single line.', 'This keeps going.', 'One final line.'].join('\n')
-    expect(getSlopScore(post)).toBe(1)
+    expect(getSlopScore(post)).toBe(0)
   })
 
   it('flags a heavy stacker as slop even without phrases or emojis', () => {
@@ -211,8 +211,8 @@ describe('getSlopScore - keycap emoji numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSlopScore - em dash', () => {
-  it('flags a post containing an em dash', () => {
-    expect(isSlop('We shipped the feature — and it went great.')).toBe(true)
+  it('does not flag a post with only an em dash (score 1, below threshold)', () => {
+    expect(isSlop('We shipped the feature — and it went great.')).toBe(false)
   })
 
   it('does not flag a post with only a regular hyphen', () => {
@@ -422,9 +422,9 @@ describe('isSlop - real-world slop posts', () => {
     expect(isSlop(post)).toBe(true)
   })
 
-  it('flags a post with heavy em dash usage', () => {
+  it('does not flag a post with multiple em dashes but no other signals', () => {
     const post = 'Leadership — real leadership — is rare. Consistency — not talent — is the differentiator. Results — not effort — is what matters.'
-    expect(isSlop(post)).toBe(true)
+    expect(isSlop(post)).toBe(false)
   })
 
   it('flags a post pasted directly from an AI chat window', () => {

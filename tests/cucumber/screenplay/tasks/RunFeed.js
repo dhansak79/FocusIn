@@ -8,6 +8,7 @@ export class RunFeed {
   }
 
   async performAs(world) {
+    await world.initFeed();
     global.chrome = world.chromeMock;
     await world.doFeed(this.config);
     world.clock.tick(850);

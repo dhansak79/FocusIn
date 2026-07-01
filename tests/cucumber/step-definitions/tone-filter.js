@@ -13,8 +13,18 @@ import { PostVisibility } from '../screenplay/questions/PostVisibility.js'
 
 const MANY_CLEAN = Array(6).fill(CLEAN_POST)
 
+Given('the tone filter is enabled with no user-configured threshold', function () {
+  delete this.storageData['tone-threshold']
+})
+
 Given('a user installs the extension for the first time', async function () {
   await LoadPopupHTML.performAs(this)
+})
+
+Then('the tone-threshold setting defaults to 85', function () {
+  const slider = this.popupDocument.getElementById('tone-threshold')
+  assert.ok(slider, 'tone-threshold slider must exist')
+  assert.equal(Number(slider.value), 85)
 })
 
 Then(/the `tone-filter` setting is `false` and no tone checking is performed/, function () {

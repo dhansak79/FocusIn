@@ -528,7 +528,7 @@ const handleFilterFeed = (mode, config) => {
     !!config['slop-archetype'],
     whitelisted,
     !!config['tone-filter'],
-    config['tone-threshold'] ?? 70,
+    config['tone-threshold'] ?? 85,
     !!config['hide-promoted']
   )
 }

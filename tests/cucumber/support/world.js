@@ -1,5 +1,7 @@
 import { JSDOM } from 'jsdom';
-import { setWorldConstructor, Before, After } from '@cucumber/cucumber';
+import { setWorldConstructor, Before, After, setDefaultTimeout } from '@cucumber/cucumber';
+
+setDefaultTimeout(30 * 1000);
 import FakeTimers from '@sinonjs/fake-timers';
 import esmock from 'esmock';
 import { rmSync } from 'fs';
@@ -9,6 +11,11 @@ import { resetStatsState } from '../../../src/stats.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '../../..');
+
+// esmock initialises a worker thread on first call (~3-5s). Cache the module
+// promise so subsequent scenarios pay only the reset cost, not re-init cost.
+let _feedModulePromise = null;
+let _activeWorld = null;
 
 const DOM_GLOBALS = [
   'document', 'window', 'self', 'Node', 'Element', 'HTMLElement', 'MutationObserver',
@@ -30,6 +37,27 @@ class FocusInWorld {
     this.chromeMock = this._makeChromeMock({});
     this.scriptResult = null;
     this.swampData = null;
+    this.doFeed = null;
+  }
+
+  async initFeed() {
+    if (!_feedModulePromise) {
+      _feedModulePromise = esmock(join(ROOT, 'src/features/feed.js'), {
+        [join(ROOT, 'src/lib/transformers.min.js')]: {
+          pipeline: async () => async () => [{ label: 'NEGATIVE', score: 0 }],
+          env: { backends: { onnx: { wasm: {} } } },
+        },
+        [join(ROOT, 'src/features/unfollow.js')]: {
+          // reads from _activeWorld so each scenario's unfollowResult is used
+          unfollowAuthor: () => _activeWorld.unfollowResult,
+        },
+      });
+    }
+    _activeWorld = this;
+    const feedModule = await _feedModulePromise;
+    this.doFeed = feedModule.default;
+    if (feedModule.resetFeedState) feedModule.resetFeedState();
+    resetStatsState();
   }
 
   _makeChromeMock(responses = {}) {
@@ -80,29 +108,14 @@ class FocusInWorld {
   }
 }
 
-Before(async function () {
+Before(function () {
   // Install JSDOM globals so feed.js can use document/window/Node etc.
   for (const key of DOM_GLOBALS) {
     if (this.dom.window[key] !== undefined) {
       global[key] = this.dom.window[key];
     }
   }
-
   this.clock = FakeTimers.install();
-
-  const world = this;
-  const feedModule = await esmock(join(ROOT, 'src/features/feed.js'), {
-    [join(ROOT, 'src/lib/transformers.min.js')]: {
-      pipeline: async () => async () => [{ label: 'NEGATIVE', score: 0 }],
-      env: { backends: { onnx: { wasm: {} } } },
-    },
-    [join(ROOT, 'src/features/unfollow.js')]: {
-      unfollowAuthor: () => world.unfollowResult,
-    },
-  });
-  this.doFeed = feedModule.default;
-  if (feedModule.resetFeedState) feedModule.resetFeedState();
-  resetStatsState();
 });
 
 After(function () {

@@ -153,8 +153,8 @@ if (toneThresholdInput) {
 }
 
 const loadToneThreshold = () => {
-  chrome.storage.local.get({ 'tone-threshold': 70 }, (res) => {
-    const val = res['tone-threshold'] ?? 70
+  chrome.storage.local.get({ 'tone-threshold': 85 }, (res) => {
+    const val = res['tone-threshold'] ?? 85
     if (toneThresholdInput) toneThresholdInput.value = val
     if (toneThresholdValue) toneThresholdValue.textContent = val
   })

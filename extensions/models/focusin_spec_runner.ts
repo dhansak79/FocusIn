@@ -16,6 +16,8 @@ const RunResultSchema = z.object({
   passed: z.boolean(),
   reportPath: z.string(),
   ranAt: z.string(),
+  exitCode: z.number(),
+  stderr: z.string(),
 });
 
 type WriteResourceFn = (
@@ -26,7 +28,7 @@ type WriteResourceFn = (
 
 export const model = {
   type: "@focusin/spec-runner",
-  version: "2026.06.28.1",
+  version: "2026.07.01.3",
   globalArguments: GlobalArgsSchema,
   resources: {
     runResult: {
@@ -51,9 +53,9 @@ export const model = {
         const reportPath = `${projectDir}/cucumber-report.json`;
         const glob = featuresGlob ?? "tests/cucumber/features/**/*.feature";
 
-        const { code } = await new Deno.Command("npx", {
+        const { code, stderr } = await new Deno.Command("node", {
           args: [
-            "cucumber-js",
+            "node_modules/@cucumber/cucumber/bin/cucumber-js",
             glob,
             "--tags", "not @wip",
             "--format", `json:${reportPath}`,
@@ -68,6 +70,8 @@ export const model = {
           passed: code === 0,
           reportPath,
           ranAt,
+          exitCode: code,
+          stderr: new TextDecoder().decode(stderr).slice(0, 2000),
         });
 
         return { dataHandles: [handle], reportPath };

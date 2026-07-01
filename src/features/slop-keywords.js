@@ -674,8 +674,6 @@ export const SLOP_PATTERNS = [
   /it['‘’]s not [^.!?\n]{1,60}[.!?][ \t\n]+it['‘’]s /i,
   /this isn['‘’]t [^.!?\n]{1,60}[.!?][ \t\n]+this is /i,
   /that['‘’]s not [^.!?\n]{1,60}[.!?][ \t\n]+that['‘’]s /i,
-  // Em dash — almost never typed manually; heavily used by LLMs
-  /—/,
   // Arrow bullet lists — AI listicle format, rarely used by genuine writers
   /^→ .+\n.*^→ /ms,
   // Twitter thread format on LinkedIn — "1/" "2/" "3/" numbered items
@@ -699,7 +697,6 @@ export const SLOP_PATTERN_LABELS = [
   "it's not X, it's Y",
   "this isn't X, this is Y",
   "that's not X, that's Y",
-  "em dash",
   "arrow bullets",
   "thread format",
   "quote attribution",
