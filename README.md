@@ -78,6 +78,22 @@ This project uses [Claude Code](https://claude.ai/code) as the primary coding as
 
 ## Development
 
+### Setup
+
+The quality gates and spec-gate tooling depend on three CLIs that aren't installed via `npm`:
+
+- **[swamp](https://github.com/swamp-club/swamp)** (`~/.swamp/bin/swamp`) — runs the quality-gate/spec-gate workflows and the `spec-change` model.
+- **[Deno](https://deno.com)** (bundled at `~/.swamp/deno/deno`) — runs the extension model tests in `extensions/models/`.
+- **[CodeScene CLI](https://codescene.io)** (`~/.local/bin/cs`) — powers the code health gate. (`cs-mcp`, the MCP server used by the CodeScene Claude Code plugin, installs separately via npm and is usually already on `PATH`.)
+
+Add all three to your shell's `PATH` (e.g. in `~/.zshrc` or `~/.bashrc`):
+
+```sh
+export PATH="$HOME/.swamp/bin:$HOME/.swamp/deno:$HOME/.local/bin:$PATH"
+```
+
+If you're working in this repo via Claude Code, the equivalent is already configured in `.claude/settings.local.json`'s `env.PATH` — it takes effect on your *next* session, not the one where you added it.
+
 | Command | Purpose |
 |---|---|
 | `npm test` | Unit tests |

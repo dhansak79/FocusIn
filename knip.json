@@ -11,6 +11,7 @@
   ],
   "project": ["src/**/*.js", "tests/cucumber/**/*.js", "scripts/**/*.js"],
   "ignore": ["src/lib/**", "cucumber.mjs"],
+  "ignoreBinaries": ["swamp"],
   "ignoreDependencies": [
     "@xenova/transformers",
     "@creativebulma/bulma-divider",
