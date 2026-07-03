@@ -335,23 +335,16 @@ Deno.test("generate-features: warns and still writes when scenario has no Given"
   assertEquals(featureContent.includes("Given"), false);
 });
 
-Deno.test("generate-features: does not re-tag @wip for a scenario that already passed", async () => {
-  const { projectDir, ctx } = await makeContext();
-  await buildToVerifying(projectDir, ctx, "passed");
-  await model.methods["generate-features"].execute({ name: "chg" }, ctx);
-  const featureContent = await Deno.readTextFile(`${projectDir}/tests/cucumber/features/chg.feature`);
-  assertEquals(featureContent.includes("@wip"), false);
-  assertEquals(featureContent.includes("Scenario: S"), true);
-});
-
-Deno.test("generate-features: does not re-tag @wip for a scenario that already failed", async () => {
-  const { projectDir, ctx } = await makeContext();
-  await buildToVerifying(projectDir, ctx, "failed");
-  await model.methods["generate-features"].execute({ name: "chg" }, ctx);
-  const featureContent = await Deno.readTextFile(`${projectDir}/tests/cucumber/features/chg.feature`);
-  assertEquals(featureContent.includes("@wip"), false);
-  assertEquals(featureContent.includes("Scenario: S"), true);
-});
+for (const stepStatus of ["passed", "failed"]) {
+  Deno.test(`generate-features: does not re-tag @wip for a scenario that already ${stepStatus}`, async () => {
+    const { projectDir, ctx } = await makeContext();
+    await buildToVerifying(projectDir, ctx, stepStatus);
+    await model.methods["generate-features"].execute({ name: "chg" }, ctx);
+    const featureContent = await Deno.readTextFile(`${projectDir}/tests/cucumber/features/chg.feature`);
+    assertEquals(featureContent.includes("@wip"), false);
+    assertEquals(featureContent.includes("Scenario: S"), true);
+  });
+}
 
 Deno.test("record-results: can be called again from verifying phase", async () => {
   const { projectDir, ctx } = await makeContext();
