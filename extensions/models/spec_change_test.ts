@@ -394,3 +394,31 @@ Deno.test("generate-features: warns and still writes when scenario has no Given"
   assertEquals(featureContent.includes("Feature: no-given-test"), true);
   assertEquals(featureContent.includes("Given"), false);
 });
+
+for (const stepStatus of ["passed", "failed"]) {
+  Deno.test(`generate-features: does not re-tag @wip for a scenario that already ${stepStatus}`, async () => {
+    const { projectDir, ctx } = await makeContext();
+    await buildToVerifying(projectDir, ctx, stepStatus);
+    await model.methods["generate-features"].execute({ name: "chg" }, ctx);
+    const featureContent = await Deno.readTextFile(`${projectDir}/tests/cucumber/features/chg.feature`);
+    assertEquals(featureContent.includes("@wip"), false);
+    assertEquals(featureContent.includes("Scenario: S"), true);
+  });
+}
+
+Deno.test("record-results: can be called again from verifying phase", async () => {
+  const { projectDir, ctx } = await makeContext();
+  await buildToVerifying(projectDir, ctx, "passed");
+  const state1 = await readState(projectDir, "chg");
+  assertEquals(state1.phase, "verifying");
+  assertEquals(state1.scenarios[0].status, "pass");
+
+  // Re-run with a different report reflecting a changed outcome.
+  const reportPath2 = `${projectDir}/cucumber-report-2.json`;
+  await Deno.writeTextFile(reportPath2, JSON.stringify(makeReport("S", ["failed"])));
+  await model.methods["record-results"].execute({ name: "chg", reportPath: reportPath2 }, ctx);
+
+  const state2 = await readState(projectDir, "chg");
+  assertEquals(state2.phase, "verifying");
+  assertEquals(state2.scenarios[0].status, "fail");
+});

@@ -110,7 +110,12 @@ function appendSteps(lines: string[], steps: string[], keyword: string): void {
 export function buildFeatureFile(changeName: string, scenarios: Scenario[]): string {
   const lines: string[] = [`Feature: ${changeName}`, ""];
   for (const s of scenarios) {
-    lines.push("  @wip");
+    // Only scenarios that have never actually run (still "pending") get
+    // skipped via @wip. A recorded "pass" or "fail" means this scenario has
+    // been executed for real at least once — regenerating the feature file
+    // must not silently re-skip it (that would hide a real failure, or
+    // require re-verifying a pass that already happened).
+    if (s.status === "pending") lines.push("  @wip");
     lines.push(`  Scenario: ${s.name}`);
     appendSteps(lines, s.given ?? [], "Given");
     appendSteps(lines, s.when ?? [], "When");
@@ -391,7 +396,11 @@ export const model = {
       ) => {
         const raw = await Deno.readTextFile(reportPath);
         const results = parseCucumberReport(JSON.parse(raw));
-        return updateState(name, context, ["implementing"], (state) => {
+        // Allow re-running from "verifying" too — a prior record-results
+        // call may have advanced the phase without every scenario actually
+        // having been exercised yet (e.g. one was still @wip), and there is
+        // no separate "re-verify" method to get back to "implementing".
+        return updateState(name, context, ["implementing", "verifying"], (state) => {
           for (const scenario of state.scenarios) {
             const result = results.get(scenario.name);
             if (result !== undefined) scenario.status = result;

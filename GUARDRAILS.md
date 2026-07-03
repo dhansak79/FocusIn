@@ -10,7 +10,7 @@ AI coding agents are fast. They are also systematically bad at a specific set of
 - They delete tests that are failing rather than fix them
 - They write tests that cover lines without testing behaviour
 - They add features that work but don't match what was specified
-- They do not feel the accumulated weight of the codebase they are building
+- They carry no persistent record of a codebase's accumulated complexity across sessions, so debt keeps compounding unaddressed
 
 None of these problems show up in a passing build. A build can go green and still be leaving a codebase worse than it found it.
 
@@ -24,7 +24,7 @@ The approach here is different: **hard gates at the git push boundary that the a
 
 CodeScene research shows that break rates increase sharply in code with a health score below 9.4. Below that threshold, the same change is significantly more likely to introduce a defect. Unhealthy code also generates approximately 15× more defects over its lifetime than healthy code.
 
-AI agents produce code that works but tends toward high complexity, tight coupling, and long functions — exactly the patterns that drive health scores down. Left unchecked across many sessions, the codebase accumulates this debt silently. Each AI session then works in a progressively worse environment, making worse decisions, because the context it is reasoning over has degraded.
+AI-generated code tends toward high complexity, tight coupling, and long functions — exactly the patterns that drive health scores down. Left unchecked across many sessions, the codebase accumulates this debt silently. Each subsequent session then operates against progressively more degraded code, compounding the same complexity and coupling patterns further.
 
 The gate blocks any commit that degrades code health. The agent must refactor until health is restored.
 
@@ -32,7 +32,7 @@ The gate blocks any commit that degrades code health. The agent must refactor un
 
 This is the gate that catches the failure mode no other check sees: **the agent deleting tests**.
 
-When an agent encounters a failing test, the path of least resistance is sometimes to remove the test rather than fix the code. The build passes. Coverage may not change. The CI check is green. But the safety net is gone.
+When a test fails, deleting it is a lower-effort way to make CI pass than fixing the underlying code. The build passes. Coverage may not change. The CI check is green. But the safety net is gone.
 
 Mutation testing works by injecting deliberate faults into the code and checking whether the test suite catches them. A deleted test means a mutant survives. A test that calls a function without asserting its output means a mutant survives. The mutation score drops. The gate blocks.
 
@@ -60,7 +60,7 @@ The fast checks. Tests must pass, ESLint must be clean, dead code (Knip) must no
 
 The quality gate checks whether what the agent built is correct. The spec-gate checks whether the agent built the right thing to begin with.
 
-AI agents are fluent at producing code. They are poor at knowing when to stop, what scope is appropriate, and whether the thing they built matches the thing that was asked for. Writing a spec first is not a bureaucratic step — it is the earliest point at which drift can be caught.
+AI agents are fluent at producing code, but output does not reliably stay within scope, and there is no built-in check for whether what was built matches what was specified. Writing a spec first is not a bureaucratic step — it is the earliest point at which drift can be caught.
 
 Every change in this repository flows through a `spec-change` model that enforces a fixed sequence:
 
@@ -101,7 +101,7 @@ The gates are wired into the git pre-push hook:
 swamp workflow run quality-gate
 ```
 
-This runs before bytes reach the remote. If it exits non-zero, the push is blocked. The agent cannot bypass it by ignoring a linting warning or skipping a pre-commit check — the push itself fails.
+This runs before bytes reach the remote. If it exits non-zero, the push is blocked. A linting warning or a skipped pre-commit step does not stop this — the push itself fails.
 
 The full gate runs as a DAG:
 
@@ -111,11 +111,11 @@ flowchart TD
         lint["Lint"]
         knip["Dead code"]
         tests["Tests"]
-        spec["Spec coverage"]
         health["Code health"]
     end
 
-    parallel --> coverage["Coverage thresholds\n≥ 90% lines / branches / functions"]
+    parallel --> spec["Spec coverage"]
+    spec --> coverage["Coverage thresholds\n≥ 90% lines / branches / functions"]
     coverage --> deno["Extension tests\nDeno"]
     deno --> patch["Patch coverage\nevery added line must be hit"]
     patch --> mutation["Mutation testing\nmost expensive · runs last"]
@@ -137,18 +137,18 @@ The pre-hardening trajectory is not a hypothetical. It is the literal observed s
 
 ## How this differs from advisory rules
 
-Most AI governance approaches work through instructions: system prompts, `CLAUDE.md` files, coding standards documents. These are useful but they rely on the agent choosing to follow them. An agent under pressure to complete a task can reason around a suggestion.
+Most AI governance approaches work through instructions: system prompts, `CLAUDE.md` files, coding standards documents. These are useful, but they only take effect if they are followed on a given run, and nothing prevents an instruction from being deprioritized when it conflicts with finishing a task.
 
-The gates here are not suggestions. The agent cannot push code that fails them. It cannot skip the mutation tests. It cannot ignore the health check. The only path forward is to produce code that passes.
+The gates here are enforced mechanically, not by instruction. Code that fails them cannot be pushed. There is no setting that skips mutation testing or bypasses the health check for a given commit. The only way through is code that passes.
 
-This shifts the trust model. You are not trusting the agent to follow instructions — you are trusting the gate to catch what the agent produces.
+This changes what correctness depends on. It is not established by whether instructions were followed — it is established by whether the gate accepts the output.
 
 ```
 Advisory (CLAUDE.md rules)          Hard gate (pre-push hook)
 ──────────────────────────          ─────────────────────────
 "Please maintain test coverage"     Push blocked if coverage < 90%
 "Keep code health above 9"          Push blocked if health degrades
-Agent can choose to skip            Agent cannot bypass
+No mechanism prevents skipping      No mechanism to bypass
 Compliance is best-effort           Compliance is required
 ```
 
