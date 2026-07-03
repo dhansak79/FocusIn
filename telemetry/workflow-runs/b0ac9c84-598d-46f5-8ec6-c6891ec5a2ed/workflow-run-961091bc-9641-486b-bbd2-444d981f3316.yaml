@@ -1,0 +1,1181 @@
+id: 961091bc-9641-486b-bbd2-444d981f3316
+workflowId: b0ac9c84-598d-46f5-8ec6-c6891ec5a2ed
+workflowName: spec-gate
+status: succeeded
+startedAt: '2026-07-02T21:20:58.509Z'
+completedAt: '2026-07-02T21:21:02.125Z'
+jobs:
+  - jobName: generate-features
+    status: succeeded
+    startedAt: '2026-07-02T21:20:58.512Z'
+    completedAt: '2026-07-02T21:20:58.563Z'
+    steps:
+      - stepName: generate
+        status: succeeded
+        startedAt: '2026-07-02T21:20:58.512Z'
+        completedAt: '2026-07-02T21:20:58.561Z'
+        output:
+          type: model_method
+          model: spec-change
+          method: generate-features
+          resources:
+            change:
+              spec-gate-verify-loop-fix:
+                id: f8b1a70b-3a30-454e-a9ea-3f8dab31c225
+                name: spec-gate-verify-loop-fix
+                version: 25
+                isLatest: true
+                createdAt: '2026-07-02T21:20:58.530Z'
+                namespace: ''
+                attributes:
+                  name: spec-gate-verify-loop-fix
+                  phase: implementing
+                  proposal_text: >
+                    ## Why
+
+
+                    Verifying mutation-coverage-95 required two undocumented
+                    workarounds, both
+
+                    traced to the same root cause in
+                    extensions/models/spec_change.ts:
+
+
+                    1. buildFeatureFile unconditionally re-adds @wip to every
+                    scenario on
+                       every generate-features call, regardless of scenario.status.
+                       /spec:verify calls generate-features every time it runs. So: first
+                       verify pass generated @wip (correct — status was pending), Cucumber
+                       skipped the tagged scenario entirely, and record-results found no
+                       matching entry in the report, leaving status: pending and moving the
+                       phase to verifying anyway — with nothing actually verified. Manually
+                       stripping @wip to force a real run works once, but a second
+                       generate-features call would clobber that fix again — that's the bug.
+                    2. record-results is hardcoded to requirePhase(state,
+                    "implementing").
+                       Once step 1's cycle pushed the phase to verifying without a real
+                       result, there was no supported way to re-run verification — it
+                       required hand-editing phase in the .swamp/spec-change-*.json state
+                       file directly to unblock it. This is the same class of gap as the
+                       already-known missing reopen-proposal method: the state machine
+                       supports a strict forward pipeline but not the realistic "redo this
+                       step" cases.
+
+                    ## What
+
+
+                    - buildFeatureFile: only tag a scenario @wip if
+                    scenario.status ===
+                      "pending". Once a scenario has a real result (pass or fail),
+                      regenerating the feature file preserves that — a fail should stay
+                      visible and re-run, not get silently re-skipped; a pass should stay
+                      verified.
+                    - record-results: widen its phase guard from
+                    ["implementing"] to
+                      ["implementing", "verifying"], so re-running verification after the
+                      phase has already advanced doesn't require editing state by hand.
+                    - Add/extend extensions/models/spec_change_test.ts coverage
+                    for both: a
+                      scenario already marked pass is not re-tagged @wip on regeneration;
+                      record-results succeeds from verifying phase.
+
+                    Out of scope: the separate, already-known reopen-proposal
+                    gap (revisiting
+
+                    an approved proposal) — related pattern, different fix,
+                    tracked
+
+                    separately.
+
+
+                    ## Success criteria
+
+
+                    - A scenario that has recorded a real pass/fail result is
+                    never re-tagged
+                      @wip by a later generate-features call.
+                    - record-results can be called again from verifying phase
+                    without a
+                      state-file hand-edit.
+                    - New/updated Deno tests in spec_change_test.ts cover both
+                    behaviors and
+                      pass.
+                  design_text: >
+                    ## Approach
+
+
+                    Two independent, surgical fixes in
+                    extensions/models/spec_change.ts:
+
+
+                    1. buildFeatureFile(changeName, scenarios) currently pushes
+                    "@wip"
+                       unconditionally for every scenario (line ~113). Change the condition to
+                       only push "@wip" when scenario.status === "pending". Scenarios default
+                       to status "pending" on creation (see set-scenarios), so brand-new
+                       scenarios are unaffected — this only changes behavior once a scenario
+                       has a real recorded outcome.
+                    2. The "record-results" method execute()'s call to
+                    updateState currently
+                       passes ["implementing"] as the allowed-phases list (line ~358). Change
+                       it to ["implementing", "verifying"] so a second (or Nth) verify pass
+                       doesn't require a manual phase reset.
+
+                    Neither fix touches the archive method's own guard (still
+                    requires
+
+                    "verifying" phase and all scenarios status "pass") —
+                    archiving semantics
+
+                    are unchanged.
+
+
+                    ## Files to change
+
+
+                    - extensions/models/spec_change.ts — the two fixes above.
+
+                    - extensions/models/spec_change_test.ts — direct Deno unit
+                    tests are the
+                      primary verification (fast, precise, matches this file's existing
+                      testing convention): a scenario with status "pass" (and separately
+                      "fail") is not @wip-tagged by buildFeatureFile; record-results
+                      succeeds when called with state.phase already "verifying".
+                    - tests/cucumber/step-definitions/spec-gate-verify-loop.js
+                    (new) — Given/
+                      When/Then steps for the three approved scenarios, exercising the fix
+                      through the real `swamp` CLI (see step definition strategy below).
+
+                    ## Key decisions
+
+
+                    - Deno-vs-Node boundary: spec_change.ts is a Deno extension
+                    module (uses
+                      Deno.readTextFile/writeTextFile) with no existing TS loader configured
+                      for this project's Node-based Cucumber runner (cucumber.mjs has no
+                      --loader or ts-node setup, and no existing step definition imports a
+                      .ts file). Rather than add new cross-runtime tooling, the Cucumber
+                      scenarios exercise the fix through the actual `swamp` CLI via
+                      child_process (execFileSync), the same public interface a human or
+                      agent uses. This is the same boundary-testing approach already used for
+                      the mutation-coverage-95 scenario (which read stryker.config.json
+                      directly rather than importing Stryker internals).
+                    - The Deno unit tests in spec_change_test.ts are the fast,
+                    precise
+                      verification of the actual logic change; the Cucumber scenarios are a
+                      slower, end-to-end confidence check through the real CLI. Both are
+                      written — the spec-coverage tooling accepts either as satisfying a
+                      scenario, and here both apply.
+                    - Cucumber steps use a disposable spec-change name
+                      (spec-gate-verify-loop-fixture) created fresh in a Before hook and
+                      deleted (its .swamp/spec-change-*.json state file removed) in an After
+                      hook, so the test suite doesn't leave stray state files in the real
+                      project's .swamp/ directory.
+
+                    ## Step definition strategy
+
+
+                    Scenario 1 ("A passed scenario is not re-tagged @wip..."):
+
+                    - Given: create the fixture change, set-proposal,
+                    approve-proposal,
+                      set-scenarios (one scenario), approve-scenarios, start-implementing,
+                      then directly write a passing cucumber-report.json fixture and call
+                      record-results so the scenario's status becomes "pass".
+                    - When: call generate-features again.
+
+                    - Then: read the written .feature file from
+                    tests/cucumber/features/ and
+                      assert the scenario's block does not contain "@wip".
+
+                    Scenario 2 ("A failed scenario is not re-tagged @wip
+                    either"):
+
+                    - Same as above but the fixture cucumber-report.json marks
+                    the scenario
+                      failed, so status becomes "fail" before the When step.
+
+                    Scenario 3 ("record-results can be re-run after
+                    verifying..."):
+
+                    - Given: run the fixture through record-results once (phase
+                    becomes
+                      "verifying").
+                    - When: call record-results again with a second (fresh)
+                    report file.
+
+                    - Then: assert the CLI call exits 0 (does not throw the
+                    phase-guard
+                      error) and the state file's scenario statuses reflect the second
+                      report.
+
+                    All three scenarios share a Before/After hook pair (create +
+                    cleanup) in
+
+                    the new step-definition file, following this project's
+                    existing
+
+                    screenplay/support pattern of colocated setup helpers.
+
+
+                    ## Risks / trade-offs
+
+
+                    - Shelling out to the swamp CLI from Cucumber steps is
+                    slower than an
+                      in-process call and depends on `swamp` being on PATH in CI — already
+                      true for every other swamp-based check in this project's quality gates,
+                      so no new dependency is introduced.
+                    - The fixture change's name must not collide with a real
+                    in-progress
+                      spec-change; using a distinctive, clearly-disposable name and cleaning
+                      up in an After hook (that runs even on failure) avoids state leaking
+                      into future runs.
+                    - This does not fix the separate, already-known
+                    reopen-proposal gap
+                      (revisiting an approved proposal) — explicitly out of scope per the
+                      proposal.
+                  scenarios:
+                    - name: >-
+                        A passed scenario is not re-tagged @wip on a later
+                        feature-file regeneration
+                      feature: spec-gate-verify-loop-fix
+                      given:
+                        - >-
+                          a spec-change scenario has already recorded a passing
+                          result
+                      when:
+                        - generate-features runs again for that change
+                      then:
+                        - >-
+                          the scenario's entry in the generated feature file has
+                          no @wip tag
+                      status: pending
+                    - name: A failed scenario is not re-tagged @wip either
+                      feature: spec-gate-verify-loop-fix
+                      given:
+                        - >-
+                          a spec-change scenario has already recorded a failing
+                          result
+                      when:
+                        - generate-features runs again for that change
+                      then:
+                        - >-
+                          the scenario's entry in the generated feature file has
+                          no @wip tag
+                      status: pending
+                    - name: >-
+                        record-results can be re-run after the verifying phase
+                        has already been entered
+                      feature: spec-gate-verify-loop-fix
+                      given:
+                        - >-
+                          a spec-change has already moved to the verifying phase
+                          from a prior record-results call
+                      when:
+                        - >-
+                          record-results is called again with a fresh cucumber
+                          report
+                      then:
+                        - >-
+                          it succeeds and updates scenario statuses without
+                          requiring a manual phase reset
+                      status: pending
+                  tasks:
+                    - id: '1.1'
+                      description: >-
+                        In extensions/models/spec_change.ts's buildFeatureFile,
+                        only push '@wip' for a scenario when scenario.status ===
+                        'pending' (leave pass/fail scenarios untagged).
+                      done: true
+                    - id: '1.2'
+                      description: >-
+                        In extensions/models/spec_change.ts's record-results
+                        method, widen its updateState phases argument from
+                        ['implementing'] to ['implementing', 'verifying'].
+                      done: true
+                    - id: '2.1'
+                      description: >-
+                        Add a Deno test in
+                        extensions/models/spec_change_test.ts: buildFeatureFile
+                        does not add @wip for a scenario with status 'pass'.
+                      done: true
+                    - id: '2.2'
+                      description: >-
+                        Add a Deno test in
+                        extensions/models/spec_change_test.ts: buildFeatureFile
+                        does not add @wip for a scenario with status 'fail'.
+                      done: true
+                    - id: '2.3'
+                      description: >-
+                        Add a Deno test in
+                        extensions/models/spec_change_test.ts: record-results
+                        succeeds (does not throw) when called a second time with
+                        state.phase already 'verifying', and updates scenario
+                        statuses from the new report.
+                      done: true
+                    - id: '2.4'
+                      description: >-
+                        Run the Deno extension test suite and confirm all
+                        spec_change_test.ts tests pass, including the three new
+                        ones.
+                      done: true
+                    - id: '3.1'
+                      description: >-
+                        Create
+                        tests/cucumber/step-definitions/spec-gate-verify-loop.js
+                        with Before/After hooks that create a disposable fixture
+                        spec-change (e.g. 'spec-gate-verify-loop-fixture') via
+                        swamp CLI child_process calls in Before, and delete its
+                        .swamp/spec-change-*.json state file in After.
+                      done: true
+                    - id: '3.2'
+                      description: >-
+                        Implement Given/When/Then steps for 'A passed scenario
+                        is not re-tagged @wip on a later feature-file
+                        regeneration': drive the fixture through
+                        create/set-proposal/approve-proposal/set-scenarios/approve-scenarios/start-implementing/record-results
+                        (with a passing report) to reach status 'pass', call
+                        generate-features again, then assert the written
+                        .feature file has no @wip for that scenario.
+                      done: true
+                    - id: '3.3'
+                      description: >-
+                        Implement Given/When/Then steps for 'A failed scenario
+                        is not re-tagged @wip either': same flow as 3.2 but with
+                        a failing cucumber-report.json fixture so status becomes
+                        'fail', then assert the regenerated .feature file still
+                        has no @wip.
+                      done: true
+                    - id: '3.4'
+                      description: >-
+                        Implement Given/When/Then steps for 'record-results can
+                        be re-run after the verifying phase has already been
+                        entered': call record-results once (phase becomes
+                        'verifying'), then call it again with a second report
+                        and assert the CLI call exits 0 and the state file's
+                        scenario statuses reflect the second report.
+                      done: true
+                    - id: '4.1'
+                      description: >-
+                        Run swamp model method run spec-change generate-features
+                        --name spec-gate-verify-loop-fix to emit the @wip-tagged
+                        Gherkin feature file, then confirm the step text in
+                        3.2-3.4 matches it exactly.
+                      done: true
+                    - id: '4.2'
+                      description: >-
+                        Remove @wip from all three scenarios in
+                        tests/cucumber/features/spec-gate-verify-loop-fix.feature
+                        now that their steps are implemented and passing.
+                      done: true
+                    - id: '4.3'
+                      description: >-
+                        Run the full Cucumber suite (npm run bdd) and confirm
+                        all three new scenarios pass along with the rest of the
+                        existing suite.
+                      done: true
+                    - id: '4.4'
+                      description: >-
+                        Run the full vitest suite and quality-gate-fast workflow
+                        to confirm no regressions from the extension model
+                        change.
+                      done: true
+                  proposal_approved_at: '2026-07-02T20:55:55.974Z'
+                  scenarios_approved_at: '2026-07-02T20:59:45.703Z'
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  job: generate-features
+                  step: generate
+                modelName: spec-change
+                modelId: 154bd51c-19b7-4382-ab43-230e5041ca43
+                modelType: '@focusin/spec-change'
+                specName: change
+                dataType: resource
+                contentType: application/json
+                lifetime: 365d
+                ownerType: model-method
+                streaming: false
+                size: 11978
+                content: ''
+                ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                workflowName: spec-gate
+                jobName: generate-features
+                stepName: generate
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: f8b1a70b-3a30-454e-a9ea-3f8dab31c225
+              name: spec-gate-verify-loop-fix
+              version: 25
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                job: generate-features
+                step: generate
+            - dataId: 6101d47d-2ad4-4c9c-a027-f998d0031ac1
+              name: report-swamp-method-summary
+              version: 330
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: d45e6c45-9029-4c9f-8e65-b004a7605543
+              name: report-swamp-method-summary-json
+              version: 330
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: spec-gate-verify-loop-fix
+              specName: change
+              kind: resource
+              dataId: f8b1a70b-3a30-454e-a9ea-3f8dab31c225
+              version: 25
+              size: 11978
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                job: generate-features
+                step: generate
+              metadata:
+                contentType: application/json
+                lifetime: 365d
+                garbageCollection: 100
+                streaming: false
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  job: generate-features
+                  step: generate
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  workflowName: spec-gate
+                  jobName: generate-features
+                  stepName: generate
+                  source: step-output
+        dataArtifacts:
+          - dataId: f8b1a70b-3a30-454e-a9ea-3f8dab31c225
+            name: spec-gate-verify-loop-fix
+            version: 25
+            tags:
+              type: resource
+              specName: change
+              modelName: spec-change
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+              job: generate-features
+              step: generate
+          - dataId: 6101d47d-2ad4-4c9c-a027-f998d0031ac1
+            name: report-swamp-method-summary
+            version: 330
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: d45e6c45-9029-4c9f-8e65-b004a7605543
+            name: report-swamp-method-summary-json
+            version: 330
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: run-runner
+    status: succeeded
+    startedAt: '2026-07-02T21:20:58.566Z'
+    completedAt: '2026-07-02T21:21:02.075Z'
+    steps:
+      - stepName: run
+        status: succeeded
+        startedAt: '2026-07-02T21:20:58.566Z'
+        completedAt: '2026-07-02T21:21:02.073Z'
+        output:
+          type: model_method
+          model: focusin-spec-runner
+          method: run
+          resources:
+            runResult:
+              current:
+                id: d1a83d48-7ce3-48ae-8c30-999fe58cdcde
+                name: current
+                version: 12
+                isLatest: true
+                createdAt: '2026-07-02T21:21:02.061Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  reportPath: /Users/daniel/Repos/FocusIn/cucumber-report.json
+                  ranAt: '2026-07-02T21:20:58.571Z'
+                  exitCode: 0
+                  stderr: >
+                    `publishQuiet` option is no longer needed, you can remove it
+                    from your configuration; see
+                    https://github.com/cucumber/cucumber-js/blob/main/docs/deprecations.md
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+                tags:
+                  type: resource
+                  specName: runResult
+                  modelName: focusin-spec-runner
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  job: run-runner
+                  step: run
+                modelName: focusin-spec-runner
+                modelId: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                modelType: '@focusin/spec-runner'
+                specName: runResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 571
+                content: ''
+                ownerRef: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                workflowName: spec-gate
+                jobName: run-runner
+                stepName: run
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: d1a83d48-7ce3-48ae-8c30-999fe58cdcde
+              name: current
+              version: 12
+              tags:
+                type: resource
+                specName: runResult
+                modelName: focusin-spec-runner
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                job: run-runner
+                step: run
+            - dataId: 3b9a29c3-1b64-4313-83c3-16d386fd50ec
+              name: report-swamp-method-summary
+              version: 12
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: a0a6d0b6-c903-4bdb-b681-d5e0c9bcd04b
+              name: report-swamp-method-summary-json
+              version: 12
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: runResult
+              kind: resource
+              dataId: d1a83d48-7ce3-48ae-8c30-999fe58cdcde
+              version: 12
+              size: 571
+              tags:
+                type: resource
+                specName: runResult
+                modelName: focusin-spec-runner
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                job: run-runner
+                step: run
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: runResult
+                  modelName: focusin-spec-runner
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  job: run-runner
+                  step: run
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  workflowName: spec-gate
+                  jobName: run-runner
+                  stepName: run
+                  source: step-output
+        dataArtifacts:
+          - dataId: d1a83d48-7ce3-48ae-8c30-999fe58cdcde
+            name: current
+            version: 12
+            tags:
+              type: resource
+              specName: runResult
+              modelName: focusin-spec-runner
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+              job: run-runner
+              step: run
+          - dataId: 3b9a29c3-1b64-4313-83c3-16d386fd50ec
+            name: report-swamp-method-summary
+            version: 12
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: a0a6d0b6-c903-4bdb-b681-d5e0c9bcd04b
+            name: report-swamp-method-summary-json
+            version: 12
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: record-results
+    status: succeeded
+    startedAt: '2026-07-02T21:21:02.080Z'
+    completedAt: '2026-07-02T21:21:02.119Z'
+    steps:
+      - stepName: record
+        status: succeeded
+        startedAt: '2026-07-02T21:21:02.081Z'
+        completedAt: '2026-07-02T21:21:02.118Z'
+        output:
+          type: model_method
+          model: spec-change
+          method: record-results
+          resources:
+            change:
+              spec-gate-verify-loop-fix:
+                id: 9136e9e9-067c-4971-a432-a4f2970e2dc3
+                name: spec-gate-verify-loop-fix
+                version: 26
+                isLatest: true
+                createdAt: '2026-07-02T21:21:02.108Z'
+                namespace: ''
+                attributes:
+                  name: spec-gate-verify-loop-fix
+                  phase: verifying
+                  proposal_text: >
+                    ## Why
+
+
+                    Verifying mutation-coverage-95 required two undocumented
+                    workarounds, both
+
+                    traced to the same root cause in
+                    extensions/models/spec_change.ts:
+
+
+                    1. buildFeatureFile unconditionally re-adds @wip to every
+                    scenario on
+                       every generate-features call, regardless of scenario.status.
+                       /spec:verify calls generate-features every time it runs. So: first
+                       verify pass generated @wip (correct — status was pending), Cucumber
+                       skipped the tagged scenario entirely, and record-results found no
+                       matching entry in the report, leaving status: pending and moving the
+                       phase to verifying anyway — with nothing actually verified. Manually
+                       stripping @wip to force a real run works once, but a second
+                       generate-features call would clobber that fix again — that's the bug.
+                    2. record-results is hardcoded to requirePhase(state,
+                    "implementing").
+                       Once step 1's cycle pushed the phase to verifying without a real
+                       result, there was no supported way to re-run verification — it
+                       required hand-editing phase in the .swamp/spec-change-*.json state
+                       file directly to unblock it. This is the same class of gap as the
+                       already-known missing reopen-proposal method: the state machine
+                       supports a strict forward pipeline but not the realistic "redo this
+                       step" cases.
+
+                    ## What
+
+
+                    - buildFeatureFile: only tag a scenario @wip if
+                    scenario.status ===
+                      "pending". Once a scenario has a real result (pass or fail),
+                      regenerating the feature file preserves that — a fail should stay
+                      visible and re-run, not get silently re-skipped; a pass should stay
+                      verified.
+                    - record-results: widen its phase guard from
+                    ["implementing"] to
+                      ["implementing", "verifying"], so re-running verification after the
+                      phase has already advanced doesn't require editing state by hand.
+                    - Add/extend extensions/models/spec_change_test.ts coverage
+                    for both: a
+                      scenario already marked pass is not re-tagged @wip on regeneration;
+                      record-results succeeds from verifying phase.
+
+                    Out of scope: the separate, already-known reopen-proposal
+                    gap (revisiting
+
+                    an approved proposal) — related pattern, different fix,
+                    tracked
+
+                    separately.
+
+
+                    ## Success criteria
+
+
+                    - A scenario that has recorded a real pass/fail result is
+                    never re-tagged
+                      @wip by a later generate-features call.
+                    - record-results can be called again from verifying phase
+                    without a
+                      state-file hand-edit.
+                    - New/updated Deno tests in spec_change_test.ts cover both
+                    behaviors and
+                      pass.
+                  design_text: >
+                    ## Approach
+
+
+                    Two independent, surgical fixes in
+                    extensions/models/spec_change.ts:
+
+
+                    1. buildFeatureFile(changeName, scenarios) currently pushes
+                    "@wip"
+                       unconditionally for every scenario (line ~113). Change the condition to
+                       only push "@wip" when scenario.status === "pending". Scenarios default
+                       to status "pending" on creation (see set-scenarios), so brand-new
+                       scenarios are unaffected — this only changes behavior once a scenario
+                       has a real recorded outcome.
+                    2. The "record-results" method execute()'s call to
+                    updateState currently
+                       passes ["implementing"] as the allowed-phases list (line ~358). Change
+                       it to ["implementing", "verifying"] so a second (or Nth) verify pass
+                       doesn't require a manual phase reset.
+
+                    Neither fix touches the archive method's own guard (still
+                    requires
+
+                    "verifying" phase and all scenarios status "pass") —
+                    archiving semantics
+
+                    are unchanged.
+
+
+                    ## Files to change
+
+
+                    - extensions/models/spec_change.ts — the two fixes above.
+
+                    - extensions/models/spec_change_test.ts — direct Deno unit
+                    tests are the
+                      primary verification (fast, precise, matches this file's existing
+                      testing convention): a scenario with status "pass" (and separately
+                      "fail") is not @wip-tagged by buildFeatureFile; record-results
+                      succeeds when called with state.phase already "verifying".
+                    - tests/cucumber/step-definitions/spec-gate-verify-loop.js
+                    (new) — Given/
+                      When/Then steps for the three approved scenarios, exercising the fix
+                      through the real `swamp` CLI (see step definition strategy below).
+
+                    ## Key decisions
+
+
+                    - Deno-vs-Node boundary: spec_change.ts is a Deno extension
+                    module (uses
+                      Deno.readTextFile/writeTextFile) with no existing TS loader configured
+                      for this project's Node-based Cucumber runner (cucumber.mjs has no
+                      --loader or ts-node setup, and no existing step definition imports a
+                      .ts file). Rather than add new cross-runtime tooling, the Cucumber
+                      scenarios exercise the fix through the actual `swamp` CLI via
+                      child_process (execFileSync), the same public interface a human or
+                      agent uses. This is the same boundary-testing approach already used for
+                      the mutation-coverage-95 scenario (which read stryker.config.json
+                      directly rather than importing Stryker internals).
+                    - The Deno unit tests in spec_change_test.ts are the fast,
+                    precise
+                      verification of the actual logic change; the Cucumber scenarios are a
+                      slower, end-to-end confidence check through the real CLI. Both are
+                      written — the spec-coverage tooling accepts either as satisfying a
+                      scenario, and here both apply.
+                    - Cucumber steps use a disposable spec-change name
+                      (spec-gate-verify-loop-fixture) created fresh in a Before hook and
+                      deleted (its .swamp/spec-change-*.json state file removed) in an After
+                      hook, so the test suite doesn't leave stray state files in the real
+                      project's .swamp/ directory.
+
+                    ## Step definition strategy
+
+
+                    Scenario 1 ("A passed scenario is not re-tagged @wip..."):
+
+                    - Given: create the fixture change, set-proposal,
+                    approve-proposal,
+                      set-scenarios (one scenario), approve-scenarios, start-implementing,
+                      then directly write a passing cucumber-report.json fixture and call
+                      record-results so the scenario's status becomes "pass".
+                    - When: call generate-features again.
+
+                    - Then: read the written .feature file from
+                    tests/cucumber/features/ and
+                      assert the scenario's block does not contain "@wip".
+
+                    Scenario 2 ("A failed scenario is not re-tagged @wip
+                    either"):
+
+                    - Same as above but the fixture cucumber-report.json marks
+                    the scenario
+                      failed, so status becomes "fail" before the When step.
+
+                    Scenario 3 ("record-results can be re-run after
+                    verifying..."):
+
+                    - Given: run the fixture through record-results once (phase
+                    becomes
+                      "verifying").
+                    - When: call record-results again with a second (fresh)
+                    report file.
+
+                    - Then: assert the CLI call exits 0 (does not throw the
+                    phase-guard
+                      error) and the state file's scenario statuses reflect the second
+                      report.
+
+                    All three scenarios share a Before/After hook pair (create +
+                    cleanup) in
+
+                    the new step-definition file, following this project's
+                    existing
+
+                    screenplay/support pattern of colocated setup helpers.
+
+
+                    ## Risks / trade-offs
+
+
+                    - Shelling out to the swamp CLI from Cucumber steps is
+                    slower than an
+                      in-process call and depends on `swamp` being on PATH in CI — already
+                      true for every other swamp-based check in this project's quality gates,
+                      so no new dependency is introduced.
+                    - The fixture change's name must not collide with a real
+                    in-progress
+                      spec-change; using a distinctive, clearly-disposable name and cleaning
+                      up in an After hook (that runs even on failure) avoids state leaking
+                      into future runs.
+                    - This does not fix the separate, already-known
+                    reopen-proposal gap
+                      (revisiting an approved proposal) — explicitly out of scope per the
+                      proposal.
+                  scenarios:
+                    - name: >-
+                        A passed scenario is not re-tagged @wip on a later
+                        feature-file regeneration
+                      feature: spec-gate-verify-loop-fix
+                      given:
+                        - >-
+                          a spec-change scenario has already recorded a passing
+                          result
+                      when:
+                        - generate-features runs again for that change
+                      then:
+                        - >-
+                          the scenario's entry in the generated feature file has
+                          no @wip tag
+                      status: pending
+                    - name: A failed scenario is not re-tagged @wip either
+                      feature: spec-gate-verify-loop-fix
+                      given:
+                        - >-
+                          a spec-change scenario has already recorded a failing
+                          result
+                      when:
+                        - generate-features runs again for that change
+                      then:
+                        - >-
+                          the scenario's entry in the generated feature file has
+                          no @wip tag
+                      status: pending
+                    - name: >-
+                        record-results can be re-run after the verifying phase
+                        has already been entered
+                      feature: spec-gate-verify-loop-fix
+                      given:
+                        - >-
+                          a spec-change has already moved to the verifying phase
+                          from a prior record-results call
+                      when:
+                        - >-
+                          record-results is called again with a fresh cucumber
+                          report
+                      then:
+                        - >-
+                          it succeeds and updates scenario statuses without
+                          requiring a manual phase reset
+                      status: pending
+                  tasks:
+                    - id: '1.1'
+                      description: >-
+                        In extensions/models/spec_change.ts's buildFeatureFile,
+                        only push '@wip' for a scenario when scenario.status ===
+                        'pending' (leave pass/fail scenarios untagged).
+                      done: true
+                    - id: '1.2'
+                      description: >-
+                        In extensions/models/spec_change.ts's record-results
+                        method, widen its updateState phases argument from
+                        ['implementing'] to ['implementing', 'verifying'].
+                      done: true
+                    - id: '2.1'
+                      description: >-
+                        Add a Deno test in
+                        extensions/models/spec_change_test.ts: buildFeatureFile
+                        does not add @wip for a scenario with status 'pass'.
+                      done: true
+                    - id: '2.2'
+                      description: >-
+                        Add a Deno test in
+                        extensions/models/spec_change_test.ts: buildFeatureFile
+                        does not add @wip for a scenario with status 'fail'.
+                      done: true
+                    - id: '2.3'
+                      description: >-
+                        Add a Deno test in
+                        extensions/models/spec_change_test.ts: record-results
+                        succeeds (does not throw) when called a second time with
+                        state.phase already 'verifying', and updates scenario
+                        statuses from the new report.
+                      done: true
+                    - id: '2.4'
+                      description: >-
+                        Run the Deno extension test suite and confirm all
+                        spec_change_test.ts tests pass, including the three new
+                        ones.
+                      done: true
+                    - id: '3.1'
+                      description: >-
+                        Create
+                        tests/cucumber/step-definitions/spec-gate-verify-loop.js
+                        with Before/After hooks that create a disposable fixture
+                        spec-change (e.g. 'spec-gate-verify-loop-fixture') via
+                        swamp CLI child_process calls in Before, and delete its
+                        .swamp/spec-change-*.json state file in After.
+                      done: true
+                    - id: '3.2'
+                      description: >-
+                        Implement Given/When/Then steps for 'A passed scenario
+                        is not re-tagged @wip on a later feature-file
+                        regeneration': drive the fixture through
+                        create/set-proposal/approve-proposal/set-scenarios/approve-scenarios/start-implementing/record-results
+                        (with a passing report) to reach status 'pass', call
+                        generate-features again, then assert the written
+                        .feature file has no @wip for that scenario.
+                      done: true
+                    - id: '3.3'
+                      description: >-
+                        Implement Given/When/Then steps for 'A failed scenario
+                        is not re-tagged @wip either': same flow as 3.2 but with
+                        a failing cucumber-report.json fixture so status becomes
+                        'fail', then assert the regenerated .feature file still
+                        has no @wip.
+                      done: true
+                    - id: '3.4'
+                      description: >-
+                        Implement Given/When/Then steps for 'record-results can
+                        be re-run after the verifying phase has already been
+                        entered': call record-results once (phase becomes
+                        'verifying'), then call it again with a second report
+                        and assert the CLI call exits 0 and the state file's
+                        scenario statuses reflect the second report.
+                      done: true
+                    - id: '4.1'
+                      description: >-
+                        Run swamp model method run spec-change generate-features
+                        --name spec-gate-verify-loop-fix to emit the @wip-tagged
+                        Gherkin feature file, then confirm the step text in
+                        3.2-3.4 matches it exactly.
+                      done: true
+                    - id: '4.2'
+                      description: >-
+                        Remove @wip from all three scenarios in
+                        tests/cucumber/features/spec-gate-verify-loop-fix.feature
+                        now that their steps are implemented and passing.
+                      done: true
+                    - id: '4.3'
+                      description: >-
+                        Run the full Cucumber suite (npm run bdd) and confirm
+                        all three new scenarios pass along with the rest of the
+                        existing suite.
+                      done: true
+                    - id: '4.4'
+                      description: >-
+                        Run the full vitest suite and quality-gate-fast workflow
+                        to confirm no regressions from the extension model
+                        change.
+                      done: true
+                  proposal_approved_at: '2026-07-02T20:55:55.974Z'
+                  scenarios_approved_at: '2026-07-02T20:59:45.703Z'
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  job: record-results
+                  step: record
+                modelName: spec-change
+                modelId: 154bd51c-19b7-4382-ab43-230e5041ca43
+                modelType: '@focusin/spec-change'
+                specName: change
+                dataType: resource
+                contentType: application/json
+                lifetime: 365d
+                ownerType: model-method
+                streaming: false
+                size: 11975
+                content: ''
+                ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                workflowName: spec-gate
+                jobName: record-results
+                stepName: record
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: 9136e9e9-067c-4971-a432-a4f2970e2dc3
+              name: spec-gate-verify-loop-fix
+              version: 26
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                job: record-results
+                step: record
+            - dataId: 76bc8879-aac8-4ef1-a169-950a8b727827
+              name: report-swamp-method-summary
+              version: 331
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 60e7b8f1-3a39-4e92-940d-c8d4adc9cdd2
+              name: report-swamp-method-summary-json
+              version: 331
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: spec-gate-verify-loop-fix
+              specName: change
+              kind: resource
+              dataId: 9136e9e9-067c-4971-a432-a4f2970e2dc3
+              version: 26
+              size: 11975
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                job: record-results
+                step: record
+              metadata:
+                contentType: application/json
+                lifetime: 365d
+                garbageCollection: 100
+                streaming: false
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  job: record-results
+                  step: record
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                  workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+                  workflowName: spec-gate
+                  jobName: record-results
+                  stepName: record
+                  source: step-output
+        dataArtifacts:
+          - dataId: 9136e9e9-067c-4971-a432-a4f2970e2dc3
+            name: spec-gate-verify-loop-fix
+            version: 26
+            tags:
+              type: resource
+              specName: change
+              modelName: spec-change
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: 961091bc-9641-486b-bbd2-444d981f3316
+              job: record-results
+              step: record
+          - dataId: 76bc8879-aac8-4ef1-a169-950a8b727827
+            name: report-swamp-method-summary
+            version: 331
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 60e7b8f1-3a39-4e92-940d-c8d4adc9cdd2
+            name: report-swamp-method-summary-json
+            version: 331
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+tags: {}
+logFile: >-
+  .swamp/workflow-runs/b0ac9c84-598d-46f5-8ec6-c6891ec5a2ed/workflow-run-961091bc-9641-486b-bbd2-444d981f3316.log
+workflowDataArtifacts:
+  - dataId: 247dc772-21c0-4bd7-b98c-6466f9700f8d
+    name: report-swamp-workflow-summary
+    version: 5
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
+  - dataId: 09467987-9d50-430f-a97b-6845279e04c8
+    name: report-swamp-workflow-summary-json
+    version: 5
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
