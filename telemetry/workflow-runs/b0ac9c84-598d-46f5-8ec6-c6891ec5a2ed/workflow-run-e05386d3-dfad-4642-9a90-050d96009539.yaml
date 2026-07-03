@@ -1,0 +1,1293 @@
+id: e05386d3-dfad-4642-9a90-050d96009539
+workflowId: b0ac9c84-598d-46f5-8ec6-c6891ec5a2ed
+workflowName: spec-gate
+status: succeeded
+startedAt: '2026-07-03T13:45:00.364Z'
+completedAt: '2026-07-03T13:45:03.942Z'
+jobs:
+  - jobName: generate-features
+    status: succeeded
+    startedAt: '2026-07-03T13:45:00.366Z'
+    completedAt: '2026-07-03T13:45:00.434Z'
+    steps:
+      - stepName: generate
+        status: succeeded
+        startedAt: '2026-07-03T13:45:00.367Z'
+        completedAt: '2026-07-03T13:45:00.433Z'
+        output:
+          type: model_method
+          model: spec-change
+          method: generate-features
+          resources:
+            change:
+              code-health-smell-insights:
+                id: f955a3dd-0615-4583-b6b5-8d8f3bbb61e5
+                name: code-health-smell-insights
+                version: 28
+                isLatest: true
+                createdAt: '2026-07-03T13:45:00.397Z'
+                namespace: ''
+                attributes:
+                  name: code-health-smell-insights
+                  phase: implementing
+                  proposal_text: >-
+                    ## Why
+
+                    The Quality Gates section of CLAUDE.md tells the agent to
+                    check Code Health via the CodeScene MCP tools before
+                    committing. Nothing surfaces how often that instruction was
+                    skipped and the agent got caught by the hard gate instead —
+                    even though the data already exists. Every failed
+                    `codescene-health` step's error message already contains,
+                    per degraded file, the file path and score (e.g.
+                    "(9.38/10)"), and this has already happened 14 times across
+                    the 192 codescene-health runs recorded in
+                    telemetry/workflow-runs/. None of it is parsed or shown
+                    anywhere: `parseCodeSceneStep`'s failure-path fallback in
+                    scripts/generate-guardrails-dashboard.js only extracts a
+                    file count and bare paths, discarding the score; the
+                    dashboard only ever prints "N degraded" or a bare filename.
+
+
+                    ## What
+
+                    - Extend `parseCodeSceneStep`'s regex fallback in
+                    scripts/generate-guardrails-dashboard.js to also capture the
+                    score from the existing "(score/10)" pattern in error text,
+                    and compute gap-to-10 = 10 - score.
+
+                    - Add a "Code Health Guardrail Catches" summary card to the
+                    dashboard, computed entirely from existing telemetry: total
+                    catches (broken out pre-commit quality-gate-fast vs pre-push
+                    quality-gate), which files were caught and how many times
+                    each, and the average/worst gap-to-10 among catches.
+
+                    - No changes to extensions/models/focusin_codescene.ts — the
+                    extension's error message already contains everything
+                    needed; this is read-only summarization of data already
+                    captured, not a new data-capture change.
+
+                    - Out of scope: code smell / finding category detail. That
+                    detail is genuinely not present in any committed telemetry
+                    today — it only exists in the ephemeral, gitignored
+                    .swamp/data/ resource, so surfacing it would require
+                    extending the extension's captured output, which is
+                    explicitly deferred.
+
+
+                    ## Success criteria
+
+                    - Running the dashboard generator against the current
+                    telemetry/workflow-runs/ produces a summary card showing the
+                    real historical count (14 catches out of 192
+                    codescene-health runs today) with a per-file breakdown and
+                    gap-to-10 stats — no new runs required, no extension
+                    changes.
+
+                    - tests/unit/guardrails-dashboard.test.js covers the new
+                    score parsing and the new card's rendering.
+                  design_text: >-
+                    ## Approach
+
+                    Extend the existing pure-function pipeline in
+                    scripts/generate-guardrails-dashboard.js — the same module
+                    quality-trend-report.js already extended — rather than
+                    introducing any new model, report, or data source.
+                    Everything needed is already inside the `error` string on a
+                    failed `codescene-health` step, in the exact format written
+                    by extensions/models/focusin_codescene.ts:
+                      `  ${projectDir}/${f.name}  (${f.newScore}/10)`
+
+                    1. Extend `parseCodeSceneStep`'s failure-fallback branch
+                    (the `if (step.status === "failed")`-adjacent path that
+                    today only regexes out a count and bare paths) to match
+                    `/^\s{2,}(\S+\.(?:js|ts))\s+\(([\d.]+)\/10\)/gm` per line,
+                    capturing both path and score in one pass. For each matched
+                    file compute `gapToTen = Math.round((10 - score) * 100) /
+                    100` (rounding avoids float noise, e.g. 10 - 9.38 =
+                    0.6200000000000001 -> 0.62). If a line's score doesn't match
+                    (malformed text), keep falling back to the existing
+                    bare-path regex so the file is still counted with `score:
+                    null, gapToTen: null` rather than dropped or erroring.
+
+                    2. Add a new pure function `computeGuardrailCatches(runs)`:
+                       - A "catch" = one run whose `metrics.codescene` exists and `.passed === false` (regardless of how many files it lists) — this matches how "14 catches out of 192 codescene-health runs" was counted.
+                       - `totalCatches`, and `byWorkflow: { "quality-gate": n, "quality-gate-fast": n }` (pre-push vs pre-commit).
+                       - `byFile`: a map/array of `{ path, count }` — incremented once per catching run the file appears in (so the same file caught across 3 different runs shows count 3).
+                       - `avgGap` / `worstGap`: mean and max of every non-null `gapToTen` across all files in all catching runs; both `null` if no scores were parseable (e.g. zero catches).
+                    3. Add `renderGuardrailCatchesCard(catches)` producing the
+                    "Code Health Guardrail Catches" HTML card: totals split
+                    pre-commit/pre-push, a per-file table, and avg/worst
+                    gap-to-10. When `totalCatches === 0` it still renders the
+                    card shell with zero counts (mirrors `renderTrendCard`'s
+                    "insufficient history" empty state) rather than omitting the
+                    section.
+
+                    4. Wire `guardrailCatches: computeGuardrailCatches(runs)`
+                    into `buildData`, and insert
+                    `renderGuardrailCatchesCard(data.guardrailCatches)` into
+                    `renderHtml` (after the existing Quality Trends card).
+
+                    5. Export `computeGuardrailCatches` and
+                    `renderGuardrailCatchesCard` alongside the module's other
+                    exports for direct testing, same as
+                    `computeTrends`/`renderTrendCard`.
+
+
+                    ## Files to change
+
+                    - scripts/generate-guardrails-dashboard.js — regex/score/gap
+                    parsing, `computeGuardrailCatches`,
+                    `renderGuardrailCatchesCard`, wiring into
+                    `buildData`/`renderHtml`/exports.
+
+                    - tests/unit/guardrails-dashboard.test.js — vitest coverage
+                    for the new parsing branch and the two new functions
+                    (mirrors existing `computeTrends`/`renderTrendCard` test
+                    blocks).
+
+                    - tests/cucumber/features/code-health-smell-insights.feature
+                    — the 7 approved scenarios verbatim.
+
+                    -
+                    tests/cucumber/step-definitions/code-health-smell-insights.js
+                    — step definitions, following the established pattern in
+                    step-definitions/quality-trend-report.js.
+
+
+                    ## Key decisions
+
+                    - No changes to extensions/models/focusin_codescene.ts or
+                    any swamp model/report — this is read-only summarization of
+                    what committed telemetry already contains, per the approved
+                    proposal's explicit scope cut.
+
+                    - "Catch" is counted at the run level (one failed
+                    codescene-health step = one catch), not at the file-listing
+                    level, so totals stay consistent with the existing 14/192
+                    figure found in current telemetry.
+
+                    - Per-file breakdown counts are independent of the run-level
+                    total: a single run listing 2 degraded files contributes 1
+                    to each file's count, but only 1 to `totalCatches`.
+
+                    - Malformed/unparseable score text degrades gracefully to
+                    `score: null, gapToTen: null` for that file — it must not
+                    throw, and the file must still be counted (per the
+                    "malformed error message" scenario).
+
+
+                    ## Step definition strategy
+
+                    - For the raw-text parsing scenarios (score extraction,
+                    multi-file gap computation, malformed error), call
+                    `parseCodeSceneStep` directly with a hand-built fake `step`
+                    object of shape `{ status: "failed", error: "<multi-line
+                    synthetic error text>" }` (no `output.resources`), which
+                    forces the fallback branch — exactly how `extractStepAttrs`
+                    already treats a failed step with no embedded attributes.
+
+                    - For the aggregation/rendering scenarios (total/by-workflow
+                    counts, per-file breakdown, avg/worst gap, zero-catch
+                    state), build fake `run`-shaped objects (the `parseRun()`
+                    output shape: `{ workflowName, metrics: { codescene: {
+                    passed, files } } }`) and call
+                    `computeGuardrailCatches(runs)` directly, then
+                    `renderGuardrailCatchesCard(result)` and assert on the
+                    returned HTML string — the same two-step pattern
+                    `quality-trend-report.js` uses for
+                    `computeTrends`/`renderTrendCard`.
+
+
+                    ## Risk / trade-offs
+
+                    - The new regex must still correctly parse the 14 real
+                    historical failed-run error strings already committed in
+                    telemetry/workflow-runs/ — worth a manual spot-check against
+                    at least one real file (e.g.
+                    workflow-run-243f7ff0-4c46-4d9d-9b46-65c02819ce6e.yaml)
+                    during implementation, not just synthetic fixtures.
+
+                    - The existing attrs-available branch of
+                    `parseCodeSceneStep` (`attrs.failedFiles !== undefined`,
+                    used when a step has embedded resource output) is left
+                    untouched and will not carry `score`/`gapToTen` — acceptable
+                    because catches (failed steps) always take the fallback,
+                    error-text path today; passing runs have no catch to report
+                    on anyway.
+                  scenarios:
+                    - name: Extracting score from a degraded-file error message
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          a codescene-health step failed with an error message
+                          containing a file path and score like "(9.38/10)"
+                      when:
+                        - the dashboard parses that step
+                      then:
+                        - >-
+                          the parsed result includes that file's score and a
+                          gap-to-10 of 0.62
+                      status: pending
+                    - name: >-
+                        Computing gap-to-10 for multiple degraded files in one
+                        run
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          a codescene-health failure error listing several
+                          degraded files with different scores
+                      when:
+                        - the dashboard parses that step
+                      then:
+                        - >-
+                          each file's gap-to-10 is computed independently and
+                          every file appears in the parsed result
+                      status: pending
+                    - name: Counting total guardrail catches across workflows
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          telemetry containing codescene-health failures from
+                          both quality-gate and quality-gate-fast runs
+                      when:
+                        - the dashboard summary is built
+                      then:
+                        - >-
+                          the Code Health Guardrail Catches card shows the total
+                          catch count broken out by pre-commit and pre-push
+                      status: pending
+                    - name: Breaking down catches by file
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          telemetry where the same file is caught by the
+                          codescene-health gate in more than one run
+                      when:
+                        - the dashboard summary is built
+                      then:
+                        - >-
+                          the card lists that file with a catch count reflecting
+                          every run it appeared in
+                      status: pending
+                    - name: Reporting average and worst gap-to-10
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          telemetry containing multiple codescene-health catches
+                          with different scores
+                      when:
+                        - the dashboard summary is built
+                      then:
+                        - >-
+                          the card shows the average gap-to-10 and the single
+                          worst largest gap-to-10 across all catches
+                      status: pending
+                    - name: No guardrail catches recorded
+                      feature: code-health-smell-insights
+                      given:
+                        - telemetry where every codescene-health run passed
+                      when:
+                        - the dashboard summary is built
+                      then:
+                        - >-
+                          the card reports zero catches instead of an error or
+                          blank section
+                      status: pending
+                    - name: Malformed error message without a parseable score
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          a codescene-health failure whose error text does not
+                          match the (score/10) pattern
+                      when:
+                        - the dashboard parses that step
+                      then:
+                        - >-
+                          the file is still counted as a catch with a null score
+                          rather than crashing the parser
+                      status: pending
+                  tasks:
+                    - id: '1.1'
+                      description: >-
+                        Run swamp model method run spec-change generate-features
+                        --input name=code-health-smell-insights to materialize
+                        tests/cucumber/features/code-health-smell-insights.feature
+                        with all 7 scenarios tagged @wip
+                      done: true
+                    - id: '2.1'
+                      description: >-
+                        In scripts/generate-guardrails-dashboard.js, extend
+                        parseCodeSceneStep failure-fallback with regex
+                        /^\s{2,}(\S+\.(?:js|ts))\s+\(([\d.]+)\/10\)/gm to
+                        capture score per file and compute gapToTen =
+                        Math.round((10 - score) * 100) / 100; fall back to
+                        score:null, gapToTen:null when unparseable without
+                        dropping the file
+                      done: true
+                    - id: '2.2'
+                      description: >-
+                        Implement computeGuardrailCatches(runs) in
+                        scripts/generate-guardrails-dashboard.js: totalCatches
+                        (count of runs with metrics.codescene.passed === false),
+                        byWorkflow split for quality-gate vs quality-gate-fast,
+                        byFile array of {path,count} incremented once per
+                        catching run a file appears in, and avgGap/worstGap over
+                        non-null gapToTen values (null when none parseable)
+                      done: true
+                    - id: '2.3'
+                      description: >-
+                        Implement renderGuardrailCatchesCard(catches) in
+                        scripts/generate-guardrails-dashboard.js producing the
+                        Code Health Guardrail Catches HTML card with totals by
+                        workflow, a per-file breakdown table, and avg/worst
+                        gap-to-10, including a clean zero-count shell when
+                        totalCatches is 0
+                      done: true
+                    - id: '2.4'
+                      description: >-
+                        Wire guardrailCatches: computeGuardrailCatches(runs)
+                        into buildData(), insert
+                        renderGuardrailCatchesCard(data.guardrailCatches) into
+                        renderHtml() after the Quality Trends card, and export
+                        computeGuardrailCatches and renderGuardrailCatchesCard
+                        from the module
+                      done: true
+                    - id: '2.5'
+                      description: >-
+                        Spot-check the new regex against the real historical
+                        error text in
+                        telemetry/workflow-runs/adb5a2c2-eee7-4dbb-a708-86c7f53cd81a/workflow-run-243f7ff0-4c46-4d9d-9b46-65c02819ce6e.yaml
+                        to confirm it parses correctly against production data,
+                        not just synthetic fixtures
+                      done: true
+                    - id: '3.1'
+                      description: >-
+                        Add vitest cases in
+                        tests/unit/guardrails-dashboard.test.js for the extended
+                        parseCodeSceneStep fallback: score+gap extraction,
+                        multi-file parsing, and malformed/unparseable score text
+                      done: true
+                    - id: '3.2'
+                      description: >-
+                        Add vitest cases in
+                        tests/unit/guardrails-dashboard.test.js for
+                        computeGuardrailCatches: totals/by-workflow split,
+                        per-file breakdown across repeated catches, avg/worst
+                        gap, and the zero-catch case
+                      done: true
+                    - id: '3.3'
+                      description: >-
+                        Add vitest cases in
+                        tests/unit/guardrails-dashboard.test.js for
+                        renderGuardrailCatchesCard: rendered HTML includes the
+                        card title/counts for a populated result and a clean
+                        zero-state for no catches
+                      done: true
+                    - id: '4.1'
+                      description: >-
+                        Write step definitions for Extracting score from a
+                        degraded-file error message: fake failed step object,
+                        call parseCodeSceneStep directly, assert score and
+                        gap-to-10 of 0.62
+                      done: true
+                    - id: '4.2'
+                      description: >-
+                        Write step definitions for Computing gap-to-10 for
+                        multiple degraded files in one run: multi-file synthetic
+                        error text, assert every file present with independently
+                        computed gaps
+                      done: true
+                    - id: '4.3'
+                      description: >-
+                        Write step definitions for Counting total guardrail
+                        catches across workflows: fake runs for quality-gate and
+                        quality-gate-fast, call computeGuardrailCatches, assert
+                        totals and per-workflow breakdown
+                      done: true
+                    - id: '4.4'
+                      description: >-
+                        Write step definitions for Breaking down catches by
+                        file: same file appearing across multiple catching runs,
+                        assert its per-file count matches the number of runs
+                      done: true
+                    - id: '4.5'
+                      description: >-
+                        Write step definitions for Reporting average and worst
+                        gap-to-10: multiple catches with different scores,
+                        assert avgGap and worstGap
+                      done: true
+                    - id: '4.6'
+                      description: >-
+                        Write step definitions for No guardrail catches
+                        recorded: all-passing runs, assert the card renders a
+                        clean zero-state
+                      done: true
+                    - id: '4.7'
+                      description: >-
+                        Write step definitions for Malformed error message
+                        without a parseable score: error text not matching the
+                        score pattern, assert the file is still counted with a
+                        null score
+                      done: true
+                    - id: '5.1'
+                      description: >-
+                        Run /spec:verify to execute the Cucumber suite, record
+                        results via record-results, and confirm
+                        generate-features drops the @wip tag from each of the 7
+                        scenarios now passing
+                      done: false
+                  proposal_approved_at: '2026-07-03T12:59:00.045Z'
+                  scenarios_approved_at: '2026-07-03T12:59:58.480Z'
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  job: generate-features
+                  step: generate
+                modelName: spec-change
+                modelId: 154bd51c-19b7-4382-ab43-230e5041ca43
+                modelType: '@focusin/spec-change'
+                specName: change
+                dataType: resource
+                contentType: application/json
+                lifetime: 365d
+                ownerType: model-method
+                streaming: false
+                size: 14771
+                content: ''
+                ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                workflowName: spec-gate
+                jobName: generate-features
+                stepName: generate
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: f955a3dd-0615-4583-b6b5-8d8f3bbb61e5
+              name: code-health-smell-insights
+              version: 28
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                job: generate-features
+                step: generate
+            - dataId: 6d1bb0e2-0221-402a-835b-18a95de26867
+              name: report-swamp-method-summary
+              version: 545
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 997eed05-27ab-4535-8028-2243952c823c
+              name: report-swamp-method-summary-json
+              version: 545
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: code-health-smell-insights
+              specName: change
+              kind: resource
+              dataId: f955a3dd-0615-4583-b6b5-8d8f3bbb61e5
+              version: 28
+              size: 14771
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                job: generate-features
+                step: generate
+              metadata:
+                contentType: application/json
+                lifetime: 365d
+                garbageCollection: 100
+                streaming: false
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  job: generate-features
+                  step: generate
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  workflowName: spec-gate
+                  jobName: generate-features
+                  stepName: generate
+                  source: step-output
+        dataArtifacts:
+          - dataId: f955a3dd-0615-4583-b6b5-8d8f3bbb61e5
+            name: code-health-smell-insights
+            version: 28
+            tags:
+              type: resource
+              specName: change
+              modelName: spec-change
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+              job: generate-features
+              step: generate
+          - dataId: 6d1bb0e2-0221-402a-835b-18a95de26867
+            name: report-swamp-method-summary
+            version: 545
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 997eed05-27ab-4535-8028-2243952c823c
+            name: report-swamp-method-summary-json
+            version: 545
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: run-runner
+    status: succeeded
+    startedAt: '2026-07-03T13:45:00.439Z'
+    completedAt: '2026-07-03T13:45:03.906Z'
+    steps:
+      - stepName: run
+        status: succeeded
+        startedAt: '2026-07-03T13:45:00.439Z'
+        completedAt: '2026-07-03T13:45:03.905Z'
+        output:
+          type: model_method
+          model: focusin-spec-runner
+          method: run
+          resources:
+            runResult:
+              current:
+                id: a5a163d2-bf9b-4335-aec6-863b9e6e719e
+                name: current
+                version: 13
+                isLatest: true
+                createdAt: '2026-07-03T13:45:03.893Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  reportPath: /Users/daniel/Repos/FocusIn/cucumber-report.json
+                  ranAt: '2026-07-03T13:45:00.447Z'
+                  exitCode: 0
+                  stderr: >
+                    `publishQuiet` option is no longer needed, you can remove it
+                    from your configuration; see
+                    https://github.com/cucumber/cucumber-js/blob/main/docs/deprecations.md
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+                tags:
+                  type: resource
+                  specName: runResult
+                  modelName: focusin-spec-runner
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  job: run-runner
+                  step: run
+                modelName: focusin-spec-runner
+                modelId: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                modelType: '@focusin/spec-runner'
+                specName: runResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 571
+                content: ''
+                ownerRef: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                workflowName: spec-gate
+                jobName: run-runner
+                stepName: run
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: a5a163d2-bf9b-4335-aec6-863b9e6e719e
+              name: current
+              version: 13
+              tags:
+                type: resource
+                specName: runResult
+                modelName: focusin-spec-runner
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                job: run-runner
+                step: run
+            - dataId: 8cd495d7-57f5-48e4-956e-1c4dab3b3fb0
+              name: report-swamp-method-summary
+              version: 13
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 6a7bdbda-51b6-49e0-8981-48e15ad231a7
+              name: report-swamp-method-summary-json
+              version: 13
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: runResult
+              kind: resource
+              dataId: a5a163d2-bf9b-4335-aec6-863b9e6e719e
+              version: 13
+              size: 571
+              tags:
+                type: resource
+                specName: runResult
+                modelName: focusin-spec-runner
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                job: run-runner
+                step: run
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: runResult
+                  modelName: focusin-spec-runner
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  job: run-runner
+                  step: run
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  workflowName: spec-gate
+                  jobName: run-runner
+                  stepName: run
+                  source: step-output
+        dataArtifacts:
+          - dataId: a5a163d2-bf9b-4335-aec6-863b9e6e719e
+            name: current
+            version: 13
+            tags:
+              type: resource
+              specName: runResult
+              modelName: focusin-spec-runner
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+              job: run-runner
+              step: run
+          - dataId: 8cd495d7-57f5-48e4-956e-1c4dab3b3fb0
+            name: report-swamp-method-summary
+            version: 13
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 6a7bdbda-51b6-49e0-8981-48e15ad231a7
+            name: report-swamp-method-summary-json
+            version: 13
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: record-results
+    status: succeeded
+    startedAt: '2026-07-03T13:45:03.910Z'
+    completedAt: '2026-07-03T13:45:03.937Z'
+    steps:
+      - stepName: record
+        status: succeeded
+        startedAt: '2026-07-03T13:45:03.911Z'
+        completedAt: '2026-07-03T13:45:03.936Z'
+        output:
+          type: model_method
+          model: spec-change
+          method: record-results
+          resources:
+            change:
+              code-health-smell-insights:
+                id: 3a033a86-3b5b-48e7-abb8-210046deca6a
+                name: code-health-smell-insights
+                version: 29
+                isLatest: true
+                createdAt: '2026-07-03T13:45:03.924Z'
+                namespace: ''
+                attributes:
+                  name: code-health-smell-insights
+                  phase: verifying
+                  proposal_text: >-
+                    ## Why
+
+                    The Quality Gates section of CLAUDE.md tells the agent to
+                    check Code Health via the CodeScene MCP tools before
+                    committing. Nothing surfaces how often that instruction was
+                    skipped and the agent got caught by the hard gate instead —
+                    even though the data already exists. Every failed
+                    `codescene-health` step's error message already contains,
+                    per degraded file, the file path and score (e.g.
+                    "(9.38/10)"), and this has already happened 14 times across
+                    the 192 codescene-health runs recorded in
+                    telemetry/workflow-runs/. None of it is parsed or shown
+                    anywhere: `parseCodeSceneStep`'s failure-path fallback in
+                    scripts/generate-guardrails-dashboard.js only extracts a
+                    file count and bare paths, discarding the score; the
+                    dashboard only ever prints "N degraded" or a bare filename.
+
+
+                    ## What
+
+                    - Extend `parseCodeSceneStep`'s regex fallback in
+                    scripts/generate-guardrails-dashboard.js to also capture the
+                    score from the existing "(score/10)" pattern in error text,
+                    and compute gap-to-10 = 10 - score.
+
+                    - Add a "Code Health Guardrail Catches" summary card to the
+                    dashboard, computed entirely from existing telemetry: total
+                    catches (broken out pre-commit quality-gate-fast vs pre-push
+                    quality-gate), which files were caught and how many times
+                    each, and the average/worst gap-to-10 among catches.
+
+                    - No changes to extensions/models/focusin_codescene.ts — the
+                    extension's error message already contains everything
+                    needed; this is read-only summarization of data already
+                    captured, not a new data-capture change.
+
+                    - Out of scope: code smell / finding category detail. That
+                    detail is genuinely not present in any committed telemetry
+                    today — it only exists in the ephemeral, gitignored
+                    .swamp/data/ resource, so surfacing it would require
+                    extending the extension's captured output, which is
+                    explicitly deferred.
+
+
+                    ## Success criteria
+
+                    - Running the dashboard generator against the current
+                    telemetry/workflow-runs/ produces a summary card showing the
+                    real historical count (14 catches out of 192
+                    codescene-health runs today) with a per-file breakdown and
+                    gap-to-10 stats — no new runs required, no extension
+                    changes.
+
+                    - tests/unit/guardrails-dashboard.test.js covers the new
+                    score parsing and the new card's rendering.
+                  design_text: >-
+                    ## Approach
+
+                    Extend the existing pure-function pipeline in
+                    scripts/generate-guardrails-dashboard.js — the same module
+                    quality-trend-report.js already extended — rather than
+                    introducing any new model, report, or data source.
+                    Everything needed is already inside the `error` string on a
+                    failed `codescene-health` step, in the exact format written
+                    by extensions/models/focusin_codescene.ts:
+                      `  ${projectDir}/${f.name}  (${f.newScore}/10)`
+
+                    1. Extend `parseCodeSceneStep`'s failure-fallback branch
+                    (the `if (step.status === "failed")`-adjacent path that
+                    today only regexes out a count and bare paths) to match
+                    `/^\s{2,}(\S+\.(?:js|ts))\s+\(([\d.]+)\/10\)/gm` per line,
+                    capturing both path and score in one pass. For each matched
+                    file compute `gapToTen = Math.round((10 - score) * 100) /
+                    100` (rounding avoids float noise, e.g. 10 - 9.38 =
+                    0.6200000000000001 -> 0.62). If a line's score doesn't match
+                    (malformed text), keep falling back to the existing
+                    bare-path regex so the file is still counted with `score:
+                    null, gapToTen: null` rather than dropped or erroring.
+
+                    2. Add a new pure function `computeGuardrailCatches(runs)`:
+                       - A "catch" = one run whose `metrics.codescene` exists and `.passed === false` (regardless of how many files it lists) — this matches how "14 catches out of 192 codescene-health runs" was counted.
+                       - `totalCatches`, and `byWorkflow: { "quality-gate": n, "quality-gate-fast": n }` (pre-push vs pre-commit).
+                       - `byFile`: a map/array of `{ path, count }` — incremented once per catching run the file appears in (so the same file caught across 3 different runs shows count 3).
+                       - `avgGap` / `worstGap`: mean and max of every non-null `gapToTen` across all files in all catching runs; both `null` if no scores were parseable (e.g. zero catches).
+                    3. Add `renderGuardrailCatchesCard(catches)` producing the
+                    "Code Health Guardrail Catches" HTML card: totals split
+                    pre-commit/pre-push, a per-file table, and avg/worst
+                    gap-to-10. When `totalCatches === 0` it still renders the
+                    card shell with zero counts (mirrors `renderTrendCard`'s
+                    "insufficient history" empty state) rather than omitting the
+                    section.
+
+                    4. Wire `guardrailCatches: computeGuardrailCatches(runs)`
+                    into `buildData`, and insert
+                    `renderGuardrailCatchesCard(data.guardrailCatches)` into
+                    `renderHtml` (after the existing Quality Trends card).
+
+                    5. Export `computeGuardrailCatches` and
+                    `renderGuardrailCatchesCard` alongside the module's other
+                    exports for direct testing, same as
+                    `computeTrends`/`renderTrendCard`.
+
+
+                    ## Files to change
+
+                    - scripts/generate-guardrails-dashboard.js — regex/score/gap
+                    parsing, `computeGuardrailCatches`,
+                    `renderGuardrailCatchesCard`, wiring into
+                    `buildData`/`renderHtml`/exports.
+
+                    - tests/unit/guardrails-dashboard.test.js — vitest coverage
+                    for the new parsing branch and the two new functions
+                    (mirrors existing `computeTrends`/`renderTrendCard` test
+                    blocks).
+
+                    - tests/cucumber/features/code-health-smell-insights.feature
+                    — the 7 approved scenarios verbatim.
+
+                    -
+                    tests/cucumber/step-definitions/code-health-smell-insights.js
+                    — step definitions, following the established pattern in
+                    step-definitions/quality-trend-report.js.
+
+
+                    ## Key decisions
+
+                    - No changes to extensions/models/focusin_codescene.ts or
+                    any swamp model/report — this is read-only summarization of
+                    what committed telemetry already contains, per the approved
+                    proposal's explicit scope cut.
+
+                    - "Catch" is counted at the run level (one failed
+                    codescene-health step = one catch), not at the file-listing
+                    level, so totals stay consistent with the existing 14/192
+                    figure found in current telemetry.
+
+                    - Per-file breakdown counts are independent of the run-level
+                    total: a single run listing 2 degraded files contributes 1
+                    to each file's count, but only 1 to `totalCatches`.
+
+                    - Malformed/unparseable score text degrades gracefully to
+                    `score: null, gapToTen: null` for that file — it must not
+                    throw, and the file must still be counted (per the
+                    "malformed error message" scenario).
+
+
+                    ## Step definition strategy
+
+                    - For the raw-text parsing scenarios (score extraction,
+                    multi-file gap computation, malformed error), call
+                    `parseCodeSceneStep` directly with a hand-built fake `step`
+                    object of shape `{ status: "failed", error: "<multi-line
+                    synthetic error text>" }` (no `output.resources`), which
+                    forces the fallback branch — exactly how `extractStepAttrs`
+                    already treats a failed step with no embedded attributes.
+
+                    - For the aggregation/rendering scenarios (total/by-workflow
+                    counts, per-file breakdown, avg/worst gap, zero-catch
+                    state), build fake `run`-shaped objects (the `parseRun()`
+                    output shape: `{ workflowName, metrics: { codescene: {
+                    passed, files } } }`) and call
+                    `computeGuardrailCatches(runs)` directly, then
+                    `renderGuardrailCatchesCard(result)` and assert on the
+                    returned HTML string — the same two-step pattern
+                    `quality-trend-report.js` uses for
+                    `computeTrends`/`renderTrendCard`.
+
+
+                    ## Risk / trade-offs
+
+                    - The new regex must still correctly parse the 14 real
+                    historical failed-run error strings already committed in
+                    telemetry/workflow-runs/ — worth a manual spot-check against
+                    at least one real file (e.g.
+                    workflow-run-243f7ff0-4c46-4d9d-9b46-65c02819ce6e.yaml)
+                    during implementation, not just synthetic fixtures.
+
+                    - The existing attrs-available branch of
+                    `parseCodeSceneStep` (`attrs.failedFiles !== undefined`,
+                    used when a step has embedded resource output) is left
+                    untouched and will not carry `score`/`gapToTen` — acceptable
+                    because catches (failed steps) always take the fallback,
+                    error-text path today; passing runs have no catch to report
+                    on anyway.
+                  scenarios:
+                    - name: Extracting score from a degraded-file error message
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          a codescene-health step failed with an error message
+                          containing a file path and score like "(9.38/10)"
+                      when:
+                        - the dashboard parses that step
+                      then:
+                        - >-
+                          the parsed result includes that file's score and a
+                          gap-to-10 of 0.62
+                      status: pending
+                    - name: >-
+                        Computing gap-to-10 for multiple degraded files in one
+                        run
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          a codescene-health failure error listing several
+                          degraded files with different scores
+                      when:
+                        - the dashboard parses that step
+                      then:
+                        - >-
+                          each file's gap-to-10 is computed independently and
+                          every file appears in the parsed result
+                      status: pending
+                    - name: Counting total guardrail catches across workflows
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          telemetry containing codescene-health failures from
+                          both quality-gate and quality-gate-fast runs
+                      when:
+                        - the dashboard summary is built
+                      then:
+                        - >-
+                          the Code Health Guardrail Catches card shows the total
+                          catch count broken out by pre-commit and pre-push
+                      status: pending
+                    - name: Breaking down catches by file
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          telemetry where the same file is caught by the
+                          codescene-health gate in more than one run
+                      when:
+                        - the dashboard summary is built
+                      then:
+                        - >-
+                          the card lists that file with a catch count reflecting
+                          every run it appeared in
+                      status: pending
+                    - name: Reporting average and worst gap-to-10
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          telemetry containing multiple codescene-health catches
+                          with different scores
+                      when:
+                        - the dashboard summary is built
+                      then:
+                        - >-
+                          the card shows the average gap-to-10 and the single
+                          worst largest gap-to-10 across all catches
+                      status: pending
+                    - name: No guardrail catches recorded
+                      feature: code-health-smell-insights
+                      given:
+                        - telemetry where every codescene-health run passed
+                      when:
+                        - the dashboard summary is built
+                      then:
+                        - >-
+                          the card reports zero catches instead of an error or
+                          blank section
+                      status: pending
+                    - name: Malformed error message without a parseable score
+                      feature: code-health-smell-insights
+                      given:
+                        - >-
+                          a codescene-health failure whose error text does not
+                          match the (score/10) pattern
+                      when:
+                        - the dashboard parses that step
+                      then:
+                        - >-
+                          the file is still counted as a catch with a null score
+                          rather than crashing the parser
+                      status: pending
+                  tasks:
+                    - id: '1.1'
+                      description: >-
+                        Run swamp model method run spec-change generate-features
+                        --input name=code-health-smell-insights to materialize
+                        tests/cucumber/features/code-health-smell-insights.feature
+                        with all 7 scenarios tagged @wip
+                      done: true
+                    - id: '2.1'
+                      description: >-
+                        In scripts/generate-guardrails-dashboard.js, extend
+                        parseCodeSceneStep failure-fallback with regex
+                        /^\s{2,}(\S+\.(?:js|ts))\s+\(([\d.]+)\/10\)/gm to
+                        capture score per file and compute gapToTen =
+                        Math.round((10 - score) * 100) / 100; fall back to
+                        score:null, gapToTen:null when unparseable without
+                        dropping the file
+                      done: true
+                    - id: '2.2'
+                      description: >-
+                        Implement computeGuardrailCatches(runs) in
+                        scripts/generate-guardrails-dashboard.js: totalCatches
+                        (count of runs with metrics.codescene.passed === false),
+                        byWorkflow split for quality-gate vs quality-gate-fast,
+                        byFile array of {path,count} incremented once per
+                        catching run a file appears in, and avgGap/worstGap over
+                        non-null gapToTen values (null when none parseable)
+                      done: true
+                    - id: '2.3'
+                      description: >-
+                        Implement renderGuardrailCatchesCard(catches) in
+                        scripts/generate-guardrails-dashboard.js producing the
+                        Code Health Guardrail Catches HTML card with totals by
+                        workflow, a per-file breakdown table, and avg/worst
+                        gap-to-10, including a clean zero-count shell when
+                        totalCatches is 0
+                      done: true
+                    - id: '2.4'
+                      description: >-
+                        Wire guardrailCatches: computeGuardrailCatches(runs)
+                        into buildData(), insert
+                        renderGuardrailCatchesCard(data.guardrailCatches) into
+                        renderHtml() after the Quality Trends card, and export
+                        computeGuardrailCatches and renderGuardrailCatchesCard
+                        from the module
+                      done: true
+                    - id: '2.5'
+                      description: >-
+                        Spot-check the new regex against the real historical
+                        error text in
+                        telemetry/workflow-runs/adb5a2c2-eee7-4dbb-a708-86c7f53cd81a/workflow-run-243f7ff0-4c46-4d9d-9b46-65c02819ce6e.yaml
+                        to confirm it parses correctly against production data,
+                        not just synthetic fixtures
+                      done: true
+                    - id: '3.1'
+                      description: >-
+                        Add vitest cases in
+                        tests/unit/guardrails-dashboard.test.js for the extended
+                        parseCodeSceneStep fallback: score+gap extraction,
+                        multi-file parsing, and malformed/unparseable score text
+                      done: true
+                    - id: '3.2'
+                      description: >-
+                        Add vitest cases in
+                        tests/unit/guardrails-dashboard.test.js for
+                        computeGuardrailCatches: totals/by-workflow split,
+                        per-file breakdown across repeated catches, avg/worst
+                        gap, and the zero-catch case
+                      done: true
+                    - id: '3.3'
+                      description: >-
+                        Add vitest cases in
+                        tests/unit/guardrails-dashboard.test.js for
+                        renderGuardrailCatchesCard: rendered HTML includes the
+                        card title/counts for a populated result and a clean
+                        zero-state for no catches
+                      done: true
+                    - id: '4.1'
+                      description: >-
+                        Write step definitions for Extracting score from a
+                        degraded-file error message: fake failed step object,
+                        call parseCodeSceneStep directly, assert score and
+                        gap-to-10 of 0.62
+                      done: true
+                    - id: '4.2'
+                      description: >-
+                        Write step definitions for Computing gap-to-10 for
+                        multiple degraded files in one run: multi-file synthetic
+                        error text, assert every file present with independently
+                        computed gaps
+                      done: true
+                    - id: '4.3'
+                      description: >-
+                        Write step definitions for Counting total guardrail
+                        catches across workflows: fake runs for quality-gate and
+                        quality-gate-fast, call computeGuardrailCatches, assert
+                        totals and per-workflow breakdown
+                      done: true
+                    - id: '4.4'
+                      description: >-
+                        Write step definitions for Breaking down catches by
+                        file: same file appearing across multiple catching runs,
+                        assert its per-file count matches the number of runs
+                      done: true
+                    - id: '4.5'
+                      description: >-
+                        Write step definitions for Reporting average and worst
+                        gap-to-10: multiple catches with different scores,
+                        assert avgGap and worstGap
+                      done: true
+                    - id: '4.6'
+                      description: >-
+                        Write step definitions for No guardrail catches
+                        recorded: all-passing runs, assert the card renders a
+                        clean zero-state
+                      done: true
+                    - id: '4.7'
+                      description: >-
+                        Write step definitions for Malformed error message
+                        without a parseable score: error text not matching the
+                        score pattern, assert the file is still counted with a
+                        null score
+                      done: true
+                    - id: '5.1'
+                      description: >-
+                        Run /spec:verify to execute the Cucumber suite, record
+                        results via record-results, and confirm
+                        generate-features drops the @wip tag from each of the 7
+                        scenarios now passing
+                      done: false
+                  proposal_approved_at: '2026-07-03T12:59:00.045Z'
+                  scenarios_approved_at: '2026-07-03T12:59:58.480Z'
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  job: record-results
+                  step: record
+                modelName: spec-change
+                modelId: 154bd51c-19b7-4382-ab43-230e5041ca43
+                modelType: '@focusin/spec-change'
+                specName: change
+                dataType: resource
+                contentType: application/json
+                lifetime: 365d
+                ownerType: model-method
+                streaming: false
+                size: 14768
+                content: ''
+                ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                workflowName: spec-gate
+                jobName: record-results
+                stepName: record
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: 3a033a86-3b5b-48e7-abb8-210046deca6a
+              name: code-health-smell-insights
+              version: 29
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                job: record-results
+                step: record
+            - dataId: fd364b46-2e0b-40ad-8a93-fba40f17a1e4
+              name: report-swamp-method-summary
+              version: 546
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: a0e03b07-81a3-431b-b788-3c10bab372b4
+              name: report-swamp-method-summary-json
+              version: 546
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: code-health-smell-insights
+              specName: change
+              kind: resource
+              dataId: 3a033a86-3b5b-48e7-abb8-210046deca6a
+              version: 29
+              size: 14768
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                job: record-results
+                step: record
+              metadata:
+                contentType: application/json
+                lifetime: 365d
+                garbageCollection: 100
+                streaming: false
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  job: record-results
+                  step: record
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                  workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+                  workflowName: spec-gate
+                  jobName: record-results
+                  stepName: record
+                  source: step-output
+        dataArtifacts:
+          - dataId: 3a033a86-3b5b-48e7-abb8-210046deca6a
+            name: code-health-smell-insights
+            version: 29
+            tags:
+              type: resource
+              specName: change
+              modelName: spec-change
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: e05386d3-dfad-4642-9a90-050d96009539
+              job: record-results
+              step: record
+          - dataId: fd364b46-2e0b-40ad-8a93-fba40f17a1e4
+            name: report-swamp-method-summary
+            version: 546
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: a0e03b07-81a3-431b-b788-3c10bab372b4
+            name: report-swamp-method-summary-json
+            version: 546
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+tags: {}
+logFile: >-
+  .swamp/workflow-runs/b0ac9c84-598d-46f5-8ec6-c6891ec5a2ed/workflow-run-e05386d3-dfad-4642-9a90-050d96009539.log
+workflowDataArtifacts:
+  - dataId: af00fc05-8978-4fbd-98b8-a2cba474247f
+    name: report-swamp-workflow-summary
+    version: 6
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
+  - dataId: 44216ae9-bf6a-4e00-bbe6-0113769ab07b
+    name: report-swamp-workflow-summary-json
+    version: 6
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
