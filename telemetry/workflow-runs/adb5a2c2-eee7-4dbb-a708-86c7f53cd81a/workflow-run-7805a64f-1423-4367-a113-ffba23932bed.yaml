@@ -1,8 +1,9 @@
 id: 7805a64f-1423-4367-a113-ffba23932bed
 workflowId: adb5a2c2-eee7-4dbb-a708-86c7f53cd81a
 workflowName: quality-gate
-status: running
+status: succeeded
 startedAt: '2026-07-03T01:14:09.609Z'
+completedAt: '2026-07-03T01:19:53.245Z'
 jobs:
   - jobName: check
     status: succeeded
@@ -1354,12 +1355,480 @@ jobs:
               reportName: '@swamp/method-summary'
               reportScope: method
   - jobName: dashboard
-    status: pending
+    status: succeeded
+    startedAt: '2026-07-03T01:19:52.570Z'
+    completedAt: '2026-07-03T01:19:53.237Z'
     steps:
       - stepName: generate-dashboard
-        status: pending
+        status: succeeded
+        startedAt: '2026-07-03T01:19:52.571Z'
+        completedAt: '2026-07-03T01:19:53.236Z'
+        output:
+          type: model_method
+          model: focusin-dashboard
+          method: execute
+          resources:
+            result:
+              result:
+                id: ae65a069-4950-4d5f-95b0-9a02b62adbf5
+                name: result
+                version: 43
+                isLatest: true
+                createdAt: '2026-07-03T01:19:53.224Z'
+                namespace: ''
+                attributes:
+                  exitCode: 0
+                  executedAt: '2026-07-03T01:19:53.213Z'
+                  command: >-
+                    node scripts/sync-telemetry.js && node
+                    scripts/generate-guardrails-dashboard.js
+                  durationMs: 608
+                  stdout: >2-
+                      synced: adb5a2c2-eee7-4dbb-a708-86c7f53cd81a/workflow-run-7292f726-0d51-41cf-974d-e38725067fe5.yaml
+                      synced: adb5a2c2-eee7-4dbb-a708-86c7f53cd81a/workflow-run-7805a64f-1423-4367-a113-ffba23932bed.yaml
+
+                    Done: 2 copied, 202 already present.
+
+                    Generated reports/workflow-insights/index.html (199 runs, 14
+                    sessions)
+                  stderr: ''
+                tags:
+                  type: resource
+                  specName: result
+                  modelName: focusin-dashboard
+                  source: step-output
+                  workflow: quality-gate
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  job: dashboard
+                  step: generate-dashboard
+                modelName: focusin-dashboard
+                modelId: 8339c4ef-17f2-41f0-9455-31dcde8d6e6c
+                modelType: command/shell
+                specName: result
+                dataType: resource
+                contentType: application/json
+                lifetime: infinite
+                ownerType: model-method
+                streaming: false
+                size: 503
+                content: ''
+                ownerRef: 8339c4ef-17f2-41f0-9455-31dcde8d6e6c
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                workflowName: quality-gate
+                jobName: dashboard
+                stepName: generate-dashboard
+                source: step-output
+          files:
+            log:
+              log:
+                id: c4466d84-3e6d-4cb4-86d9-47829a1a8179
+                version: 43
+                createdAt: '2026-07-03T01:19:53.224Z'
+                path: >-
+                  /Users/daniel/Repos/FocusIn/.swamp/data/command/shell/8339c4ef-17f2-41f0-9455-31dcde8d6e6c/log/43/raw
+                size: 321
+                contentType: text/plain
+          dataArtifacts:
+            - dataId: ae65a069-4950-4d5f-95b0-9a02b62adbf5
+              name: result
+              version: 43
+              tags:
+                type: resource
+                specName: result
+                modelName: focusin-dashboard
+                source: step-output
+                workflow: quality-gate
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                job: dashboard
+                step: generate-dashboard
+            - dataId: c4466d84-3e6d-4cb4-86d9-47829a1a8179
+              name: log
+              version: 43
+              tags:
+                type: file
+                specName: log
+                modelName: focusin-dashboard
+                source: step-output
+                workflow: quality-gate
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                job: dashboard
+                step: generate-dashboard
+            - dataId: 71349eaf-3f53-4d89-b708-aa7503086749
+              name: report-swamp-method-summary
+              version: 43
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 93035f32-d15c-4232-aeaa-b7c2f086f8e4
+              name: report-swamp-method-summary-json
+              version: 43
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: result
+              specName: result
+              kind: resource
+              dataId: ae65a069-4950-4d5f-95b0-9a02b62adbf5
+              version: 43
+              size: 503
+              tags:
+                type: resource
+                specName: result
+                modelName: focusin-dashboard
+                source: step-output
+                workflow: quality-gate
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                job: dashboard
+                step: generate-dashboard
+              metadata:
+                contentType: application/json
+                lifetime: infinite
+                garbageCollection: 10
+                streaming: false
+                tags:
+                  type: resource
+                  specName: result
+                  modelName: focusin-dashboard
+                  source: step-output
+                  workflow: quality-gate
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  job: dashboard
+                  step: generate-dashboard
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 8339c4ef-17f2-41f0-9455-31dcde8d6e6c
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  workflowName: quality-gate
+                  jobName: dashboard
+                  stepName: generate-dashboard
+                  source: step-output
+            - name: log
+              specName: log
+              kind: file
+              dataId: c4466d84-3e6d-4cb4-86d9-47829a1a8179
+              version: 43
+              size: 321
+              tags:
+                type: file
+                specName: log
+                modelName: focusin-dashboard
+                source: step-output
+                workflow: quality-gate
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                job: dashboard
+                step: generate-dashboard
+              metadata:
+                contentType: text/plain
+                lifetime: infinite
+                garbageCollection: 10
+                streaming: true
+                tags:
+                  type: file
+                  specName: log
+                  modelName: focusin-dashboard
+                  source: step-output
+                  workflow: quality-gate
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  job: dashboard
+                  step: generate-dashboard
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 8339c4ef-17f2-41f0-9455-31dcde8d6e6c
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  workflowName: quality-gate
+                  jobName: dashboard
+                  stepName: generate-dashboard
+                  source: step-output
+        dataArtifacts:
+          - dataId: ae65a069-4950-4d5f-95b0-9a02b62adbf5
+            name: result
+            version: 43
+            tags:
+              type: resource
+              specName: result
+              modelName: focusin-dashboard
+              source: step-output
+              workflow: quality-gate
+              workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+              job: dashboard
+              step: generate-dashboard
+          - dataId: c4466d84-3e6d-4cb4-86d9-47829a1a8179
+            name: log
+            version: 43
+            tags:
+              type: file
+              specName: log
+              modelName: focusin-dashboard
+              source: step-output
+              workflow: quality-gate
+              workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+              job: dashboard
+              step: generate-dashboard
+          - dataId: 71349eaf-3f53-4d89-b708-aa7503086749
+            name: report-swamp-method-summary
+            version: 43
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 93035f32-d15c-4232-aeaa-b7c2f086f8e4
+            name: report-swamp-method-summary-json
+            version: 43
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
       - stepName: commit-telemetry
-        status: pending
+        status: succeeded
+        startedAt: '2026-07-03T01:19:52.571Z'
+        completedAt: '2026-07-03T01:19:52.972Z'
+        output:
+          type: model_method
+          model: focusin-telemetry-commit
+          method: execute
+          resources:
+            result:
+              result:
+                id: 6717c496-6b27-4128-a9a3-524106508123
+                name: result
+                version: 26
+                isLatest: true
+                createdAt: '2026-07-03T01:19:52.955Z'
+                namespace: ''
+                attributes:
+                  exitCode: 0
+                  executedAt: '2026-07-03T01:19:52.937Z'
+                  command: >-
+                    git add telemetry/ && git diff --cached --quiet || git
+                    commit -m 'telemetry: sync'
+                  durationMs: 284
+                  stdout: |-
+                    [feat/spec-gate-verify-loop-fix dadfe24] telemetry: sync
+                     2 files changed, 2543 insertions(+)
+                     create mode 100644 telemetry/workflow-runs/adb5a2c2-eee7-4dbb-a708-86c7f53cd81a/workflow-run-7292f726-0d51-41cf-974d-e38725067fe5.yaml
+                     create mode 100644 telemetry/workflow-runs/adb5a2c2-eee7-4dbb-a708-86c7f53cd81a/workflow-run-7805a64f-1423-4367-a113-ffba23932bed.yaml
+                  stderr: ''
+                tags:
+                  type: resource
+                  specName: result
+                  modelName: focusin-telemetry-commit
+                  source: step-output
+                  workflow: quality-gate
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  job: dashboard
+                  step: commit-telemetry
+                modelName: focusin-telemetry-commit
+                modelId: f1b164a4-8851-4180-8979-55f79b70e7d0
+                modelType: command/shell
+                specName: result
+                dataType: resource
+                contentType: application/json
+                lifetime: infinite
+                ownerType: model-method
+                streaming: false
+                size: 558
+                content: ''
+                ownerRef: f1b164a4-8851-4180-8979-55f79b70e7d0
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                workflowName: quality-gate
+                jobName: dashboard
+                stepName: commit-telemetry
+                source: step-output
+          files:
+            log:
+              log:
+                id: 56289fb6-3143-45ff-a80b-5df99b42f7b0
+                version: 26
+                createdAt: '2026-07-03T01:19:52.955Z'
+                path: >-
+                  /Users/daniel/Repos/FocusIn/.swamp/data/command/shell/f1b164a4-8851-4180-8979-55f79b70e7d0/log/26/raw
+                size: 374
+                contentType: text/plain
+          dataArtifacts:
+            - dataId: 6717c496-6b27-4128-a9a3-524106508123
+              name: result
+              version: 26
+              tags:
+                type: resource
+                specName: result
+                modelName: focusin-telemetry-commit
+                source: step-output
+                workflow: quality-gate
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                job: dashboard
+                step: commit-telemetry
+            - dataId: 56289fb6-3143-45ff-a80b-5df99b42f7b0
+              name: log
+              version: 26
+              tags:
+                type: file
+                specName: log
+                modelName: focusin-telemetry-commit
+                source: step-output
+                workflow: quality-gate
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                job: dashboard
+                step: commit-telemetry
+            - dataId: 37cd623a-5812-43ec-af89-ab0f2fe91498
+              name: report-swamp-method-summary
+              version: 27
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: e2e43777-64be-4243-a46d-d4245d4a566e
+              name: report-swamp-method-summary-json
+              version: 27
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: result
+              specName: result
+              kind: resource
+              dataId: 6717c496-6b27-4128-a9a3-524106508123
+              version: 26
+              size: 558
+              tags:
+                type: resource
+                specName: result
+                modelName: focusin-telemetry-commit
+                source: step-output
+                workflow: quality-gate
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                job: dashboard
+                step: commit-telemetry
+              metadata:
+                contentType: application/json
+                lifetime: infinite
+                garbageCollection: 10
+                streaming: false
+                tags:
+                  type: resource
+                  specName: result
+                  modelName: focusin-telemetry-commit
+                  source: step-output
+                  workflow: quality-gate
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  job: dashboard
+                  step: commit-telemetry
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: f1b164a4-8851-4180-8979-55f79b70e7d0
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  workflowName: quality-gate
+                  jobName: dashboard
+                  stepName: commit-telemetry
+                  source: step-output
+            - name: log
+              specName: log
+              kind: file
+              dataId: 56289fb6-3143-45ff-a80b-5df99b42f7b0
+              version: 26
+              size: 374
+              tags:
+                type: file
+                specName: log
+                modelName: focusin-telemetry-commit
+                source: step-output
+                workflow: quality-gate
+                workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                job: dashboard
+                step: commit-telemetry
+              metadata:
+                contentType: text/plain
+                lifetime: infinite
+                garbageCollection: 10
+                streaming: true
+                tags:
+                  type: file
+                  specName: log
+                  modelName: focusin-telemetry-commit
+                  source: step-output
+                  workflow: quality-gate
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  job: dashboard
+                  step: commit-telemetry
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: f1b164a4-8851-4180-8979-55f79b70e7d0
+                  workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+                  workflowName: quality-gate
+                  jobName: dashboard
+                  stepName: commit-telemetry
+                  source: step-output
+        dataArtifacts:
+          - dataId: 6717c496-6b27-4128-a9a3-524106508123
+            name: result
+            version: 26
+            tags:
+              type: resource
+              specName: result
+              modelName: focusin-telemetry-commit
+              source: step-output
+              workflow: quality-gate
+              workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+              job: dashboard
+              step: commit-telemetry
+          - dataId: 56289fb6-3143-45ff-a80b-5df99b42f7b0
+            name: log
+            version: 26
+            tags:
+              type: file
+              specName: log
+              modelName: focusin-telemetry-commit
+              source: step-output
+              workflow: quality-gate
+              workflowRunId: 7805a64f-1423-4367-a113-ffba23932bed
+              job: dashboard
+              step: commit-telemetry
+          - dataId: 37cd623a-5812-43ec-af89-ab0f2fe91498
+            name: report-swamp-method-summary
+            version: 27
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: e2e43777-64be-4243-a46d-d4245d4a566e
+            name: report-swamp-method-summary-json
+            version: 27
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
 tags: {}
 logFile: >-
   .swamp/workflow-runs/adb5a2c2-eee7-4dbb-a708-86c7f53cd81a/workflow-run-7805a64f-1423-4367-a113-ffba23932bed.log
+workflowDataArtifacts:
+  - dataId: f9a2e0e2-b774-4b39-90f2-3183b58325a4
+    name: report-swamp-workflow-summary
+    version: 64
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
+  - dataId: b6ece240-455c-485d-afe1-6c8786729c93
+    name: report-swamp-workflow-summary-json
+    version: 64
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
+  - dataId: ba719bf3-77a7-430d-9f59-66ca5357a9e5
+    name: report-focusin-quality-gate-summary
+    version: 44
+    tags:
+      type: report
+      reportName: '@focusin/quality-gate-summary'
+      reportScope: workflow
+  - dataId: 5079ae71-d906-43b5-8e8a-f6d552af9237
+    name: report-focusin-quality-gate-summary-json
+    version: 44
+    tags:
+      type: report
+      reportName: '@focusin/quality-gate-summary'
+      reportScope: workflow

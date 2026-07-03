@@ -48,16 +48,20 @@ async function buildToApproved(ctx: never): Promise<void> {
   await model.methods["approve-proposal"].execute({ name: "chg" }, ctx);
 }
 
-async function buildToImplementing(
-  ctx: never,
-  tasks: Array<{ id: string; description: string }> = [{ id: "1", description: "t" }],
-): Promise<void> {
+async function buildToDesigning(ctx: never): Promise<void> {
   await buildToApproved(ctx);
   await model.methods["set-scenarios"].execute({
     name: "chg", scenarios: [{ name: "S", given: [], when: ["a"], then: ["b"] }],
   }, ctx);
   await model.methods["approve-scenarios"].execute({ name: "chg" }, ctx);
   await model.methods["set-design"].execute({ name: "chg", text: "design" }, ctx);
+}
+
+async function buildToImplementing(
+  ctx: never,
+  tasks: Array<{ id: string; description: string }> = [{ id: "1", description: "t" }],
+): Promise<void> {
+  await buildToDesigning(ctx);
   await model.methods["set-tasks"].execute({ name: "chg", tasks }, ctx);
   await model.methods["start-implementing"].execute({ name: "chg" }, ctx);
 }
@@ -235,6 +239,62 @@ Deno.test("approve-scenarios: rejects with no scenarios", async () => {
     "no scenarios",
   );
 });
+
+Deno.test("reopen-proposal: resets to draft and clears downstream state", async () => {
+  const { projectDir, ctx } = await makeContext();
+  await buildToDesigning(ctx);
+  await model.methods["reopen-proposal"].execute({ name: "chg" }, ctx);
+  const state = await readState(projectDir, "chg");
+  assertEquals(state.phase, "draft");
+  assertEquals(state.scenarios, []);
+  assertEquals(state.design_text, "");
+  assertEquals(state.tasks, []);
+  assertEquals(state.proposal_approved_at, undefined);
+  assertEquals(state.scenarios_approved_at, undefined);
+  assertEquals(state.proposal_text, "text");
+});
+
+for (const phase of ["draft", "archived"]) {
+  Deno.test(`reopen-proposal: rejects from ${phase}`, async () => {
+    const { projectDir, ctx } = await makeContext();
+    await model.methods.create.execute({ name: "chg" }, ctx);
+    const state = await readState(projectDir, "chg");
+    state.phase = phase as never;
+    await Deno.writeTextFile(`${projectDir}/.swamp/spec-change-chg.json`, JSON.stringify(state, null, 2));
+    await assertRejects(
+      () => model.methods["reopen-proposal"].execute({ name: "chg" }, ctx),
+      Error,
+    );
+  });
+}
+
+Deno.test("reopen-scenarios: resets to proposal-approved and preserves the proposal", async () => {
+  const { projectDir, ctx } = await makeContext();
+  await buildToDesigning(ctx);
+  await model.methods["reopen-scenarios"].execute({ name: "chg" }, ctx);
+  const state = await readState(projectDir, "chg");
+  assertEquals(state.phase, "proposal-approved");
+  assertEquals(state.scenarios, []);
+  assertEquals(state.design_text, "");
+  assertEquals(state.tasks, []);
+  assertEquals(state.scenarios_approved_at, undefined);
+  assertEquals(state.proposal_text, "text");
+  assertEquals(typeof state.proposal_approved_at, "string");
+});
+
+for (const phase of ["draft", "proposal-approved", "archived"]) {
+  Deno.test(`reopen-scenarios: rejects from ${phase}`, async () => {
+    const { projectDir, ctx } = await makeContext();
+    await model.methods.create.execute({ name: "chg" }, ctx);
+    const state = await readState(projectDir, "chg");
+    state.phase = phase as never;
+    await Deno.writeTextFile(`${projectDir}/.swamp/spec-change-chg.json`, JSON.stringify(state, null, 2));
+    await assertRejects(
+      () => model.methods["reopen-scenarios"].execute({ name: "chg" }, ctx),
+      Error,
+    );
+  });
+}
 
 Deno.test("archive: succeeds when all scenarios pass", async () => {
   const { projectDir, ctx } = await makeContext();
