@@ -354,31 +354,20 @@ Deno.test("complete-task: rejects unknown task id", async () => {
 
 // ── Hotspot guardrail: task ordering ───────────────────────────────────────────
 
-Deno.test("complete-task: rejects a feature task when its testing sibling on the same file is not done", async () => {
-  const { ctx } = await makeContext();
-  await buildToImplementing(ctx, [
-    { id: "1.1", description: "write tests", file: "src/foo.js", kind: "testing" },
-    { id: "1.2", description: "ship feature", file: "src/foo.js", kind: "feature" },
-  ]);
-  await assertRejects(
-    () => model.methods["complete-task"].execute({ name: "chg", id: "1.2" }, ctx),
-    Error,
-    "1.1",
-  );
-});
-
-Deno.test("complete-task: rejects a refactor task when its testing sibling on the same file is not done", async () => {
-  const { ctx } = await makeContext();
-  await buildToImplementing(ctx, [
-    { id: "1.1", description: "write tests", file: "src/foo.js", kind: "testing" },
-    { id: "1.2", description: "refactor", file: "src/foo.js", kind: "refactor" },
-  ]);
-  await assertRejects(
-    () => model.methods["complete-task"].execute({ name: "chg", id: "1.2" }, ctx),
-    Error,
-    "1.1",
-  );
-});
+for (const kind of ["feature", "refactor"] as const) {
+  Deno.test(`complete-task: rejects a ${kind} task when its testing sibling on the same file is not done`, async () => {
+    const { ctx } = await makeContext();
+    await buildToImplementing(ctx, [
+      { id: "1.1", description: "write tests", file: "src/foo.js", kind: "testing" },
+      { id: "1.2", description: kind === "feature" ? "ship feature" : "refactor", file: "src/foo.js", kind },
+    ]);
+    await assertRejects(
+      () => model.methods["complete-task"].execute({ name: "chg", id: "1.2" }, ctx),
+      Error,
+      "1.1",
+    );
+  });
+}
 
 Deno.test("complete-task: allows a feature task once its testing and refactor siblings are done", async () => {
   const { projectDir, ctx } = await makeContext();
