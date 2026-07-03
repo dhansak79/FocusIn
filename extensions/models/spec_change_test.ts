@@ -48,20 +48,24 @@ async function buildToApproved(ctx: never): Promise<void> {
   await model.methods["approve-proposal"].execute({ name: "chg" }, ctx);
 }
 
-async function buildToDesigning(ctx: never): Promise<void> {
+type RiskFlagInput = { file: string; reason: "unhealthy" | "hotspot" | "undercovered"; detail: string };
+type TaskInput = { id: string; description: string; file?: string; kind?: "testing" | "refactor" | "feature" };
+
+async function buildToDesigning(ctx: never, riskFlags: RiskFlagInput[] = []): Promise<void> {
   await buildToApproved(ctx);
   await model.methods["set-scenarios"].execute({
     name: "chg", scenarios: [{ name: "S", given: [], when: ["a"], then: ["b"] }],
   }, ctx);
   await model.methods["approve-scenarios"].execute({ name: "chg" }, ctx);
-  await model.methods["set-design"].execute({ name: "chg", text: "design" }, ctx);
+  await model.methods["set-design"].execute({ name: "chg", text: "design", riskFlags }, ctx);
 }
 
 async function buildToImplementing(
   ctx: never,
-  tasks: Array<{ id: string; description: string }> = [{ id: "1", description: "t" }],
+  tasks: TaskInput[] = [{ id: "1", description: "t" }],
+  riskFlags: RiskFlagInput[] = [],
 ): Promise<void> {
-  await buildToDesigning(ctx);
+  await buildToDesigning(ctx, riskFlags);
   await model.methods["set-tasks"].execute({ name: "chg", tasks }, ctx);
   await model.methods["start-implementing"].execute({ name: "chg" }, ctx);
 }
@@ -346,6 +350,109 @@ Deno.test("complete-task: rejects unknown task id", async () => {
     Error,
     "not found",
   );
+});
+
+// ── Hotspot guardrail: task ordering ───────────────────────────────────────────
+
+for (const kind of ["feature", "refactor"] as const) {
+  Deno.test(`complete-task: rejects a ${kind} task when its testing sibling on the same file is not done`, async () => {
+    const { ctx } = await makeContext();
+    await buildToImplementing(ctx, [
+      { id: "1.1", description: "write tests", file: "src/foo.js", kind: "testing" },
+      { id: "1.2", description: kind === "feature" ? "ship feature" : "refactor", file: "src/foo.js", kind },
+    ]);
+    await assertRejects(
+      () => model.methods["complete-task"].execute({ name: "chg", id: "1.2" }, ctx),
+      Error,
+      "1.1",
+    );
+  });
+}
+
+Deno.test("complete-task: allows a feature task once its testing and refactor siblings are done", async () => {
+  const { projectDir, ctx } = await makeContext();
+  await buildToImplementing(ctx, [
+    { id: "1.1", description: "write tests", file: "src/foo.js", kind: "testing" },
+    { id: "1.2", description: "refactor", file: "src/foo.js", kind: "refactor" },
+    { id: "1.3", description: "ship feature", file: "src/foo.js", kind: "feature" },
+  ]);
+  await model.methods["complete-task"].execute({ name: "chg", id: "1.1" }, ctx);
+  await model.methods["complete-task"].execute({ name: "chg", id: "1.2" }, ctx);
+  await model.methods["complete-task"].execute({
+    name: "chg",
+    id: "1.3",
+    verifiedHealth: 10,
+    verifiedLineCoverage: 100,
+    verifiedMutationScore: 95,
+  }, ctx);
+  const state = await readState(projectDir, "chg");
+  assertEquals(state.tasks.find((t) => t.id === "1.3")?.done, true);
+});
+
+// ── Hotspot guardrail: live-check thresholds ───────────────────────────────────
+
+Deno.test("complete-task: rejects a feature task on a flagged file when verified metrics are missing", async () => {
+  const { ctx } = await makeContext();
+  await buildToImplementing(
+    ctx,
+    [{ id: "1.1", description: "ship feature", file: "src/risky.js", kind: "feature" }],
+    [{ file: "src/risky.js", reason: "unhealthy", detail: "health 6.2" }],
+  );
+  await assertRejects(
+    () => model.methods["complete-task"].execute({ name: "chg", id: "1.1" }, ctx),
+    Error,
+    "flagged",
+  );
+});
+
+Deno.test("complete-task: rejects a feature task on a flagged file when verified metrics are below threshold", async () => {
+  const { ctx } = await makeContext();
+  await buildToImplementing(
+    ctx,
+    [{ id: "1.1", description: "ship feature", file: "src/risky.js", kind: "feature" }],
+    [{ file: "src/risky.js", reason: "hotspot", detail: "listed hotspot" }],
+  );
+  await assertRejects(
+    () =>
+      model.methods["complete-task"].execute({
+        name: "chg",
+        id: "1.1",
+        verifiedHealth: 9.4,
+        verifiedLineCoverage: 100,
+        verifiedMutationScore: 95,
+      }, ctx),
+    Error,
+    "target thresholds",
+  );
+});
+
+Deno.test("complete-task: allows a feature task on a flagged file once verified metrics meet threshold", async () => {
+  const { projectDir, ctx } = await makeContext();
+  await buildToImplementing(
+    ctx,
+    [{ id: "1.1", description: "ship feature", file: "src/risky.js", kind: "feature" }],
+    [{ file: "src/risky.js", reason: "undercovered", detail: "82% line coverage" }],
+  );
+  await model.methods["complete-task"].execute({
+    name: "chg",
+    id: "1.1",
+    verifiedHealth: 10,
+    verifiedLineCoverage: 100,
+    verifiedMutationScore: 95,
+  }, ctx);
+  const state = await readState(projectDir, "chg");
+  assertEquals(state.tasks[0].done, true);
+});
+
+Deno.test("complete-task: unflagged file's tasks complete exactly as before, no ordering or threshold required", async () => {
+  const { projectDir, ctx } = await makeContext();
+  await buildToImplementing(ctx, [
+    { id: "1.1", description: "testing task, never marked done" },
+    { id: "1.2", description: "plain task on an unflagged file", file: "src/plain.js" },
+  ]);
+  await model.methods["complete-task"].execute({ name: "chg", id: "1.2" }, ctx);
+  const state = await readState(projectDir, "chg");
+  assertEquals(state.tasks.find((t) => t.id === "1.2")?.done, true);
 });
 
 Deno.test("SpecChangeSchema: validates correct data", () => {

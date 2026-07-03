@@ -56,6 +56,14 @@ This gate is currently being hardened from informational to blocking. The live d
 
 The fast checks. Tests must pass, ESLint must be clean, dead code (Knip) must not accumulate. These run in parallel at the start of the gate so failures here abort before the expensive checks run.
 
+### Hotspot guardrail at spec-time
+
+The gates above catch what an agent already built. This one stops an agent from building a feature on top of a file that was already unhealthy, a hotspot, or under-covered before the change started — the commit-time gates would eventually catch the file's poor state, but only after the feature was already written against it.
+
+During `/spec:design`, every file the change touches is checked against CodeScene and its existing coverage/mutation data. A file below Code Health 10.0, a listed hotspot, or under 100% line / 95% mutation coverage gets a risk flag stored on the change. `/spec:tasks` reads that flag and orders the task list so testing tasks (close the coverage gap) come before refactor tasks (reach Code Health 10.0), which come before the feature task itself — the same "testing first, then refactor, then new feature work" sequence the rest of this document enforces at commit time, applied one level earlier.
+
+The enforcement lives in the `spec-change` model's `complete-task` method, not in a prompt instruction: it refuses to mark a feature task done on a flagged file unless it is handed `verifiedHealth`, `verifiedLineCoverage`, and `verifiedMutationScore` figures that actually meet the thresholds, and it independently refuses to mark any task done while an earlier-kind task (testing before refactor before feature) on the same file is still open. The model does not measure these figures itself — `/spec:implement` is required to run the live CodeScene/coverage check immediately before calling `complete-task` and pass the real numbers. This mirrors the trust boundary the rest of this document describes: the gate does not take the agent's word that a file is ready, it takes a number that was just measured.
+
 ## The spec-gate: specifying before building
 
 The quality gate checks whether what the agent built is correct. The spec-gate checks whether the agent built the right thing to begin with.
@@ -72,7 +80,7 @@ Each phase has a hard gate:
 
 - **Proposal** — written in terms of why, what, and success criteria. Must be approved before any code is touched. Forces a clear statement of scope before the agent starts generating.
 - **Scenarios** — Given/When/Then behavioural scenarios derived from the proposal. Must be approved before design begins. These become the executable contract.
-- **Design and tasks** — technical approach and ordered implementation checklist. Generated automatically; no human gate, but stored so the agent cannot drift from them mid-session.
+- **Design and tasks** — technical approach and ordered implementation checklist. Generated automatically; no *approval* gate, but risk-flagging and task-ordering (see "Hotspot guardrail at spec-time" below) are enforced automatically, not merely generated, and the result is stored so the agent cannot drift from it mid-session.
 - **Implement** — tasks worked in order, each marked complete as it is done. The agent cannot skip steps or batch completions retroactively.
 - **Verify** — the spec-runner executes the BDD suite and records which scenarios passed, failed, or are still pending. Results are stored against the change. Archive requires all scenarios to pass.
 

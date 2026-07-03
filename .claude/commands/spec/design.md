@@ -26,18 +26,32 @@ Design sub-flow for the spec-gate methodology. Handles `approved` phase.
 
    This design is for the agent's implementation guidance — it does not need human approval.
 
-3. **Store design**
+3. **Flag hotspot / unhealthy / under-covered target files**
+
+   For each file identified in "Files to change" above, check its current state:
+   - `code_health_score` (and `list_technical_debt_hotspots_for_project_file` if a CodeScene project is linked) for Code Health and hotspot status
+   - existing coverage/mutation data for that file (e.g. from `reports/mutation/mutation.json` or the last coverage run)
+
+   If a file's Code Health is below 10.0, it is a listed hotspot, or its coverage is below 100% line / 95% mutation, record a risk flag for it:
+   ```json
+   { "file": "src/foo.js", "reason": "unhealthy" | "hotspot" | "undercovered", "detail": "health 8.1" }
+   ```
+   A file with no deficiency gets no risk flag — most changes will have an empty `riskFlags` array, and this step is a no-op for them.
+
+4. **Store design**
 
    Run:
    ```
-   swamp model method run spec-change set-design --name {name} --text "{design_text}"
+   swamp model method run spec-change set-design --name {name} --text "{design_text}" --riskFlags '{riskFlags_json}'
    ```
+   Pass `--riskFlags '[]'` when no file was flagged.
 
-4. **Announce and auto-continue**
+5. **Announce and auto-continue**
 
-   Display a brief summary of the design approach, then load the `/spec:tasks` sub-flow.
+   Display a brief summary of the design approach, and any risk flags recorded, then load the `/spec:tasks` sub-flow.
 
 ## Guardrails
 - No human gate on design — proceed automatically
 - Keep design focused on what the implementation tasks need to know
 - Step definition strategy is critical: think now about how each scenario will be tested
+- Risk-flagging is not optional when a target file qualifies — `/spec:tasks` depends on `risk_flags` to sequence testing/refactor ahead of feature work, and `/spec:implement` depends on it to gate `complete-task`
