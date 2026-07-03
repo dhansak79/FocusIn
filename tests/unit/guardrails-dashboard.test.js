@@ -7,6 +7,8 @@ import {
   generate,
   computeTrends,
   renderTrendCard,
+  computeGuardrailCatches,
+  renderGuardrailCatchesCard,
 } from "../../scripts/generate-guardrails-dashboard.js";
 
 const MS = 1000;
@@ -122,6 +124,16 @@ describe("clusterSessions", () => {
   });
 });
 
+function makeCodesceneFailureDoc(id, workflowName, errorText) {
+  return {
+    id,
+    workflowName,
+    status: "failed",
+    startedAt: "2026-06-25T10:00:00Z",
+    jobs: [{ steps: [{ stepName: "codescene-health", status: "failed", error: errorText }] }],
+  };
+}
+
 describe("parseRun", () => {
   it("returns null for unrecognised workflows", () => {
     const doc = { workflowName: "some-other-workflow", status: "succeeded", startedAt: "2026-06-25T10:00:00Z", jobs: [] };
@@ -143,20 +155,39 @@ describe("parseRun", () => {
     expect(run.metrics.mutation).toBeNull();
   });
 
-  it("parses file count and path from codescene error message when no embedded output", () => {
-    const doc = {
-      id: "run-fast-2",
+  it.each([
+    {
+      name: "parses file count and path from codescene error message when no embedded output",
       workflowName: "quality-gate-fast",
-      status: "failed",
-      startedAt: "2026-06-25T10:00:00Z",
-      jobs: [{ steps: [{
-        stepName: "codescene-health",
-        status: "failed",
-        error: "CodeScene health gate failed — 1 file(s) introduced degradations:\n  /repo/src/slop-detector.js  (8.13/10)",
-      }] }],
-    };
+      error: "CodeScene health gate failed — 1 file(s) introduced degradations:\n  /repo/src/slop-detector.js  (8.13/10)",
+      expected: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/slop-detector.js", score: 8.13, gapToTen: 1.87 }] },
+    },
+    {
+      name: "parses score and gap-to-10 for multiple degraded files in one error message",
+      workflowName: "quality-gate",
+      error:
+        "CodeScene health gate failed — 2 file(s) introduced degradations:\n" +
+        "  /repo/src/feed.js  (9.68/10)\n" +
+        "  /repo/extensions/models/tests.ts  (9.38/10)",
+      expected: {
+        passed: false,
+        failedFiles: 2,
+        files: [
+          { path: "/repo/src/feed.js", score: 9.68, gapToTen: 0.32 },
+          { path: "/repo/extensions/models/tests.ts", score: 9.38, gapToTen: 0.62 },
+        ],
+      },
+    },
+    {
+      name: "counts a file with unparseable score without dropping it or throwing",
+      workflowName: "quality-gate-fast",
+      error: "CodeScene health gate failed — 1 file(s) introduced degradations:\n  /repo/src/weird.js  score unavailable",
+      expected: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/weird.js", score: null, gapToTen: null }] },
+    },
+  ])("$name", ({ workflowName, error, expected }) => {
+    const doc = makeCodesceneFailureDoc("run-fast", workflowName, error);
     const run = parseRun(doc);
-    expect(run.metrics.codescene).toEqual({ passed: false, failedFiles: 1, files: [{ path: "/repo/src/slop-detector.js" }] });
+    expect(run.metrics.codescene).toEqual(expected);
   });
 
   it("defaults to 1 degraded when codescene error has no file count", () => {
@@ -483,6 +514,129 @@ describe("computeTrends", () => {
   it("treats a metric object missing its target field as unavailable, not as zero", () => {
     const trends = trendsFrom({ mutation: {} }, { mutation: {} });
     expect(trends.metrics.mutationScore).toEqual({ available: false });
+  });
+});
+
+describe("computeGuardrailCatches", () => {
+  it("reports zero catches when every codescene-health run passed", () => {
+    const runs = [makeFullRun(0), makeFullRun(HOUR)];
+    const catches = computeGuardrailCatches(runs);
+    expect(catches).toEqual({
+      totalCatches: 0,
+      byWorkflow: { "quality-gate": 0, "quality-gate-fast": 0 },
+      byFile: [],
+      avgGap: null,
+      worstGap: null,
+    });
+  });
+
+  it("counts total catches broken out by pre-commit and pre-push workflow", () => {
+    const runs = [
+      makeFullRun(0, {
+        workflowName: "quality-gate",
+        codescene: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/a.js", score: 9.0, gapToTen: 1.0 }] },
+      }),
+      makeFullRun(HOUR, {
+        workflowName: "quality-gate-fast",
+        codescene: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/b.js", score: 8.5, gapToTen: 1.5 }] },
+      }),
+      makeFullRun(2 * HOUR, {
+        workflowName: "quality-gate-fast",
+        codescene: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/c.js", score: 9.5, gapToTen: 0.5 }] },
+      }),
+    ];
+    const catches = computeGuardrailCatches(runs);
+    expect(catches.totalCatches).toBe(3);
+    expect(catches.byWorkflow).toEqual({ "quality-gate": 1, "quality-gate-fast": 2 });
+  });
+
+  it("ignores a catch from a workflow outside the known set when tallying byWorkflow", () => {
+    const runs = [
+      makeFullRun(0, {
+        workflowName: "some-other-workflow",
+        codescene: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/a.js", score: 9.0, gapToTen: 1.0 }] },
+      }),
+    ];
+    const catches = computeGuardrailCatches(runs);
+    expect(catches.totalCatches).toBe(1);
+    expect(catches.byWorkflow).toEqual({ "quality-gate": 0, "quality-gate-fast": 0 });
+  });
+
+  it("tolerates a caught run with no files list", () => {
+    const runs = [makeFullRun(0, { codescene: { passed: false, failedFiles: 1 } })];
+    const catches = computeGuardrailCatches(runs);
+    expect(catches.totalCatches).toBe(1);
+    expect(catches.byFile).toEqual([]);
+  });
+
+  it("counts a repeatedly-caught file once per catching run it appears in", () => {
+    const runs = [
+      makeFullRun(0, {
+        codescene: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/flaky.js", score: 9.0, gapToTen: 1.0 }] },
+      }),
+      makeFullRun(HOUR, {
+        codescene: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/flaky.js", score: 8.8, gapToTen: 1.2 }] },
+      }),
+      makeFullRun(2 * HOUR, {
+        codescene: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/other.js", score: 9.9, gapToTen: 0.1 }] },
+      }),
+    ];
+    const catches = computeGuardrailCatches(runs);
+    expect(catches.byFile).toEqual(
+      expect.arrayContaining([
+        { path: "/repo/src/flaky.js", count: 2 },
+        { path: "/repo/src/other.js", count: 1 },
+      ])
+    );
+  });
+
+  it("computes average and worst gap-to-10 across all catches, ignoring nulls", () => {
+    const runs = [
+      makeFullRun(0, {
+        codescene: {
+          passed: false,
+          failedFiles: 2,
+          files: [
+            { path: "/repo/src/a.js", score: 9.0, gapToTen: 1.0 },
+            { path: "/repo/src/b.js", score: null, gapToTen: null },
+          ],
+        },
+      }),
+      makeFullRun(HOUR, {
+        codescene: { passed: false, failedFiles: 1, files: [{ path: "/repo/src/c.js", score: 8.0, gapToTen: 2.0 }] },
+      }),
+    ];
+    const catches = computeGuardrailCatches(runs);
+    expect(catches.avgGap).toBe(1.5);
+    expect(catches.worstGap).toBe(2.0);
+  });
+});
+
+describe("renderGuardrailCatchesCard", () => {
+  it("renders the card title and totals for a populated result", () => {
+    const html = renderGuardrailCatchesCard({
+      totalCatches: 2,
+      byWorkflow: { "quality-gate": 1, "quality-gate-fast": 1 },
+      byFile: [{ path: "/repo/src/a.js", count: 2 }],
+      avgGap: 0.75,
+      worstGap: 1.5,
+    });
+    expect(html).toContain("Code Health Guardrail Catches");
+    expect(html).toContain("/repo/src/a.js");
+    expect(html).toContain("0.75");
+    expect(html).toContain("1.50");
+  });
+
+  it("renders a clean zero-state without dashes turning into errors", () => {
+    const html = renderGuardrailCatchesCard({
+      totalCatches: 0,
+      byWorkflow: { "quality-gate": 0, "quality-gate-fast": 0 },
+      byFile: [],
+      avgGap: null,
+      worstGap: null,
+    });
+    expect(html).toContain("Code Health Guardrail Catches");
+    expect(html).toContain(">0<");
   });
 });
 

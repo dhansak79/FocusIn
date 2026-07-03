@@ -120,15 +120,22 @@ function parseMutStep(step) {
   return attrs ? { passed: attrs.passed, score: attrs.overallScore ?? null, files: attrs.files ?? [] } : null;
 }
 
+function gapToTen(score) {
+  return score === null ? null : Math.round((10 - score) * 100) / 100;
+}
+
 function parseCodeSceneStep(step) {
   const { attrs } = extractStepAttrs(step);
   if (!attrs) return null;
   if (attrs.failedFiles !== undefined) return { passed: attrs.passed, failedFiles: attrs.failedFiles, files: attrs.files ?? [] };
-  // Synthesised failure — parse count and paths from error message
+  // Synthesised failure — parse count, paths, and score from error message
   const error = step?.error ?? "";
   const countMatch = error.match(/(\d+) file\(s\)/);
-  const fileMatches = [...error.matchAll(/^\s{2,}(\S+\.(?:js|ts))\b/gm)];
-  const files = fileMatches.map((m) => ({ path: m[1] }));
+  const fileMatches = [...error.matchAll(/^\s{2,}(\S+\.(?:js|ts))(?:\s+\(([\d.]+)\/10\))?/gm)];
+  const files = fileMatches.map((m) => {
+    const score = m[2] !== undefined ? parseFloat(m[2]) : null;
+    return { path: m[1], score, gapToTen: gapToTen(score) };
+  });
   return { passed: false, failedFiles: countMatch ? parseInt(countMatch[1], 10) : Math.max(files.length, 1), files };
 }
 
@@ -247,6 +254,42 @@ export function computeTrends(runs) {
   return { windowRuns: window.length, metrics };
 }
 
+// ── Guardrail catch aggregation ─────────────────────────────────────────────────
+
+function tallyCatchesByWorkflow(catchRuns) {
+  const byWorkflow = { [QUALITY_GATE_WORKFLOW]: 0, [QUALITY_GATE_FAST_WORKFLOW]: 0 };
+  for (const run of catchRuns) {
+    if (run.workflowName in byWorkflow) byWorkflow[run.workflowName] += 1;
+  }
+  return byWorkflow;
+}
+
+function tallyFileCatchesAndGaps(catchRuns) {
+  const fileCounts = new Map();
+  const gaps = [];
+  const catchFiles = catchRuns.flatMap((run) => run.metrics.codescene.files ?? []);
+  for (const file of catchFiles) {
+    fileCounts.set(file.path, (fileCounts.get(file.path) ?? 0) + 1);
+    if (file.gapToTen !== null && file.gapToTen !== undefined) gaps.push(file.gapToTen);
+  }
+  return { fileCounts, gaps };
+}
+
+function summarizeGaps(gaps) {
+  if (gaps.length === 0) return { avgGap: null, worstGap: null };
+  const avgGap = Math.round((gaps.reduce((a, b) => a + b, 0) / gaps.length) * 100) / 100;
+  return { avgGap, worstGap: Math.max(...gaps) };
+}
+
+export function computeGuardrailCatches(runs) {
+  const catchRuns = runs.filter((r) => r.metrics.codescene && r.metrics.codescene.passed === false);
+  const byWorkflow = tallyCatchesByWorkflow(catchRuns);
+  const { fileCounts, gaps } = tallyFileCatchesAndGaps(catchRuns);
+  const byFile = [...fileCounts.entries()].map(([path, count]) => ({ path, count }));
+
+  return { totalCatches: catchRuns.length, byWorkflow, byFile, ...summarizeGaps(gaps) };
+}
+
 // ── Dashboard data assembly ────────────────────────────────────────────────────
 
 export function buildData(runs, sessions) {
@@ -255,6 +298,7 @@ export function buildData(runs, sessions) {
     sessionLabels: sessions.map((_, i) => `S${i + 1}`),
     sessionAttempts: sessions.map((s) => s.attemptCount),
     trends: computeTrends(runs),
+    guardrailCatches: computeGuardrailCatches(runs),
     summary: {
       totalRuns: runs.length,
       totalSessions: sessions.length,
@@ -311,6 +355,31 @@ export function renderTrendCard(trends) {
   return `<div class="card"><h2>Quality Trends</h2>
 <table class="check-table"><thead><tr><th>Metric</th><th>Current</th><th>&Delta; over last ${trends.windowRuns} runs</th></tr></thead><tbody>
 ${rows}
+</tbody></table>
+</div>`;
+}
+
+function renderGuardrailCatchesFileRows(byFile) {
+  if (byFile.length === 0) return "";
+  const rows = [...byFile]
+    .sort((a, b) => b.count - a.count)
+    .map((f) => `<tr class="sub"><td>${f.path}</td><td>${f.count}</td></tr>`)
+    .join("\n");
+  return `<tr><td colspan="2"><table class="check-table"><thead><tr><th>File</th><th>Catches</th></tr></thead><tbody>
+${rows}
+</tbody></table></td></tr>`;
+}
+
+export function renderGuardrailCatchesCard(catches) {
+  const gap = (v) => (v === null ? "—" : v.toFixed(2));
+  return `<div class="card"><h2>Code Health Guardrail Catches</h2>
+<table class="check-table"><tbody>
+<tr><td>Total catches</td><td>${catches.totalCatches}</td></tr>
+<tr><td>Pre-push (quality-gate)</td><td>${catches.byWorkflow[QUALITY_GATE_WORKFLOW]}</td></tr>
+<tr><td>Pre-commit (quality-gate-fast)</td><td>${catches.byWorkflow[QUALITY_GATE_FAST_WORKFLOW]}</td></tr>
+<tr><td>Average gap to 10</td><td>${gap(catches.avgGap)}</td></tr>
+<tr><td>Worst gap to 10</td><td>${gap(catches.worstGap)}</td></tr>
+${renderGuardrailCatchesFileRows(catches.byFile)}
 </tbody></table>
 </div>`;
 }
@@ -487,6 +556,7 @@ function renderHtml(data, sessions, chartJsSrc) {
 <p class="subtitle">Quality gate telemetry · <a href="/FocusIn/">Mutation Report</a></p>
 ${renderSummary(data.summary)}
 ${renderTrendCard(data.trends)}
+${renderGuardrailCatchesCard(data.guardrailCatches)}
 <div class="card"><h2>Agent Attempt Sessions</h2>${sessionCard}</div>
 <div class="card"><h2>Session Explorer</h2>${renderSessionExplorer(sessions)}</div>
 <script>const DATA=${JSON.stringify(data)};</script>
