@@ -15,7 +15,8 @@ Propose sub-flow for the spec-gate methodology. Handles `draft` and `proposal-pe
 
    Check if `.swamp/spec-change-{name}.json` exists:
    - If not: run `swamp model method run spec-change create --name {name}` to initialise it
-   - If exists and phase is not `draft` or `proposal-pending-approval`: tell the user the change is already past the proposal phase and route appropriately
+   - If exists and phase is `archived`: tell the user this change is archived (a closed decision-log entry) and offer to start a new change instead
+   - If exists and phase is anything from `proposal-approved` through `verifying`: tell the user the proposal was already approved, and ask whether they want to reopen it for revision. If yes, run `swamp model method run spec-change reopen-proposal --name {name}`, then proceed to step 2's `draft` branch as normal. If no, stop and let the user decide next steps.
 
 2. **Present or generate proposal text**
 
@@ -56,3 +57,4 @@ Propose sub-flow for the spec-gate methodology. Handles `draft` and `proposal-pe
 - Gate 1 MUST be called — never skip `approve-proposal`
 - Proposals must be specific enough to generate unambiguous Given/When/Then scenarios
 - Store proposal text before asking for approval via `set-proposal`
+- `reopen-proposal` clears `scenarios`/`design_text`/`tasks` — warn the user this discards downstream work before calling it, not just after

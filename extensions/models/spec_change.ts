@@ -301,6 +301,42 @@ export const model = {
       }),
     },
 
+    "reopen-proposal": {
+      description: "Reopen an approved proposal for revision, clearing scenarios/design/tasks built on top of it",
+      arguments: z.object({ name: z.string() }),
+      execute: async (
+        { name }: { name: string },
+        context: { globalArgs: GlobalArgs; writeResource: WriteResourceFn },
+      ) => updateState(name, context, [
+        "proposal-approved", "scenarios-pending-approval", "approved",
+        "designing", "tasking", "implementing", "verifying",
+      ], (state) => {
+        state.phase = "draft";
+        state.scenarios = [];
+        state.design_text = "";
+        state.tasks = [];
+        state.proposal_approved_at = undefined;
+        state.scenarios_approved_at = undefined;
+      }),
+    },
+
+    "reopen-scenarios": {
+      description: "Reopen approved scenarios for revision, clearing design/tasks built on top of them",
+      arguments: z.object({ name: z.string() }),
+      execute: async (
+        { name }: { name: string },
+        context: { globalArgs: GlobalArgs; writeResource: WriteResourceFn },
+      ) => updateState(name, context, [
+        "approved", "designing", "tasking", "implementing", "verifying",
+      ], (state) => {
+        state.phase = "proposal-approved";
+        state.scenarios = [];
+        state.design_text = "";
+        state.tasks = [];
+        state.scenarios_approved_at = undefined;
+      }),
+    },
+
     "generate-features": {
       description: "Write @wip-tagged Gherkin feature files to tests/cucumber/features/",
       arguments: z.object({ name: z.string() }),

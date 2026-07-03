@@ -13,7 +13,12 @@ Scenarios sub-flow for the spec-gate methodology. Handles `proposal-approved` an
 
 1. **Verify phase**
 
-   Read `.swamp/spec-change-{name}.json`. If phase is `scenarios-pending-approval`, an existing set of scenarios is stored — display them and go to step 3. If phase is not `proposal-approved` or `scenarios-pending-approval`, report and stop.
+   Read `.swamp/spec-change-{name}.json`. If phase is `scenarios-pending-approval`, an existing set of scenarios is stored — display them and go to step 3. If phase is `proposal-approved`, proceed to step 2.
+
+   Otherwise:
+   - If phase is `draft` or `proposal-pending-approval` (the scenarios gate hasn't been reached yet): report this and stop — route the user to `/spec:propose` first.
+   - If phase is `archived`: report that this change is archived (a closed decision-log entry) and stop.
+   - If phase is anything from `approved` through `verifying`: tell the user the scenarios were already approved, and ask whether they want to reopen them for revision. If yes, run `swamp model method run spec-change reopen-scenarios --name {name}`, then proceed to step 2 as normal. If no, stop and let the user decide next steps.
 
 2. **Generate scenarios**
 
@@ -63,3 +68,4 @@ Scenarios sub-flow for the spec-gate methodology. Handles `proposal-approved` an
 - Gate 2 MUST be called — never skip `approve-scenarios`
 - Store scenarios via `set-scenarios` before asking for approval
 - The scenarios you generate here become the executable contract — take time to get them right
+- `reopen-scenarios` clears `design_text`/`tasks` but preserves the approved proposal — warn the user this discards design/task work before calling it, not just after

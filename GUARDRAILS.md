@@ -78,6 +78,8 @@ Each phase has a hard gate:
 
 The scenarios written at Gate 2 are the same ones that feed into the spec coverage gate on every subsequent push. A scenario that was approved but never implemented will show as uncovered. An agent that ships a feature without a corresponding scenario cannot pass spec coverage.
 
+A flaw discovered mid-flight — during design, implementation, or verification — does not require bypassing a gate. `reopen-proposal` and `reopen-scenarios` return the change to an earlier phase and clear the work built on top of it, but the gate itself still has to be passed again: a reopened proposal goes back through Gate 1, reopened scenarios go back through Gate 2. This is a correction path through the same gates, not a way around them.
+
 This is what closes the loop: the spec-gate ensures behaviour is specified and verified; the quality gate ensures it stays verified as the codebase evolves.
 
 Invoke via Claude Code:
