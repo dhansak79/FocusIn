@@ -45,10 +45,27 @@ const ScenarioSchema = z.object({
   status: ScenarioStatusSchema.default("pending"),
 });
 
+const TaskKindSchema = z.enum(["testing", "refactor", "feature"]);
+const TASK_KIND_ORDER: Record<z.infer<typeof TaskKindSchema>, number> = {
+  testing: 0,
+  refactor: 1,
+  feature: 2,
+};
+
 const TaskSchema = z.object({
   id: z.string(),
   description: z.string(),
   done: z.boolean().default(false),
+  file: z.string().optional(),
+  kind: TaskKindSchema.optional(),
+});
+
+const RiskFlagReasonSchema = z.enum(["unhealthy", "hotspot", "undercovered"]);
+
+const RiskFlagSchema = z.object({
+  file: z.string(),
+  reason: RiskFlagReasonSchema,
+  detail: z.string(),
 });
 
 export const SpecChangeSchema = z.object({
@@ -58,6 +75,7 @@ export const SpecChangeSchema = z.object({
   design_text: z.string().default(""),
   scenarios: z.array(ScenarioSchema).default([]),
   tasks: z.array(TaskSchema).default([]),
+  risk_flags: z.array(RiskFlagSchema).default([]),
   proposal_approved_at: z.string().optional(),
   scenarios_approved_at: z.string().optional(),
   archived_at: z.string().optional(),
@@ -77,6 +95,8 @@ const InputScenarioSchema = z.object({
 const InputTaskSchema = z.object({
   id: z.string(),
   description: z.string(),
+  file: z.string().optional(),
+  kind: TaskKindSchema.optional(),
 });
 
 function stateFilePath(projectDir: string, name: string): string {
@@ -185,6 +205,7 @@ export const model = {
           proposal_text: "",
           design_text: "",
           scenarios: [],
+          risk_flags: [],
           tasks: [],
         };
         await writeState(projectDir, state);
@@ -254,12 +275,20 @@ export const model = {
       arguments: z.object({
         name: z.string(),
         text: z.string().describe("Technical design text"),
+        riskFlags: z.array(RiskFlagSchema).default([]).describe(
+          "Files found unhealthy, a hotspot, or under-covered during design",
+        ),
       }),
       execute: async (
-        { name, text }: { name: string; text: string },
+        { name, text, riskFlags }: {
+          name: string;
+          text: string;
+          riskFlags: z.infer<typeof RiskFlagSchema>[];
+        },
         context: { globalArgs: GlobalArgs; writeResource: WriteResourceFn },
       ) => updateState(name, context, ["approved"], (state) => {
         state.design_text = text;
+        state.risk_flags = riskFlags;
         state.phase = "designing";
       }),
     },
@@ -295,13 +324,62 @@ export const model = {
       arguments: z.object({
         name: z.string(),
         id: z.string().describe("Task ID to mark complete"),
+        verifiedHealth: z.number().optional().describe(
+          "Live-measured Code Health score for the task's file, required to close out a feature task on a flagged file",
+        ),
+        verifiedLineCoverage: z.number().optional().describe(
+          "Live-measured line coverage percentage for the task's file",
+        ),
+        verifiedMutationScore: z.number().optional().describe(
+          "Live-measured mutation score percentage for the task's file",
+        ),
       }),
       execute: async (
-        { name, id }: { name: string; id: string },
+        { name, id, verifiedHealth, verifiedLineCoverage, verifiedMutationScore }: {
+          name: string;
+          id: string;
+          verifiedHealth?: number;
+          verifiedLineCoverage?: number;
+          verifiedMutationScore?: number;
+        },
         context: { globalArgs: GlobalArgs; writeResource: WriteResourceFn },
       ) => updateState(name, context, ["implementing"], (state) => {
         const task = state.tasks.find((t) => t.id === id);
         if (!task) throw new Error(`Task '${id}' not found`);
+
+        if (task.kind && task.file) {
+          const blocker = state.tasks.find((t) =>
+            t.file === task.file &&
+            t.kind &&
+            !t.done &&
+            t.id !== task.id &&
+            TASK_KIND_ORDER[t.kind] < TASK_KIND_ORDER[task.kind!]
+          );
+          if (blocker) {
+            throw new Error(
+              `Cannot complete task '${id}': prerequisite task '${blocker.id}' (${blocker.description}) on the same file is not done yet`,
+            );
+          }
+        }
+
+        if (task.kind === "feature" && task.file) {
+          const riskFlag = state.risk_flags.find((f) => f.file === task.file);
+          if (riskFlag) {
+            const missing = verifiedHealth === undefined ||
+              verifiedLineCoverage === undefined || verifiedMutationScore === undefined;
+            if (missing) {
+              throw new Error(
+                `Cannot complete task '${id}': '${task.file}' is flagged (${riskFlag.reason}) — verifiedHealth, verifiedLineCoverage, and verifiedMutationScore must be supplied from a live check`,
+              );
+            }
+            if (verifiedHealth !== 10 || verifiedLineCoverage !== 100 || verifiedMutationScore! < 95) {
+              throw new Error(
+                `Cannot complete task '${id}': '${task.file}' has not reached target thresholds (health=${verifiedHealth}, lineCoverage=${verifiedLineCoverage}, mutationScore=${verifiedMutationScore}; required health=10, lineCoverage=100, mutationScore>=95)`,
+              );
+            }
+          }
+        }
+
         task.done = true;
       }),
     },
