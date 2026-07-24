@@ -1,0 +1,1673 @@
+id: a6f4ab00-2714-4dc9-afd4-089357c9107b
+workflowId: b0ac9c84-598d-46f5-8ec6-c6891ec5a2ed
+workflowName: spec-gate
+status: succeeded
+startedAt: '2026-07-24T17:45:54.900Z'
+completedAt: '2026-07-24T17:45:58.212Z'
+jobs:
+  - jobName: generate-features
+    status: succeeded
+    startedAt: '2026-07-24T17:45:54.903Z'
+    completedAt: '2026-07-24T17:45:54.967Z'
+    steps:
+      - stepName: generate
+        status: succeeded
+        startedAt: '2026-07-24T17:45:54.903Z'
+        completedAt: '2026-07-24T17:45:54.965Z'
+        output:
+          type: model_method
+          model: spec-change
+          method: generate-features
+          resources:
+            change:
+              scottish-mode:
+                id: b854ba14-e223-418b-b56f-f7d2b921efdf
+                name: scottish-mode
+                version: 55
+                isLatest: true
+                createdAt: '2026-07-24T17:45:54.928Z'
+                namespace: ''
+                attributes:
+                  name: scottish-mode
+                  phase: verifying
+                  proposal_text: >
+                    Why
+
+
+                    FocusedIn currently handles a flagged post ("slop",
+                    off-topic, wrong tone, etc.) the same way every time:
+                    collapse it behind a banner (addRevealBanner /
+                    buildSemanticCollapseBanner in src/features/feed.js) with a
+                    headline/summary and a "Show anyway" reveal. That's
+                    effective at reducing noise, but it's binary: you either see
+                    the manufactured LinkedIn-speak in full, or you see nothing
+                    but a summary card.
+
+
+                    "Scottish mode" offers a third option: instead of hiding the
+                    post, rewrite it - strip the corporate-LinkedIn varnish and
+                    re-render the same underlying message as a short, direct,
+                    honest version in a Scottish dialect. The goal isn't novelty
+                    for its own sake; stripping performative phrasing down to
+                    "what is this person actually saying" is itself a legitimate
+                    anti-slop technique, and doing it in a distinct,
+                    unmistakable voice makes the transformation obvious and
+                    genuinely entertaining rather than clinical.
+
+
+                    What
+
+
+                    - A new chrome.storage.local setting, scottish-mode
+                    (boolean, default false), toggled from the popup UI
+                    alongside existing filters.
+
+                    - When enabled, it overrides every existing flagged-post
+                    treatment: everywhere feed.js currently calls into
+                    addRevealBanner() / buildSemanticCollapseBanner() /
+                    hidePost() for a flagged post, it instead calls a new
+                    renderScottishRewrite(post, extractedText) path. Non-flagged
+                    posts are untouched.
+
+                    - Rewriting runs entirely locally in the existing
+                    transformers.js/ONNX pipeline already used for semantic/tone
+                    checks (src/features/semantic-filter.js,
+                    src/features/tone-filter.js, dispatched via
+                    src/service_worker.js) - no new remote API calls, no new
+                    manifest.json host permissions. A small local
+                    text-generation model (e.g., a quantized instruction/seq2seq
+                    model compatible with @xenova/transformers, pulled from the
+                    already-whitelisted huggingface.co/cdn-lfs.huggingface.co)
+                    performs the rewrite: (1) strip filler/hype/hashtag-spam per
+                    existing slop-keywords.js signals, (2) re-express the core
+                    claim plainly, (3) render it in Scots/Scottish-English
+                    idiom.
+
+                    - The rewritten text replaces the post body in-place (same
+                    DOM slot, .focusedin-scottish-rewrite styling in
+                    content.css), with a small tag noting "Translated - Scottish
+                    mode" and a toggle to view the original (reusing the
+                    existing collapse-to-tag interaction pattern).
+
+                    - Out of scope for this change: per-post opt-out, alternate
+                    dialects/personas, tone/quality tuning of the rewrite, and
+                    any server-side/remote model option.
+
+
+                    Success criteria
+
+
+                    - With scottish-mode on, every post that would previously
+                    have gotten a reveal-banner, semantic-collapse banner, or
+                    keyword hide instead shows a locally-generated
+                    Scottish-dialect rewrite in the same DOM position.
+
+                    - With scottish-mode off, behavior is byte-for-byte
+                    identical to today (all rewriting logic is additive/gated,
+                    not a replacement of existing functions).
+
+                    - Rewriting uses only local, already-permitted model
+                    infrastructure - no new network permissions in
+                    manifest.json.
+
+                    - A user can reveal the original, unmodified post text on
+                    demand.
+                  design_text: >
+                    Approach
+
+
+                    Follow the existing local-model dispatch pattern used by
+                    semantic/tone/slop-archetype
+
+                    checks: a content-script side (feed.js) that requests a
+                    check via chrome.runtime.sendMessage,
+
+                    and a service-worker-side handler that runs a
+                    transformers.js pipeline and responds.
+
+                    Scottish mode reuses this shape for a rewrite instead of a
+                    classification:
+
+
+                    1. New setting `scottish-mode` (boolean, default false) in
+                    chrome.storage.local, added to
+                       the onInstalled defaults in service_worker.js and a new toggle row in popup.html/popup.js,
+                       mirroring the existing `tone-filter` toggle exactly (including a "first use download" note,
+                       since the rewrite model is a separate download from the classification models).
+
+                    2. New feature module `src/features/scottish-mode.js`,
+                    mirroring tone-filter.js: loads a
+                       small local text2text-generation pipeline via @xenova/transformers (candidate:
+                       Xenova/LaMini-Flan-T5-77M, already resolvable through the whitelisted huggingface.co /
+                       cdn-lfs.huggingface.co hosts — no manifest.json changes needed), memoizes the loading
+                       promise the same way `getClassifier` does, and exports `scottishRewrite(postText)` that
+                       prompts the model to (a) strip filler/hype language and (b) render the result in a
+                       Scottish dialect voice, returning `{ text }` (or throwing on failure, handled by the
+                       caller's existing try/catch-less `.catch()` pattern at the sendMessage call site).
+
+                    3. service_worker.js gets a new `scottish-rewrite` message
+                    case, calling
+                       `scottishRewrite(post)` and responding `{ text }` or `{ text: null }` on failure — same
+                       shape as the other three message handlers.
+
+                    4. feed.js: introduce a single interception point rather
+                    than touching every call site.
+                       `applySlopDecision`, `makeSemanticApplier`'s callback, and `applyFiltersToPost`'s
+                       keyword-match branch currently call `addRevealBanner` / `buildSemanticCollapseBanner` /
+                       `hidePost` directly. Add one gate function, `renderFlaggedPost(post, kind, meta)`, that
+                       each of those three call sites calls instead of their current banner/hide call. When
+                       `scottish-mode` is off, `renderFlaggedPost` delegates straight to the existing banner/hide
+                       builder for that `kind` (byte-for-byte unchanged behavior — this satisfies the "off"
+                       scenario without duplicating any existing banner logic). When `scottish-mode` is on, it
+                       instead calls a new `renderScottishRewrite(post)`, which:
+                         - extracts post text (`extractPostText`, already exists)
+                         - sends `{ 'scottish-rewrite': { post: text.slice(0, 512) } }` via the same
+                           `sendSemanticMessage` helper already defined in `blockPosts`
+                         - on success, replaces the post's text node content in place with the rewritten text,
+                           wrapped so the original DOM structure/classes survive, and inserts a small
+                           `.focusedin-scottish-tag` element ("Translated — Scottish mode") using the same
+                           `collapseToTag`-style toggle interaction already used for "Show anyway" — clicking it
+                           swaps back to the original text (stored in a closure var, not re-extracted, so no
+                           re-render surprises)
+                         - on failure or while the promise is pending, falls back to calling the existing
+                           non-Scottish-mode builder for that `kind` synchronously, so no broken/empty post is
+                           ever left in the feed (covers the "model unavailable" scenario without a new empty-state
+                           branch)
+                       `blockPosts` gains a `scottishMode` boolean parameter (threaded through from
+                       `handleFilterFeed`'s config read, same as every other boolean flag already is).
+
+                    5. Mid-session toggle (scenario: "Toggling Scottish mode
+                    on... updates already-rendered
+                       posts"): reuse the existing `chrome.storage.onChanged` → re-run `applyFeed(config)` flow
+                       in index.js — no new listener needed. To make already-collapsed posts eligible for
+                       re-processing, `renderFlaggedPost`'s scottish-mode branch must not gate on the
+                       `focusinInjected`/`semanticHidden`/`hidden` dataset flags the same way the original
+                       banner path does; instead it checks a new `post.dataset.scottishRewritten` flag so a full
+                       re-scan (triggered by the storage change) can upgrade already-banner'd posts to rewrites
+                       without re-running detection.
+
+                    Files to change
+
+
+                    - src/service_worker.js — new `scottish-rewrite` message
+                    case, new default setting
+
+                    - src/features/scottish-mode.js (new) — local model pipeline
+                    + `scottishRewrite()`
+
+                    - src/features/feed.js — `renderFlaggedPost` gate,
+                    `renderScottishRewrite`, threading the
+                      `scottishMode` flag through `blockPosts`/`handleFilterFeed`
+                    - src/popup/popup.html — new toggle row (mirrors
+                    `tone-filter` row)
+
+                    - src/popup/popup.js — wire the new checkbox to
+                    `chrome.storage.local`, same pattern as
+                      existing toggles
+                    - src/content/content.css — `.focusedin-scottish-rewrite`
+                    and `.focusedin-scottish-tag`
+                      styles, mirroring `.focusedin-slop-collapsed` / `.focusedin-slop-tag`
+                    - manifest.json — no change expected (huggingface.co hosts
+                    already whitelisted); confirmed
+                      during implementation that the chosen model resolves through existing web_accessible_resources
+
+                    Key decisions
+
+
+                    - Reuse the message-passing + transformers.js pipeline
+                    pattern already established by
+                      tone-filter.js/semantic-filter.js rather than inventing a new plumbing layer — this is a
+                      text2text-generation pipeline instead of text-classification, but the load/memoize/message
+                      shape is identical.
+                    - A single `renderFlaggedPost` gate function, rather than
+                    editing three call sites to branch
+                      independently, is the one deliberate new abstraction — justified because "overrides all
+                      existing features" is explicitly the requirement, so a single on/off switch point is more
+                      correct (and more testable) than three duplicated `if (scottishMode)` branches.
+                    - Fallback-on-failure reuses the *existing* banner builder
+                    for that kind rather than a new
+                      generic error state, keeping the off-path and the fallback-path identical code.
+
+                    Step definition strategy
+
+
+                    - Model calls are mocked exactly like
+                    tone-check/semantic-check today: step defs will call
+                      `this.setChromeMockResponses({ 'scottish-rewrite': { text: '<mocked rewrite>' } })` before
+                      `RunFeed.withConfig({ ...baseConfig, 'scottish-mode': true })` — no real transformers.js
+                      pipeline runs in tests.
+                    - Reuse `BuildFeed`/`RunFeed`/`PostVisibility` screenplay
+                    tasks/questions as-is; add a new
+                      `PostContent` (or extend an existing content-reading question) to assert the rendered text
+                      equals the mocked rewrite, and a `RevealOriginalPost` task-equivalent step that clicks the
+                      new tag element.
+                    - "Model unavailable" scenario: mock `scottish-rewrite`
+                    response as absent/erroring
+                      (`chrome.runtime.lastError` set, matching how other handlers already detect that) and assert
+                      the existing non-Scottish banner/hide output appears instead.
+                    - "Mid-session toggle" scenario: build the feed with
+                    `scottish-mode: false` first (producing a
+                      normal banner), then change config to `scottish-mode: true` and re-run `RunFeed` without
+                      rebuilding the DOM, asserting the banner is replaced by a rewrite in place.
+
+                    Risk / trade-offs
+
+
+                    - Model choice (Xenova/LaMini-Flan-T5-77M vs. alternatives)
+                    affects download size and rewrite
+                      quality/latency; this is a swappable implementation detail behind `scottishRewrite()` and can
+                      be revisited without touching feed.js.
+                    - `renderFlaggedPost` is a new coupling point across three
+                    previously-independent call sites;
+                      keep its "off" branch a pure pass-through so it cannot itself introduce a behavior change
+                      when scottish-mode is disabled.
+                    - No per-post opt-out and no dialect-quality tuning are in
+                    scope per the approved proposal —
+                      resist adding either during implementation.
+                  scenarios:
+                    - name: >-
+                        Slop-flagged post is rewritten in Scottish dialect when
+                        the mode is on
+                      given:
+                        - scottish-mode is enabled in extension settings
+                        - >-
+                          a LinkedIn feed post is flagged as slop by the
+                          existing detection signals
+                      when:
+                        - the feed processes that post
+                      then:
+                        - >-
+                          the post body is replaced in-place with a
+                          locally-generated Scottish-dialect rewrite
+                        - >-
+                          a "Translated — Scottish mode" tag is shown next to
+                          the rewritten text
+                        - >-
+                          no reveal-banner or collapse-banner is shown for that
+                          post
+                      status: pass
+                    - name: >-
+                        Semantic/tone-flagged post is rewritten, not
+                        banner-collapsed
+                      given:
+                        - scottish-mode is enabled
+                        - >-
+                          a post is flagged by the semantic or tone filter (not
+                          the keyword/slop path)
+                      when:
+                        - the feed processes that post
+                      then:
+                        - >-
+                          the post body is replaced with a Scottish-dialect
+                          rewrite in the same DOM position
+                        - >-
+                          the semantic/tone collapse-banner UI is not rendered
+                          for that post
+                      status: pass
+                    - name: Keyword-hidden post is rewritten instead of hidden
+                      given:
+                        - scottish-mode is enabled
+                        - >-
+                          a post matches a user's keyword filter (previously
+                          handled by hidePost())
+                      when:
+                        - the feed processes that post
+                      then:
+                        - >-
+                          the post body is replaced with a Scottish-dialect
+                          rewrite
+                        - >-
+                          the post is not hidden behind a click-to-reveal
+                          placeholder
+                      status: pass
+                    - name: User reveals the original text of a rewritten post
+                      given:
+                        - >-
+                          a post has been replaced with a Scottish-dialect
+                          rewrite
+                      when:
+                        - the user clicks the "Translated — Scottish mode" tag
+                      then:
+                        - 'the original, unmodified post text is shown'
+                        - the user can collapse back to the rewritten version
+                      status: pass
+                    - name: Existing behavior is unchanged when Scottish mode is off
+                      given:
+                        - scottish-mode is disabled (the default)
+                        - >-
+                          a post is flagged by any existing detection path
+                          (keyword, slop, semantic, tone)
+                      when:
+                        - the feed processes that post
+                      then:
+                        - >-
+                          the existing reveal-banner, collapse-banner, or hide
+                          behavior is shown exactly as before
+                        - no Scottish-dialect rewrite is generated or displayed
+                      status: pass
+                    - name: Non-flagged posts are never rewritten
+                      given:
+                        - scottish-mode is enabled
+                        - a post does not match any flagging signal
+                      when:
+                        - the feed processes that post
+                      then:
+                        - the post is shown unmodified
+                        - 'no rewrite, banner, or hide treatment is applied'
+                      status: pass
+                    - name: >-
+                        Rewrite falls back gracefully if the local model is
+                        unavailable
+                      given:
+                        - scottish-mode is enabled
+                        - >-
+                          the local rewrite model has not finished loading or
+                          fails to produce output
+                      when:
+                        - a flagged post is processed
+                      then:
+                        - >-
+                          the post falls back to its existing
+                          (non-Scottish-mode) treatment for that flag type
+                        - no broken or empty post body is left in the feed
+                      status: pass
+                    - name: >-
+                        Toggling Scottish mode on mid-session updates
+                        already-rendered posts
+                      given:
+                        - >-
+                          the feed already contains posts collapsed by the
+                          existing banner/hide treatments
+                      when:
+                        - the user enables scottish-mode from the popup
+                      then:
+                        - >-
+                          previously flagged, still-visible collapsed posts are
+                          re-rendered as Scottish-dialect rewrites
+                        - this re-render does not require a page reload
+                      status: pass
+                  tasks:
+                    - id: '1.1'
+                      description: >-
+                        Create src/features/scottish-mode.js with a lazy-loading
+                        text2text-generation pipeline via @xenova/transformers
+                        (Xenova/LaMini-Flan-T5-77M, quantized), memoizing the
+                        loading promise the same way getClassifier does in
+                        tone-filter.js.
+                      done: true
+                    - id: '1.2'
+                      description: >-
+                        In src/features/scottish-mode.js, export
+                        scottishRewrite(postText) which truncates input to 512
+                        chars, prompts the pipeline to strip filler/hype
+                        phrasing and rewrite the result in a Scottish dialect
+                        voice, and returns { text }.
+                      done: true
+                    - id: '2.1'
+                      description: >-
+                        In src/service_worker.js, import scottishRewrite from
+                        ./features/scottish-mode.js.
+                      done: true
+                    - id: '2.2'
+                      description: >-
+                        In src/service_worker.js, add a scottish-rewrite message
+                        handler that calls scottishRewrite(post) and responds {
+                        text }; on error respond { text: null }, matching the
+                        existing handler shape for tone-check/semantic-check.
+                      done: true
+                    - id: '2.3'
+                      description: >-
+                        In src/service_worker.js's onInstalled defaults, add
+                        'scottish-mode': false.
+                      done: true
+                    - id: '3.1'
+                      description: >-
+                        In src/features/feed.js, add a renderFlaggedPost(post,
+                        kind, meta, scottishMode) gate function (kind values:
+                        'slop', 'semantic', 'keyword') that, when scottishMode
+                        is false, delegates straight to the existing builder for
+                        that kind (addRevealBanner / buildSemanticCollapseBanner
+                        / hidePost) with no behavior change.
+                      done: true
+                    - id: '3.2'
+                      description: >-
+                        In src/features/feed.js, implement
+                        renderScottishRewrite(post) which sends {
+                        'scottish-rewrite': { post: text.slice(0, 512) } } via
+                        the existing sendSemanticMessage helper, and on success
+                        replaces the post's extracted text in place, sets
+                        post.dataset.scottishRewritten = '1', and inserts a
+                        .focusedin-scottish-tag element reading 'Translated —
+                        Scottish mode'.
+                      done: true
+                    - id: '3.3'
+                      description: >-
+                        In renderScottishRewrite, wire the
+                        .focusedin-scottish-tag element's click handler to
+                        toggle between the rewritten text and the original text
+                        (kept in a closure variable, not re-extracted from the
+                        DOM).
+                      done: true
+                    - id: '3.4'
+                      description: >-
+                        In renderFlaggedPost's scottishMode-on branch, on a
+                        scottish-rewrite failure or missing response
+                        (chrome.runtime.lastError or no text), fall back to
+                        calling the existing non-Scottish builder for that kind
+                        synchronously so no broken/empty post body is left in
+                        the feed.
+                      done: true
+                    - id: '3.5'
+                      description: >-
+                        Replace the direct addRevealBanner call in
+                        applySlopDecision, the buildSemanticCollapseBanner call
+                        inside makeSemanticApplier's callback, and the hidePost
+                        call in applyFiltersToPost's keyword-match branch with
+                        calls to renderFlaggedPost, passing the appropriate kind
+                        for each.
+                      done: true
+                    - id: '3.6'
+                      description: >-
+                        Thread a scottishMode boolean parameter through
+                        blockPosts's signature and handleFilterFeed's config
+                        read (config['scottish-mode']), passing it into every
+                        renderFlaggedPost call site.
+                      done: true
+                    - id: '3.7'
+                      description: >-
+                        In applyKeywordToPost's
+                        focusinInjected/already-processed guard, allow a post to
+                        be reprocessed when scottishMode is true and
+                        post.dataset.scottishRewritten is not set, so a
+                        config-change-triggered re-scan can upgrade
+                        already-banner'd posts to rewrites without re-running
+                        detection signals.
+                      done: true
+                    - id: '4.1'
+                      description: >-
+                        In src/popup/popup.html, add a scottish-mode toggle row
+                        mirroring the tone-filter row markup, including a
+                        first-use model download size note.
+                      done: true
+                    - id: '4.2'
+                      description: >-
+                        In src/popup/popup.js, load scottish-mode (bool, default
+                        false) from storage on popup open, set the checkbox
+                        state, and add a change listener that saves the new
+                        value to chrome.storage.local, following the same
+                        pattern as the tone-filter toggle.
+                      done: true
+                    - id: '4.3'
+                      description: >-
+                        In src/content/content.css, add
+                        .focusedin-scottish-rewrite and .focusedin-scottish-tag
+                        styles mirroring .focusedin-slop-collapsed and
+                        .focusedin-slop-tag.
+                      done: true
+                    - id: '5.1'
+                      description: >-
+                        Run `swamp model method run spec-change
+                        generate-features --input name=scottish-mode` to write
+                        the @wip-tagged
+                        tests/cucumber/features/scottish-mode.feature from the
+                        approved scenarios.
+                      done: true
+                    - id: '5.2'
+                      description: >-
+                        Add or extend a screenplay question in
+                        tests/cucumber/screenplay/questions/ (e.g. PostContent)
+                        that reads a post's currently rendered text, for
+                        asserting rewritten vs. original content in step
+                        definitions.
+                      done: true
+                    - id: '5.3'
+                      description: >-
+                        In tests/cucumber/step-definitions/scottish-mode.js,
+                        write steps for 'Slop-flagged post is rewritten in
+                        Scottish dialect when the mode is on': mock
+                        scottish-rewrite via setChromeMockResponses, build a
+                        slop post fixture, run the feed with scottish-mode and
+                        detect-slop enabled, and assert the rendered text equals
+                        the mock with no slop banner present.
+                      done: true
+                    - id: '5.4'
+                      description: >-
+                        Write steps for 'Semantic/tone-flagged post is
+                        rewritten, not banner-collapsed': mock the relevant
+                        semantic or tone-check response plus scottish-rewrite,
+                        run the feed, and assert the rewrite is shown with no
+                        semantic/tone collapse banner.
+                      done: true
+                    - id: '5.5'
+                      description: >-
+                        Write steps for 'Keyword-hidden post is rewritten
+                        instead of hidden': configure a matching feed-keyword
+                        with scottish-mode enabled, and assert the post shows a
+                        rewrite instead of the hide CSS class.
+                      done: true
+                    - id: '5.6'
+                      description: >-
+                        Write steps for 'User reveals the original text of a
+                        rewritten post': click the .focusedin-scottish-tag
+                        element on an already-rewritten post and assert the
+                        original text is restored, with the ability to toggle
+                        back to the rewrite.
+                      done: true
+                    - id: '5.7'
+                      description: >-
+                        Write steps for 'Existing behavior is unchanged when
+                        Scottish mode is off': run each existing detection path
+                        (keyword, slop, semantic, tone) with scottish-mode
+                        disabled (the default) and assert output is identical to
+                        the pre-change banner/hide behavior.
+                      done: true
+                    - id: '5.8'
+                      description: >-
+                        Write steps for 'Non-flagged posts are never rewritten':
+                        run the feed with scottish-mode enabled and a clean
+                        post, and assert no scottish-rewrite message is sent and
+                        the post is unmodified.
+                      done: true
+                    - id: '5.9'
+                      description: >-
+                        Write steps for 'Rewrite falls back gracefully if the
+                        local model is unavailable': mock the scottish-rewrite
+                        response as erroring or absent (chrome.runtime.lastError
+                        set), and assert the existing non-Scottish banner/hide
+                        output appears instead.
+                      done: true
+                    - id: '5.10'
+                      description: >-
+                        Write steps for 'Toggling Scottish mode on mid-session
+                        updates already-rendered posts': run the feed once with
+                        scottish-mode false (producing a banner), then re-run
+                        RunFeed with scottish-mode true without rebuilding the
+                        DOM, and assert the banner is replaced by a rewrite in
+                        place.
+                      done: true
+                    - id: '6.1'
+                      description: >-
+                        Remove @wip from 'Slop-flagged post is rewritten in
+                        Scottish dialect when the mode is on' in
+                        scottish-mode.feature once its steps pass.
+                      done: true
+                    - id: '6.2'
+                      description: >-
+                        Remove @wip from 'Semantic/tone-flagged post is
+                        rewritten, not banner-collapsed' once its steps pass.
+                      done: true
+                    - id: '6.3'
+                      description: >-
+                        Remove @wip from 'Keyword-hidden post is rewritten
+                        instead of hidden' once its steps pass.
+                      done: true
+                    - id: '6.4'
+                      description: >-
+                        Remove @wip from 'User reveals the original text of a
+                        rewritten post' once its steps pass.
+                      done: true
+                    - id: '6.5'
+                      description: >-
+                        Remove @wip from 'Existing behavior is unchanged when
+                        Scottish mode is off' once its steps pass.
+                      done: true
+                    - id: '6.6'
+                      description: >-
+                        Remove @wip from 'Non-flagged posts are never rewritten'
+                        once its steps pass.
+                      done: true
+                    - id: '6.7'
+                      description: >-
+                        Remove @wip from 'Rewrite falls back gracefully if the
+                        local model is unavailable' once its steps pass.
+                      done: true
+                    - id: '6.8'
+                      description: >-
+                        Remove @wip from 'Toggling Scottish mode on mid-session
+                        updates already-rendered posts' once its steps pass.
+                      done: true
+                  risk_flags: []
+                  proposal_approved_at: '2026-07-24T16:31:51.172Z'
+                  scenarios_approved_at: '2026-07-24T16:37:37.345Z'
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  job: generate-features
+                  step: generate
+                modelName: spec-change
+                modelId: 154bd51c-19b7-4382-ab43-230e5041ca43
+                modelType: '@focusin/spec-change'
+                specName: change
+                dataType: resource
+                contentType: application/json
+                lifetime: 365d
+                ownerType: model-method
+                streaming: false
+                size: 21974
+                content: ''
+                ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                workflowName: spec-gate
+                jobName: generate-features
+                stepName: generate
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: b854ba14-e223-418b-b56f-f7d2b921efdf
+              name: scottish-mode
+              version: 55
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                job: generate-features
+                step: generate
+            - dataId: 5b22a9ea-9fa2-4482-b1e9-7da0ebaa3b7c
+              name: report-swamp-method-summary
+              version: 604
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: fc1e750c-6491-4a49-a7bf-84136ae16bbf
+              name: report-swamp-method-summary-json
+              version: 604
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: scottish-mode
+              specName: change
+              kind: resource
+              dataId: b854ba14-e223-418b-b56f-f7d2b921efdf
+              version: 55
+              size: 21974
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                job: generate-features
+                step: generate
+              metadata:
+                contentType: application/json
+                lifetime: 365d
+                garbageCollection: 100
+                streaming: false
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  job: generate-features
+                  step: generate
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  workflowName: spec-gate
+                  jobName: generate-features
+                  stepName: generate
+                  source: step-output
+        dataArtifacts:
+          - dataId: b854ba14-e223-418b-b56f-f7d2b921efdf
+            name: scottish-mode
+            version: 55
+            tags:
+              type: resource
+              specName: change
+              modelName: spec-change
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+              job: generate-features
+              step: generate
+          - dataId: 5b22a9ea-9fa2-4482-b1e9-7da0ebaa3b7c
+            name: report-swamp-method-summary
+            version: 604
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: fc1e750c-6491-4a49-a7bf-84136ae16bbf
+            name: report-swamp-method-summary-json
+            version: 604
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: run-runner
+    status: succeeded
+    startedAt: '2026-07-24T17:45:54.972Z'
+    completedAt: '2026-07-24T17:45:58.149Z'
+    steps:
+      - stepName: run
+        status: succeeded
+        startedAt: '2026-07-24T17:45:54.972Z'
+        completedAt: '2026-07-24T17:45:58.148Z'
+        output:
+          type: model_method
+          model: focusin-spec-runner
+          method: run
+          resources:
+            runResult:
+              current:
+                id: bd9b0008-c376-4bf2-9995-268256eec44c
+                name: current
+                version: 20
+                isLatest: true
+                createdAt: '2026-07-24T17:45:58.137Z'
+                namespace: ''
+                attributes:
+                  passed: true
+                  reportPath: /Users/daniel/Repos/FocusIn/cucumber-report.json
+                  ranAt: '2026-07-24T17:45:54.978Z'
+                  exitCode: 0
+                  stderr: >
+                    `publishQuiet` option is no longer needed, you can remove it
+                    from your configuration; see
+                    https://github.com/cucumber/cucumber-js/blob/main/docs/deprecations.md
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+
+                    Not implemented: Window's scrollBy() method
+                tags:
+                  type: resource
+                  specName: runResult
+                  modelName: focusin-spec-runner
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  job: run-runner
+                  step: run
+                modelName: focusin-spec-runner
+                modelId: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                modelType: '@focusin/spec-runner'
+                specName: runResult
+                dataType: resource
+                contentType: application/json
+                lifetime: 30d
+                ownerType: model-method
+                streaming: false
+                size: 571
+                content: ''
+                ownerRef: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                workflowName: spec-gate
+                jobName: run-runner
+                stepName: run
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: bd9b0008-c376-4bf2-9995-268256eec44c
+              name: current
+              version: 20
+              tags:
+                type: resource
+                specName: runResult
+                modelName: focusin-spec-runner
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                job: run-runner
+                step: run
+            - dataId: d80bbf74-1794-446f-8442-a219a75f7698
+              name: report-swamp-method-summary
+              version: 20
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 3c2c0fed-e678-4cc4-b2c5-4b7fb5653d41
+              name: report-swamp-method-summary-json
+              version: 20
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: current
+              specName: runResult
+              kind: resource
+              dataId: bd9b0008-c376-4bf2-9995-268256eec44c
+              version: 20
+              size: 571
+              tags:
+                type: resource
+                specName: runResult
+                modelName: focusin-spec-runner
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                job: run-runner
+                step: run
+              metadata:
+                contentType: application/json
+                lifetime: 30d
+                garbageCollection: 20
+                streaming: false
+                tags:
+                  type: resource
+                  specName: runResult
+                  modelName: focusin-spec-runner
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  job: run-runner
+                  step: run
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 2abde737-6fe8-424b-97c2-ab8cbf7ecff3
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  workflowName: spec-gate
+                  jobName: run-runner
+                  stepName: run
+                  source: step-output
+        dataArtifacts:
+          - dataId: bd9b0008-c376-4bf2-9995-268256eec44c
+            name: current
+            version: 20
+            tags:
+              type: resource
+              specName: runResult
+              modelName: focusin-spec-runner
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+              job: run-runner
+              step: run
+          - dataId: d80bbf74-1794-446f-8442-a219a75f7698
+            name: report-swamp-method-summary
+            version: 20
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 3c2c0fed-e678-4cc4-b2c5-4b7fb5653d41
+            name: report-swamp-method-summary-json
+            version: 20
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+  - jobName: record-results
+    status: succeeded
+    startedAt: '2026-07-24T17:45:58.155Z'
+    completedAt: '2026-07-24T17:45:58.207Z'
+    steps:
+      - stepName: record
+        status: succeeded
+        startedAt: '2026-07-24T17:45:58.155Z'
+        completedAt: '2026-07-24T17:45:58.206Z'
+        output:
+          type: model_method
+          model: spec-change
+          method: record-results
+          resources:
+            change:
+              scottish-mode:
+                id: b2b6d8a9-4c91-425f-a21d-3a55cf4562c2
+                name: scottish-mode
+                version: 56
+                isLatest: true
+                createdAt: '2026-07-24T17:45:58.193Z'
+                namespace: ''
+                attributes:
+                  name: scottish-mode
+                  phase: verifying
+                  proposal_text: >
+                    Why
+
+
+                    FocusedIn currently handles a flagged post ("slop",
+                    off-topic, wrong tone, etc.) the same way every time:
+                    collapse it behind a banner (addRevealBanner /
+                    buildSemanticCollapseBanner in src/features/feed.js) with a
+                    headline/summary and a "Show anyway" reveal. That's
+                    effective at reducing noise, but it's binary: you either see
+                    the manufactured LinkedIn-speak in full, or you see nothing
+                    but a summary card.
+
+
+                    "Scottish mode" offers a third option: instead of hiding the
+                    post, rewrite it - strip the corporate-LinkedIn varnish and
+                    re-render the same underlying message as a short, direct,
+                    honest version in a Scottish dialect. The goal isn't novelty
+                    for its own sake; stripping performative phrasing down to
+                    "what is this person actually saying" is itself a legitimate
+                    anti-slop technique, and doing it in a distinct,
+                    unmistakable voice makes the transformation obvious and
+                    genuinely entertaining rather than clinical.
+
+
+                    What
+
+
+                    - A new chrome.storage.local setting, scottish-mode
+                    (boolean, default false), toggled from the popup UI
+                    alongside existing filters.
+
+                    - When enabled, it overrides every existing flagged-post
+                    treatment: everywhere feed.js currently calls into
+                    addRevealBanner() / buildSemanticCollapseBanner() /
+                    hidePost() for a flagged post, it instead calls a new
+                    renderScottishRewrite(post, extractedText) path. Non-flagged
+                    posts are untouched.
+
+                    - Rewriting runs entirely locally in the existing
+                    transformers.js/ONNX pipeline already used for semantic/tone
+                    checks (src/features/semantic-filter.js,
+                    src/features/tone-filter.js, dispatched via
+                    src/service_worker.js) - no new remote API calls, no new
+                    manifest.json host permissions. A small local
+                    text-generation model (e.g., a quantized instruction/seq2seq
+                    model compatible with @xenova/transformers, pulled from the
+                    already-whitelisted huggingface.co/cdn-lfs.huggingface.co)
+                    performs the rewrite: (1) strip filler/hype/hashtag-spam per
+                    existing slop-keywords.js signals, (2) re-express the core
+                    claim plainly, (3) render it in Scots/Scottish-English
+                    idiom.
+
+                    - The rewritten text replaces the post body in-place (same
+                    DOM slot, .focusedin-scottish-rewrite styling in
+                    content.css), with a small tag noting "Translated - Scottish
+                    mode" and a toggle to view the original (reusing the
+                    existing collapse-to-tag interaction pattern).
+
+                    - Out of scope for this change: per-post opt-out, alternate
+                    dialects/personas, tone/quality tuning of the rewrite, and
+                    any server-side/remote model option.
+
+
+                    Success criteria
+
+
+                    - With scottish-mode on, every post that would previously
+                    have gotten a reveal-banner, semantic-collapse banner, or
+                    keyword hide instead shows a locally-generated
+                    Scottish-dialect rewrite in the same DOM position.
+
+                    - With scottish-mode off, behavior is byte-for-byte
+                    identical to today (all rewriting logic is additive/gated,
+                    not a replacement of existing functions).
+
+                    - Rewriting uses only local, already-permitted model
+                    infrastructure - no new network permissions in
+                    manifest.json.
+
+                    - A user can reveal the original, unmodified post text on
+                    demand.
+                  design_text: >
+                    Approach
+
+
+                    Follow the existing local-model dispatch pattern used by
+                    semantic/tone/slop-archetype
+
+                    checks: a content-script side (feed.js) that requests a
+                    check via chrome.runtime.sendMessage,
+
+                    and a service-worker-side handler that runs a
+                    transformers.js pipeline and responds.
+
+                    Scottish mode reuses this shape for a rewrite instead of a
+                    classification:
+
+
+                    1. New setting `scottish-mode` (boolean, default false) in
+                    chrome.storage.local, added to
+                       the onInstalled defaults in service_worker.js and a new toggle row in popup.html/popup.js,
+                       mirroring the existing `tone-filter` toggle exactly (including a "first use download" note,
+                       since the rewrite model is a separate download from the classification models).
+
+                    2. New feature module `src/features/scottish-mode.js`,
+                    mirroring tone-filter.js: loads a
+                       small local text2text-generation pipeline via @xenova/transformers (candidate:
+                       Xenova/LaMini-Flan-T5-77M, already resolvable through the whitelisted huggingface.co /
+                       cdn-lfs.huggingface.co hosts — no manifest.json changes needed), memoizes the loading
+                       promise the same way `getClassifier` does, and exports `scottishRewrite(postText)` that
+                       prompts the model to (a) strip filler/hype language and (b) render the result in a
+                       Scottish dialect voice, returning `{ text }` (or throwing on failure, handled by the
+                       caller's existing try/catch-less `.catch()` pattern at the sendMessage call site).
+
+                    3. service_worker.js gets a new `scottish-rewrite` message
+                    case, calling
+                       `scottishRewrite(post)` and responding `{ text }` or `{ text: null }` on failure — same
+                       shape as the other three message handlers.
+
+                    4. feed.js: introduce a single interception point rather
+                    than touching every call site.
+                       `applySlopDecision`, `makeSemanticApplier`'s callback, and `applyFiltersToPost`'s
+                       keyword-match branch currently call `addRevealBanner` / `buildSemanticCollapseBanner` /
+                       `hidePost` directly. Add one gate function, `renderFlaggedPost(post, kind, meta)`, that
+                       each of those three call sites calls instead of their current banner/hide call. When
+                       `scottish-mode` is off, `renderFlaggedPost` delegates straight to the existing banner/hide
+                       builder for that `kind` (byte-for-byte unchanged behavior — this satisfies the "off"
+                       scenario without duplicating any existing banner logic). When `scottish-mode` is on, it
+                       instead calls a new `renderScottishRewrite(post)`, which:
+                         - extracts post text (`extractPostText`, already exists)
+                         - sends `{ 'scottish-rewrite': { post: text.slice(0, 512) } }` via the same
+                           `sendSemanticMessage` helper already defined in `blockPosts`
+                         - on success, replaces the post's text node content in place with the rewritten text,
+                           wrapped so the original DOM structure/classes survive, and inserts a small
+                           `.focusedin-scottish-tag` element ("Translated — Scottish mode") using the same
+                           `collapseToTag`-style toggle interaction already used for "Show anyway" — clicking it
+                           swaps back to the original text (stored in a closure var, not re-extracted, so no
+                           re-render surprises)
+                         - on failure or while the promise is pending, falls back to calling the existing
+                           non-Scottish-mode builder for that `kind` synchronously, so no broken/empty post is
+                           ever left in the feed (covers the "model unavailable" scenario without a new empty-state
+                           branch)
+                       `blockPosts` gains a `scottishMode` boolean parameter (threaded through from
+                       `handleFilterFeed`'s config read, same as every other boolean flag already is).
+
+                    5. Mid-session toggle (scenario: "Toggling Scottish mode
+                    on... updates already-rendered
+                       posts"): reuse the existing `chrome.storage.onChanged` → re-run `applyFeed(config)` flow
+                       in index.js — no new listener needed. To make already-collapsed posts eligible for
+                       re-processing, `renderFlaggedPost`'s scottish-mode branch must not gate on the
+                       `focusinInjected`/`semanticHidden`/`hidden` dataset flags the same way the original
+                       banner path does; instead it checks a new `post.dataset.scottishRewritten` flag so a full
+                       re-scan (triggered by the storage change) can upgrade already-banner'd posts to rewrites
+                       without re-running detection.
+
+                    Files to change
+
+
+                    - src/service_worker.js — new `scottish-rewrite` message
+                    case, new default setting
+
+                    - src/features/scottish-mode.js (new) — local model pipeline
+                    + `scottishRewrite()`
+
+                    - src/features/feed.js — `renderFlaggedPost` gate,
+                    `renderScottishRewrite`, threading the
+                      `scottishMode` flag through `blockPosts`/`handleFilterFeed`
+                    - src/popup/popup.html — new toggle row (mirrors
+                    `tone-filter` row)
+
+                    - src/popup/popup.js — wire the new checkbox to
+                    `chrome.storage.local`, same pattern as
+                      existing toggles
+                    - src/content/content.css — `.focusedin-scottish-rewrite`
+                    and `.focusedin-scottish-tag`
+                      styles, mirroring `.focusedin-slop-collapsed` / `.focusedin-slop-tag`
+                    - manifest.json — no change expected (huggingface.co hosts
+                    already whitelisted); confirmed
+                      during implementation that the chosen model resolves through existing web_accessible_resources
+
+                    Key decisions
+
+
+                    - Reuse the message-passing + transformers.js pipeline
+                    pattern already established by
+                      tone-filter.js/semantic-filter.js rather than inventing a new plumbing layer — this is a
+                      text2text-generation pipeline instead of text-classification, but the load/memoize/message
+                      shape is identical.
+                    - A single `renderFlaggedPost` gate function, rather than
+                    editing three call sites to branch
+                      independently, is the one deliberate new abstraction — justified because "overrides all
+                      existing features" is explicitly the requirement, so a single on/off switch point is more
+                      correct (and more testable) than three duplicated `if (scottishMode)` branches.
+                    - Fallback-on-failure reuses the *existing* banner builder
+                    for that kind rather than a new
+                      generic error state, keeping the off-path and the fallback-path identical code.
+
+                    Step definition strategy
+
+
+                    - Model calls are mocked exactly like
+                    tone-check/semantic-check today: step defs will call
+                      `this.setChromeMockResponses({ 'scottish-rewrite': { text: '<mocked rewrite>' } })` before
+                      `RunFeed.withConfig({ ...baseConfig, 'scottish-mode': true })` — no real transformers.js
+                      pipeline runs in tests.
+                    - Reuse `BuildFeed`/`RunFeed`/`PostVisibility` screenplay
+                    tasks/questions as-is; add a new
+                      `PostContent` (or extend an existing content-reading question) to assert the rendered text
+                      equals the mocked rewrite, and a `RevealOriginalPost` task-equivalent step that clicks the
+                      new tag element.
+                    - "Model unavailable" scenario: mock `scottish-rewrite`
+                    response as absent/erroring
+                      (`chrome.runtime.lastError` set, matching how other handlers already detect that) and assert
+                      the existing non-Scottish banner/hide output appears instead.
+                    - "Mid-session toggle" scenario: build the feed with
+                    `scottish-mode: false` first (producing a
+                      normal banner), then change config to `scottish-mode: true` and re-run `RunFeed` without
+                      rebuilding the DOM, asserting the banner is replaced by a rewrite in place.
+
+                    Risk / trade-offs
+
+
+                    - Model choice (Xenova/LaMini-Flan-T5-77M vs. alternatives)
+                    affects download size and rewrite
+                      quality/latency; this is a swappable implementation detail behind `scottishRewrite()` and can
+                      be revisited without touching feed.js.
+                    - `renderFlaggedPost` is a new coupling point across three
+                    previously-independent call sites;
+                      keep its "off" branch a pure pass-through so it cannot itself introduce a behavior change
+                      when scottish-mode is disabled.
+                    - No per-post opt-out and no dialect-quality tuning are in
+                    scope per the approved proposal —
+                      resist adding either during implementation.
+                  scenarios:
+                    - name: >-
+                        Slop-flagged post is rewritten in Scottish dialect when
+                        the mode is on
+                      given:
+                        - scottish-mode is enabled in extension settings
+                        - >-
+                          a LinkedIn feed post is flagged as slop by the
+                          existing detection signals
+                      when:
+                        - the feed processes that post
+                      then:
+                        - >-
+                          the post body is replaced in-place with a
+                          locally-generated Scottish-dialect rewrite
+                        - >-
+                          a "Translated — Scottish mode" tag is shown next to
+                          the rewritten text
+                        - >-
+                          no reveal-banner or collapse-banner is shown for that
+                          post
+                      status: pass
+                    - name: >-
+                        Semantic/tone-flagged post is rewritten, not
+                        banner-collapsed
+                      given:
+                        - scottish-mode is enabled
+                        - >-
+                          a post is flagged by the semantic or tone filter (not
+                          the keyword/slop path)
+                      when:
+                        - the feed processes that post
+                      then:
+                        - >-
+                          the post body is replaced with a Scottish-dialect
+                          rewrite in the same DOM position
+                        - >-
+                          the semantic/tone collapse-banner UI is not rendered
+                          for that post
+                      status: pass
+                    - name: Keyword-hidden post is rewritten instead of hidden
+                      given:
+                        - scottish-mode is enabled
+                        - >-
+                          a post matches a user's keyword filter (previously
+                          handled by hidePost())
+                      when:
+                        - the feed processes that post
+                      then:
+                        - >-
+                          the post body is replaced with a Scottish-dialect
+                          rewrite
+                        - >-
+                          the post is not hidden behind a click-to-reveal
+                          placeholder
+                      status: pass
+                    - name: User reveals the original text of a rewritten post
+                      given:
+                        - >-
+                          a post has been replaced with a Scottish-dialect
+                          rewrite
+                      when:
+                        - the user clicks the "Translated — Scottish mode" tag
+                      then:
+                        - 'the original, unmodified post text is shown'
+                        - the user can collapse back to the rewritten version
+                      status: pass
+                    - name: Existing behavior is unchanged when Scottish mode is off
+                      given:
+                        - scottish-mode is disabled (the default)
+                        - >-
+                          a post is flagged by any existing detection path
+                          (keyword, slop, semantic, tone)
+                      when:
+                        - the feed processes that post
+                      then:
+                        - >-
+                          the existing reveal-banner, collapse-banner, or hide
+                          behavior is shown exactly as before
+                        - no Scottish-dialect rewrite is generated or displayed
+                      status: pass
+                    - name: Non-flagged posts are never rewritten
+                      given:
+                        - scottish-mode is enabled
+                        - a post does not match any flagging signal
+                      when:
+                        - the feed processes that post
+                      then:
+                        - the post is shown unmodified
+                        - 'no rewrite, banner, or hide treatment is applied'
+                      status: pass
+                    - name: >-
+                        Rewrite falls back gracefully if the local model is
+                        unavailable
+                      given:
+                        - scottish-mode is enabled
+                        - >-
+                          the local rewrite model has not finished loading or
+                          fails to produce output
+                      when:
+                        - a flagged post is processed
+                      then:
+                        - >-
+                          the post falls back to its existing
+                          (non-Scottish-mode) treatment for that flag type
+                        - no broken or empty post body is left in the feed
+                      status: pass
+                    - name: >-
+                        Toggling Scottish mode on mid-session updates
+                        already-rendered posts
+                      given:
+                        - >-
+                          the feed already contains posts collapsed by the
+                          existing banner/hide treatments
+                      when:
+                        - the user enables scottish-mode from the popup
+                      then:
+                        - >-
+                          previously flagged, still-visible collapsed posts are
+                          re-rendered as Scottish-dialect rewrites
+                        - this re-render does not require a page reload
+                      status: pass
+                  tasks:
+                    - id: '1.1'
+                      description: >-
+                        Create src/features/scottish-mode.js with a lazy-loading
+                        text2text-generation pipeline via @xenova/transformers
+                        (Xenova/LaMini-Flan-T5-77M, quantized), memoizing the
+                        loading promise the same way getClassifier does in
+                        tone-filter.js.
+                      done: true
+                    - id: '1.2'
+                      description: >-
+                        In src/features/scottish-mode.js, export
+                        scottishRewrite(postText) which truncates input to 512
+                        chars, prompts the pipeline to strip filler/hype
+                        phrasing and rewrite the result in a Scottish dialect
+                        voice, and returns { text }.
+                      done: true
+                    - id: '2.1'
+                      description: >-
+                        In src/service_worker.js, import scottishRewrite from
+                        ./features/scottish-mode.js.
+                      done: true
+                    - id: '2.2'
+                      description: >-
+                        In src/service_worker.js, add a scottish-rewrite message
+                        handler that calls scottishRewrite(post) and responds {
+                        text }; on error respond { text: null }, matching the
+                        existing handler shape for tone-check/semantic-check.
+                      done: true
+                    - id: '2.3'
+                      description: >-
+                        In src/service_worker.js's onInstalled defaults, add
+                        'scottish-mode': false.
+                      done: true
+                    - id: '3.1'
+                      description: >-
+                        In src/features/feed.js, add a renderFlaggedPost(post,
+                        kind, meta, scottishMode) gate function (kind values:
+                        'slop', 'semantic', 'keyword') that, when scottishMode
+                        is false, delegates straight to the existing builder for
+                        that kind (addRevealBanner / buildSemanticCollapseBanner
+                        / hidePost) with no behavior change.
+                      done: true
+                    - id: '3.2'
+                      description: >-
+                        In src/features/feed.js, implement
+                        renderScottishRewrite(post) which sends {
+                        'scottish-rewrite': { post: text.slice(0, 512) } } via
+                        the existing sendSemanticMessage helper, and on success
+                        replaces the post's extracted text in place, sets
+                        post.dataset.scottishRewritten = '1', and inserts a
+                        .focusedin-scottish-tag element reading 'Translated —
+                        Scottish mode'.
+                      done: true
+                    - id: '3.3'
+                      description: >-
+                        In renderScottishRewrite, wire the
+                        .focusedin-scottish-tag element's click handler to
+                        toggle between the rewritten text and the original text
+                        (kept in a closure variable, not re-extracted from the
+                        DOM).
+                      done: true
+                    - id: '3.4'
+                      description: >-
+                        In renderFlaggedPost's scottishMode-on branch, on a
+                        scottish-rewrite failure or missing response
+                        (chrome.runtime.lastError or no text), fall back to
+                        calling the existing non-Scottish builder for that kind
+                        synchronously so no broken/empty post body is left in
+                        the feed.
+                      done: true
+                    - id: '3.5'
+                      description: >-
+                        Replace the direct addRevealBanner call in
+                        applySlopDecision, the buildSemanticCollapseBanner call
+                        inside makeSemanticApplier's callback, and the hidePost
+                        call in applyFiltersToPost's keyword-match branch with
+                        calls to renderFlaggedPost, passing the appropriate kind
+                        for each.
+                      done: true
+                    - id: '3.6'
+                      description: >-
+                        Thread a scottishMode boolean parameter through
+                        blockPosts's signature and handleFilterFeed's config
+                        read (config['scottish-mode']), passing it into every
+                        renderFlaggedPost call site.
+                      done: true
+                    - id: '3.7'
+                      description: >-
+                        In applyKeywordToPost's
+                        focusinInjected/already-processed guard, allow a post to
+                        be reprocessed when scottishMode is true and
+                        post.dataset.scottishRewritten is not set, so a
+                        config-change-triggered re-scan can upgrade
+                        already-banner'd posts to rewrites without re-running
+                        detection signals.
+                      done: true
+                    - id: '4.1'
+                      description: >-
+                        In src/popup/popup.html, add a scottish-mode toggle row
+                        mirroring the tone-filter row markup, including a
+                        first-use model download size note.
+                      done: true
+                    - id: '4.2'
+                      description: >-
+                        In src/popup/popup.js, load scottish-mode (bool, default
+                        false) from storage on popup open, set the checkbox
+                        state, and add a change listener that saves the new
+                        value to chrome.storage.local, following the same
+                        pattern as the tone-filter toggle.
+                      done: true
+                    - id: '4.3'
+                      description: >-
+                        In src/content/content.css, add
+                        .focusedin-scottish-rewrite and .focusedin-scottish-tag
+                        styles mirroring .focusedin-slop-collapsed and
+                        .focusedin-slop-tag.
+                      done: true
+                    - id: '5.1'
+                      description: >-
+                        Run `swamp model method run spec-change
+                        generate-features --input name=scottish-mode` to write
+                        the @wip-tagged
+                        tests/cucumber/features/scottish-mode.feature from the
+                        approved scenarios.
+                      done: true
+                    - id: '5.2'
+                      description: >-
+                        Add or extend a screenplay question in
+                        tests/cucumber/screenplay/questions/ (e.g. PostContent)
+                        that reads a post's currently rendered text, for
+                        asserting rewritten vs. original content in step
+                        definitions.
+                      done: true
+                    - id: '5.3'
+                      description: >-
+                        In tests/cucumber/step-definitions/scottish-mode.js,
+                        write steps for 'Slop-flagged post is rewritten in
+                        Scottish dialect when the mode is on': mock
+                        scottish-rewrite via setChromeMockResponses, build a
+                        slop post fixture, run the feed with scottish-mode and
+                        detect-slop enabled, and assert the rendered text equals
+                        the mock with no slop banner present.
+                      done: true
+                    - id: '5.4'
+                      description: >-
+                        Write steps for 'Semantic/tone-flagged post is
+                        rewritten, not banner-collapsed': mock the relevant
+                        semantic or tone-check response plus scottish-rewrite,
+                        run the feed, and assert the rewrite is shown with no
+                        semantic/tone collapse banner.
+                      done: true
+                    - id: '5.5'
+                      description: >-
+                        Write steps for 'Keyword-hidden post is rewritten
+                        instead of hidden': configure a matching feed-keyword
+                        with scottish-mode enabled, and assert the post shows a
+                        rewrite instead of the hide CSS class.
+                      done: true
+                    - id: '5.6'
+                      description: >-
+                        Write steps for 'User reveals the original text of a
+                        rewritten post': click the .focusedin-scottish-tag
+                        element on an already-rewritten post and assert the
+                        original text is restored, with the ability to toggle
+                        back to the rewrite.
+                      done: true
+                    - id: '5.7'
+                      description: >-
+                        Write steps for 'Existing behavior is unchanged when
+                        Scottish mode is off': run each existing detection path
+                        (keyword, slop, semantic, tone) with scottish-mode
+                        disabled (the default) and assert output is identical to
+                        the pre-change banner/hide behavior.
+                      done: true
+                    - id: '5.8'
+                      description: >-
+                        Write steps for 'Non-flagged posts are never rewritten':
+                        run the feed with scottish-mode enabled and a clean
+                        post, and assert no scottish-rewrite message is sent and
+                        the post is unmodified.
+                      done: true
+                    - id: '5.9'
+                      description: >-
+                        Write steps for 'Rewrite falls back gracefully if the
+                        local model is unavailable': mock the scottish-rewrite
+                        response as erroring or absent (chrome.runtime.lastError
+                        set), and assert the existing non-Scottish banner/hide
+                        output appears instead.
+                      done: true
+                    - id: '5.10'
+                      description: >-
+                        Write steps for 'Toggling Scottish mode on mid-session
+                        updates already-rendered posts': run the feed once with
+                        scottish-mode false (producing a banner), then re-run
+                        RunFeed with scottish-mode true without rebuilding the
+                        DOM, and assert the banner is replaced by a rewrite in
+                        place.
+                      done: true
+                    - id: '6.1'
+                      description: >-
+                        Remove @wip from 'Slop-flagged post is rewritten in
+                        Scottish dialect when the mode is on' in
+                        scottish-mode.feature once its steps pass.
+                      done: true
+                    - id: '6.2'
+                      description: >-
+                        Remove @wip from 'Semantic/tone-flagged post is
+                        rewritten, not banner-collapsed' once its steps pass.
+                      done: true
+                    - id: '6.3'
+                      description: >-
+                        Remove @wip from 'Keyword-hidden post is rewritten
+                        instead of hidden' once its steps pass.
+                      done: true
+                    - id: '6.4'
+                      description: >-
+                        Remove @wip from 'User reveals the original text of a
+                        rewritten post' once its steps pass.
+                      done: true
+                    - id: '6.5'
+                      description: >-
+                        Remove @wip from 'Existing behavior is unchanged when
+                        Scottish mode is off' once its steps pass.
+                      done: true
+                    - id: '6.6'
+                      description: >-
+                        Remove @wip from 'Non-flagged posts are never rewritten'
+                        once its steps pass.
+                      done: true
+                    - id: '6.7'
+                      description: >-
+                        Remove @wip from 'Rewrite falls back gracefully if the
+                        local model is unavailable' once its steps pass.
+                      done: true
+                    - id: '6.8'
+                      description: >-
+                        Remove @wip from 'Toggling Scottish mode on mid-session
+                        updates already-rendered posts' once its steps pass.
+                      done: true
+                  risk_flags: []
+                  proposal_approved_at: '2026-07-24T16:31:51.172Z'
+                  scenarios_approved_at: '2026-07-24T16:37:37.345Z'
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  job: record-results
+                  step: record
+                modelName: spec-change
+                modelId: 154bd51c-19b7-4382-ab43-230e5041ca43
+                modelType: '@focusin/spec-change'
+                specName: change
+                dataType: resource
+                contentType: application/json
+                lifetime: 365d
+                ownerType: model-method
+                streaming: false
+                size: 21974
+                content: ''
+                ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                workflowName: spec-gate
+                jobName: record-results
+                stepName: record
+                source: step-output
+          files: {}
+          dataArtifacts:
+            - dataId: b2b6d8a9-4c91-425f-a21d-3a55cf4562c2
+              name: scottish-mode
+              version: 56
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                job: record-results
+                step: record
+            - dataId: b28c91ca-02af-4afc-ad8e-dda2de81be29
+              name: report-swamp-method-summary
+              version: 605
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+            - dataId: 41595c20-1ef3-411d-9bbb-f595ab5b1e3a
+              name: report-swamp-method-summary-json
+              version: 605
+              tags:
+                type: report
+                reportName: '@swamp/method-summary'
+                reportScope: method
+          dataHandles:
+            - name: scottish-mode
+              specName: change
+              kind: resource
+              dataId: b2b6d8a9-4c91-425f-a21d-3a55cf4562c2
+              version: 56
+              size: 21974
+              tags:
+                type: resource
+                specName: change
+                modelName: spec-change
+                source: step-output
+                workflow: spec-gate
+                workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                job: record-results
+                step: record
+              metadata:
+                contentType: application/json
+                lifetime: 365d
+                garbageCollection: 100
+                streaming: false
+                tags:
+                  type: resource
+                  specName: change
+                  modelName: spec-change
+                  source: step-output
+                  workflow: spec-gate
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  job: record-results
+                  step: record
+                ownerDefinition:
+                  ownerType: model-method
+                  ownerRef: 154bd51c-19b7-4382-ab43-230e5041ca43
+                  workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+                  workflowName: spec-gate
+                  jobName: record-results
+                  stepName: record
+                  source: step-output
+        dataArtifacts:
+          - dataId: b2b6d8a9-4c91-425f-a21d-3a55cf4562c2
+            name: scottish-mode
+            version: 56
+            tags:
+              type: resource
+              specName: change
+              modelName: spec-change
+              source: step-output
+              workflow: spec-gate
+              workflowRunId: a6f4ab00-2714-4dc9-afd4-089357c9107b
+              job: record-results
+              step: record
+          - dataId: b28c91ca-02af-4afc-ad8e-dda2de81be29
+            name: report-swamp-method-summary
+            version: 605
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+          - dataId: 41595c20-1ef3-411d-9bbb-f595ab5b1e3a
+            name: report-swamp-method-summary-json
+            version: 605
+            tags:
+              type: report
+              reportName: '@swamp/method-summary'
+              reportScope: method
+tags: {}
+logFile: >-
+  .swamp/workflow-runs/b0ac9c84-598d-46f5-8ec6-c6891ec5a2ed/workflow-run-a6f4ab00-2714-4dc9-afd4-089357c9107b.log
+workflowDataArtifacts:
+  - dataId: 9235cf82-7e37-436b-a7e8-24f17ae8d70a
+    name: report-swamp-workflow-summary
+    version: 12
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
+  - dataId: b70069db-a050-4b1d-a674-df5f3cbbc1b3
+    name: report-swamp-workflow-summary-json
+    version: 12
+    tags:
+      type: report
+      reportName: '@swamp/workflow-summary'
+      reportScope: workflow
