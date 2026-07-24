@@ -8,6 +8,10 @@ vi.mock('../src/features/tone-filter.js', () => ({
   toneCheck: vi.fn(),
 }))
 
+vi.mock('../src/features/scottish-mode.js', () => ({
+  scottishRewrite: vi.fn(),
+}))
+
 let capturedInstallListener = null
 let capturedMessageListener = null
 const mockGet = vi.fn()
@@ -86,6 +90,33 @@ describe('onInstalled', () => {
     expect(setArg).not.toHaveProperty('hide-premium')
     expect(setArg).not.toHaveProperty('job-keywords')
     expect(setArg).not.toHaveProperty('hide-slop')
+  })
+})
+
+describe('onMessage — scottish-rewrite', () => {
+  it('sends the rewritten text', async () => {
+    const { scottishRewrite } = await import('../src/features/scottish-mode.js')
+    scottishRewrite.mockResolvedValue({ text: "Aye, we shipped somethin' new." })
+    const sendResponse = vi.fn()
+    capturedMessageListener({ 'scottish-rewrite': { post: 'We shipped a new feature.' } }, {}, sendResponse)
+    await flushPromises()
+    expect(scottishRewrite).toHaveBeenCalledWith('We shipped a new feature.')
+    expect(sendResponse).toHaveBeenCalledWith({ text: "Aye, we shipped somethin' new." })
+  })
+
+  it('returns true to signal an async response', async () => {
+    const { scottishRewrite } = await import('../src/features/scottish-mode.js')
+    scottishRewrite.mockResolvedValue({ text: 'rewritten' })
+    expect(capturedMessageListener({ 'scottish-rewrite': { post: 'content' } }, {}, vi.fn())).toBe(true)
+  })
+
+  it('sends null text when scottishRewrite rejects', async () => {
+    const { scottishRewrite } = await import('../src/features/scottish-mode.js')
+    scottishRewrite.mockRejectedValue(new Error('model failed'))
+    const sendResponse = vi.fn()
+    capturedMessageListener({ 'scottish-rewrite': { post: 'content' } }, {}, sendResponse)
+    await flushPromises()
+    expect(sendResponse).toHaveBeenCalledWith({ text: null })
   })
 })
 

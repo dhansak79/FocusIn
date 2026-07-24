@@ -1,8 +1,19 @@
 import { semanticCheck } from './features/semantic-filter.js'
 import { toneCheck } from './features/tone-filter.js'
+import { scottishRewrite } from './features/scottish-mode.js'
 import { SLOP_ARCHETYPES } from './features/slop-keywords.js'
 
 chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
+  if (req['scottish-rewrite']) {
+    const { post } = req['scottish-rewrite']
+    scottishRewrite(post)
+      .then(({ text }) => sendResponse({ text }))
+      .catch((err) => {
+        console.error('FocusedIn: scottish-rewrite failed', err)
+        sendResponse({ text: null })
+      })
+    return true
+  }
   if (req['semantic-check']) {
     const { queries, post } = req['semantic-check']
     semanticCheck(queries, post)
@@ -39,5 +50,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     'semantic-filter': 'hustle culture, personal branding, motivational quotes, cryptocurrency, job interview tips, AI productivity tools, startup success story, sales and lead generation',
     'tone-filter': false,
     'tone-threshold': 70,
+    'scottish-mode': false,
   })
 })

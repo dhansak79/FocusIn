@@ -25,11 +25,13 @@ const POST_SELECTOR_STRING = POST_SELECTOR.join(',')
 // Post text / author extraction (for slop detection)
 // ---------------------------------------------------------------------------
 
+const getPostTextElement = (el) =>
+  el.querySelector('[data-testid="expandable-text-box"]') ??
+  el.querySelector('.update-components-text') ??
+  el
+
 const extractPostText = (el) => {
-  const textEl =
-    el.querySelector('[data-testid="expandable-text-box"]') ??
-    el.querySelector('.update-components-text') ??
-    el
+  const textEl = getPostTextElement(el)
   const tmp = document.createElement('div')
   tmp.innerHTML = textEl.innerHTML
     .replace(/<br\s*\/?>/gi, '\n')
@@ -162,6 +164,82 @@ const collapseToTag = (banner, author) => {
   banner.append(text)
 }
 
+// Never touches the post's own DOM — soft-hides it (same mechanism as the
+// slop banner) and inserts a sibling card, so the real post (avatar, name,
+// buttons, and any native "…see more" affordance) stays fully intact and
+// is exactly what "show original" reveals. Unlike the one-way slop
+// "Show anyway" banner, this toggles both directions: original <-> rewrite.
+const buildScottishRewriteCard = (post, rewrittenText) => {
+  const author = extractAuthorName(post)
+  const vanityName = extractAuthorVanityName(post)
+  const card = document.createElement('div')
+  card.dataset.focusinInjected = '1'
+  let showingOriginal = false
+
+  const render = () => {
+    while (card.firstChild) card.removeChild(card.firstChild)
+    if (showingOriginal) {
+      post.classList.remove('focusedin-slop-soft-hide')
+      card.className = 'focusedin-scottish-tag'
+      const label = document.createElement('span')
+      label.textContent = 'Translated — Scottish mode · showing original'
+      card.append(label)
+      return
+    }
+    post.classList.add('focusedin-slop-soft-hide')
+    card.className = 'focusedin-scottish-rewrite'
+    const headline = document.createElement('div')
+    headline.className = 'focusedin-scottish-headline'
+    headline.textContent = 'Translated — Scottish mode'
+    card.append(headline)
+    const body = document.createElement('div')
+    body.className = 'focusedin-scottish-body'
+    body.textContent = rewrittenText
+    card.append(body)
+
+    if (author) {
+      const authorEl = document.createElement('div')
+      authorEl.className = 'focusedin-slop-author'
+      authorEl.textContent = author
+      card.append(authorEl)
+    }
+
+    if (vanityName) {
+      const actionsRow = document.createElement('div')
+      actionsRow.className = 'focusedin-banner-actions'
+      actionsRow.append(makeUnfollowButton(vanityName))
+      actionsRow.append(makeWhitelistButton(vanityName, author, post, card))
+      card.append(actionsRow)
+    }
+
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'focusedin-scottish-reveal-btn'
+    btn.textContent = 'Show original'
+    btn.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      showingOriginal = true
+      render()
+    })
+    card.append(btn)
+  }
+
+  // Collapsed-tag state has no dedicated button — clicking the tag itself
+  // toggles back. The reveal-button click above already stops propagation,
+  // so this only ever fires while the tag (not the card) is showing.
+  card.addEventListener('click', (e) => {
+    if (!showingOriginal) return
+    e.preventDefault()
+    e.stopPropagation()
+    showingOriginal = false
+    render()
+  })
+
+  post.before(card)
+  render()
+}
+
 // slopRevealed / revealedTexts are not re-checked here — the only caller
 // (applySlopDecision, via checkSlop) already guards on both before reaching
 // this point.
@@ -265,7 +343,7 @@ const isPromotedPost = (post) => {
   return false
 }
 
-const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchetype, whitelisted, toneFilterEnabled, toneThreshold, hidePromoted) => {
+const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchetype, whitelisted, toneFilterEnabled, toneThreshold, hidePromoted, scottishMode) => {
   let postsProcessed = 0
 
   const countOnce = (post, fn, signals) => {
@@ -338,7 +416,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     post.dataset.hidden = true
     countOnce(post, trackFn)
     const pct = Math.round(response.score * 100)
-    buildSemanticCollapseBanner(post, headlineText, signalFn(response, pct))
+    renderFlaggedPost(post, 'semantic', { headlineText, signalText: signalFn(response, pct) })
   }
 
   const applySemanticResult = makeSemanticApplier(
@@ -374,6 +452,64 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     } catch {
       // Extension context invalidated after reload
     }
+  }
+
+  const renderNonScottishTreatment = (post, kind, meta) => {
+    if (kind === 'slop') addRevealBanner(post, meta)
+    else if (kind === 'semantic') buildSemanticCollapseBanner(post, meta.headlineText, meta.signalText)
+    else hidePost(post, meta)
+  }
+
+  // The local model can take a while, especially on long posts — show an
+  // immediate placeholder instead of leaving the raw (flagged) post fully
+  // visible for the whole wait, which would defeat the point of the
+  // feature. Swapped for the real card, or removed on fallback.
+  //
+  // LinkedIn posts run up to ~3000 characters — don't chop a real post
+  // mid-sentence before it even reaches the rewriter (unlike the 256-char
+  // caps used for the classification-only tone/semantic/slop-archetype
+  // checks, this is the full text that gets displayed back to the user).
+  const attemptScottishRewrite = (post, text, fallback) => {
+    // No need to clean up a prior (non-Scottish) banner here: resetBlockedPosts
+    // already strips any .focusedin-slop-collapsed/.focusedin-slop-tag before
+    // handleFilterFeed re-runs blockPosts, and a post already carrying a
+    // Scottish card never reaches this function again (renderFlaggedPost's
+    // scottishRewritten guard returns before calling it).
+    const placeholder = document.createElement('div')
+    placeholder.className = 'focusedin-scottish-loading'
+    placeholder.dataset.focusinInjected = '1'
+    placeholder.textContent = 'Translating — Scottish mode…'
+    post.classList.add('focusedin-slop-soft-hide')
+    post.before(placeholder)
+
+    sendSemanticMessage(
+      { 'scottish-rewrite': { post: text.slice(0, 3000) } },
+      (response) => {
+        placeholder.remove()
+        post.classList.remove('focusedin-slop-soft-hide')
+        if (chrome.runtime.lastError || !response?.text) {
+          fallback()
+          return
+        }
+        post.dataset.scottishRewritten = '1'
+        buildScottishRewriteCard(post, response.text)
+      }
+    )
+  }
+
+  // Overrides every flagged-post treatment with a locally-generated Scottish-dialect
+  // rewrite when scottishMode is on; falls straight through to the existing
+  // banner/hide builder for `kind` otherwise (byte-for-byte unchanged behavior).
+  const renderFlaggedPost = (post, kind, meta) => {
+    const fallback = () => renderNonScottishTreatment(post, kind, meta)
+
+    if (post.dataset.scottishRewritten) return
+    if (!scottishMode) return fallback()
+
+    const text = extractPostText(post).trim()
+    if (!text) return fallback()
+
+    attemptScottishRewrite(post, text, fallback)
   }
 
   const requestSemanticChecks = (post) => {
@@ -415,7 +551,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     if (vanity && whitelisted.has(vanity)) return
     post.classList.add('focusedin-slop-soft-hide')
     post.dataset.hidden = true
-    addRevealBanner(post, slopSignals)
+    renderFlaggedPost(post, 'slop', slopSignals)
     countOnce(post, trackSlopCollapsed, slopSignals)
     trackAuthorBlocked(vanity, extractAuthorName(post))
   }
@@ -426,7 +562,7 @@ const blockPosts = (keywords, mode, detectSlop, semanticQuery, detectSlopArchety
     const isKeywordMatch = keywords.some((keyword) => post.textContent.indexOf(keyword) !== -1)
     const slopSignals = checkSlop(post)
     if (isKeywordMatch) {
-      hidePost(post, mode)
+      renderFlaggedPost(post, 'keyword', mode)
       countOnce(post, trackPostFiltered)
       trackAuthorBlocked(extractAuthorVanityName(post), extractAuthorName(post))
     } else if (slopSignals) {
@@ -532,7 +668,8 @@ const handleFilterFeed = (mode, config) => {
     whitelisted,
     !!config['tone-filter'],
     config['tone-threshold'] ?? 85,
-    !!config['hide-promoted']
+    !!config['hide-promoted'],
+    !!config['scottish-mode']
   )
 }
 
