@@ -170,6 +170,30 @@ describe('scotticize', () => {
     expect(result.text).toBe('Ah cannae, dinnae, disnae, didnae, isnae, wisnae, cannae.')
   })
 
+  it('applies the uncontracted "<verb> not" form the same as the contraction', async () => {
+    mockRewriterFn.mockResolvedValue([
+      { summary_text: 'It is not true. It was not there. I do not know. It does not work. It did not happen.' },
+    ])
+    const result = await scottishRewrite('post')
+    expect(result.text).toBe(
+      "It isnae true. It wisnae there. Ah dinnae ken. It disnae work. It didnae happen."
+    )
+  })
+
+  it('applies the apostrophe-less informal contraction the same as the proper one', async () => {
+    mockRewriterFn.mockResolvedValue([{ summary_text: "I dont, wasnt, couldnt, shouldnt, wouldnt." }])
+    const result = await scottishRewrite('post')
+    expect(result.text).toBe('Ah dinnae, wisnae, couldnae, shouldnae, widnae.')
+  })
+
+  it('negates would/should/could (regular "verb not"/"verbn\'t"/"verbnt")', async () => {
+    mockRewriterFn.mockResolvedValue([
+      { summary_text: "I wouldn't, shouldn't, couldn't do that." },
+    ])
+    const result = await scottishRewrite('post')
+    expect(result.text).toBe('Ah widnae, shouldnae, couldnae do that.')
+  })
+
   it('converts "I am"/"I\'m"/standalone "I" to "Ah\'m"/"Ah"', async () => {
     mockRewriterFn.mockResolvedValue([{ summary_text: "I am here. I'm ready. I left." }])
     const result = await scottishRewrite('post')

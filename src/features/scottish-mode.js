@@ -30,6 +30,27 @@ const getRewriter = () => {
   return rewriterLoading
 }
 
+// "do/does/did/is/was/would/should/could" all negate the same regular way:
+// "<verb> not", "<verb>n't", or the apostrophe-less informal "<verb>nt" all
+// mean the same thing, so generate the three variants per verb rather than
+// writing 24 near-identical lines by hand. "can" is irregular ("can't", not
+// "cann't") and stays a one-off rule alongside it.
+const NEGATABLE_VERBS = [
+  ['do', 'dinnae'],
+  ['does', 'disnae'],
+  ['did', 'didnae'],
+  ['is', 'isnae'],
+  ['was', 'wisnae'],
+  ['would', 'widnae'],
+  ['should', 'shouldnae'],
+  ['could', 'couldnae'],
+]
+const NEGATION_RULES = NEGATABLE_VERBS.flatMap(([verb, negated]) => [
+  [new RegExp(`\\b${verb} not\\b`, 'gi'), negated],
+  [new RegExp(`\\b${verb}n't\\b`, 'gi'), negated],
+  [new RegExp(`\\b${verb}nt\\b`, 'gi'), negated],
+])
+
 // Contractions, negations, and the case-sensitive "I" pronoun need special
 // handling (multi-word phrases, or matching a specific capitalization) that
 // a flat word->word data map can't express, so these stay hardcoded rather
@@ -38,12 +59,7 @@ const SCOTS_GRAMMAR_RULES = [
   [/\bgoing to\b/gi, 'gonnae'],
   [/\bcan ?not\b/gi, 'cannae'],
   [/\bcan't\b/gi, 'cannae'],
-  [/\bdo not\b/gi, 'dinnae'],
-  [/\bdon't\b/gi, 'dinnae'],
-  [/\bdoesn't\b/gi, 'disnae'],
-  [/\bdidn't\b/gi, 'didnae'],
-  [/\bisn't\b/gi, 'isnae'],
-  [/\bwasn't\b/gi, 'wisnae'],
+  ...NEGATION_RULES,
   [/\bI am\b/g, "Ah'm"],
   [/\bI'm\b/g, "Ah'm"],
   [/\bI\b/g, 'Ah'],
