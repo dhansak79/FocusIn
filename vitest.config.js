@@ -18,6 +18,8 @@ export default defineConfig({
         'src/features/feed.js',
         'src/features/slop-reaction.js',
         'src/features/unfollow.js',
+        'src/features/scottish-mode.js',
+        'src/features/scots-lexicon.js',
         'src/utils.js',
         'src/stats.js',
         'src/stats-renderer.js',
