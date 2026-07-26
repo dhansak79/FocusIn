@@ -187,4 +187,24 @@ describe('scotticize', () => {
     const result = await scottishRewrite('post')
     expect(result.text).toBe('The household knows housework.')
   })
+
+  it('drops the trailing g on words ending "ing"', async () => {
+    mockRewriterFn.mockResolvedValue([{ summary_text: 'We are shipping something exciting.' }])
+    const result = await scottishRewrite('post')
+    expect(result.text).toBe("We are shippin' somethin' excitin'.")
+  })
+
+  it('leaves words where "ing" is part of the root, not a gerund suffix, unchanged', async () => {
+    mockRewriterFn.mockResolvedValue([
+      { summary_text: 'A ring, a king, a thing, string, spring, sing, wing, bring.' },
+    ])
+    const result = await scottishRewrite('post')
+    expect(result.text).toBe('A ring, a king, a thing, string, spring, sing, wing, bring.')
+  })
+
+  it('still drops the g for a real gerund built on an excluded root', async () => {
+    mockRewriterFn.mockResolvedValue([{ summary_text: 'He kept ringing and springing about.' }])
+    const result = await scottishRewrite('post')
+    expect(result.text).toBe("He kept ringin' and springin' about.")
+  })
 })

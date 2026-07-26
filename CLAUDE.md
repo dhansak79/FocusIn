@@ -127,9 +127,9 @@ Use `/spec` to drive a change through the spec-gate workflow. Sub-flows:
 | `/spec:implement` | Work through tasks |
 | `/spec:verify` | Generate feature files, run BDD suite, record results |
 
-The source of truth for each change is the `spec-change` swamp model (state in `.swamp/spec-change-{name}.json`). `openspec/specs/` contains rendered reference outputs — do not treat them as authoritative.
+The source of truth for each change is the `spec-change` swamp model (state in `.swamp/spec-change-{name}.json`) — proposal, scenarios, design, tasks, and verification results all live there. `archive` doesn't write anything out beyond the feature files already generated during `verify`.
 
-Archived changes (including pre-migration OpenSpec changes) live in `openspec/changes/archive/` and serve as a decision log.
+The repo's `openspec/` directory (`specs/` and `changes/archive/`) predates the swamp `spec-change` model and is no longer read or written by the current spec-gate flow — treat it as a frozen historical snapshot, not a live decision log.
 
 ---
 

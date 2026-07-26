@@ -50,6 +50,13 @@ const SCOTS_GRAMMAR_RULES = [
   [/\btoday\b/gi, 'the day'],
   [/\btonight\b/gi, 'the night'],
   [/\baround\b/gi, 'aroond'],
+  // "no" is "nae" before a following word (nae money, nae bother) but "naw"
+  // used on its own (Naw, thanks). A heuristic, not real grammar — it won't
+  // always guess right on set phrases like "no way", but covers the common
+  // determiner-vs-interjection case. Order matters: the more specific rule
+  // must run first, or the general one would already have consumed every "no".
+  [/\bno\b(?=\s+\w)/gi, 'nae'],
+  [/\bno\b/gi, 'naw'],
 ]
 
 // Single-word substitutions, data-driven from scots-lexicon.js.
@@ -64,12 +71,28 @@ const matchCase = (source, target) =>
     ? target[0].toUpperCase() + target.slice(1)
     : target
 
+// Words where "ing" is part of the root, not a present-participle suffix —
+// "a ring", "a king", "a thing" aren't verbs missing their "g". Deliberately
+// a short, conservative list of common false positives, not an attempt at
+// real part-of-speech tagging (it won't catch every noun coincidentally
+// ending in "ing", just the frequent short ones).
+const NOT_A_GERUND = ['ring', 'king', 'thing', 'spring', 'string', 'sing', 'wing', 'bring', 'cling', 'fling', 'sling', 'sting', 'ping']
+const NOT_A_GERUND_PATTERN = NOT_A_GERUND.join('|')
+
+// Applies to any (non-excluded) word ending "ing" (talking -> talkin',
+// something -> somethin'), not just lexicon entries — the replacement is
+// built from whatever's captured, so it can't be expressed as a static
+// [pattern, replacement] pair in SCOTS_LEXICON. Runs last, after whole-word
+// substitutions.
+const dropTrailingG = (text) =>
+  text.replace(new RegExp(`\\b(?!(?:${NOT_A_GERUND_PATTERN})\\b)(\\w+)ing\\b`, 'gi'), "$1in'")
+
 const scotticize = (text) => {
   let result = text
   for (const [pattern, replacement] of SCOTS_LEXICON) {
     result = result.replace(pattern, (match) => matchCase(match, replacement))
   }
-  return result
+  return dropTrailingG(result)
 }
 
 // A long, dense post can still exhaust max_new_tokens before the model
