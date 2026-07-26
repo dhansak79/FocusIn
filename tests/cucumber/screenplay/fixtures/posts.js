@@ -77,4 +77,5 @@ export const baseConfig = {
   'tone-threshold': 70,
   'author-whitelist': [],
   'hide-promoted': false,
+  'scottish-mode': false,
 }

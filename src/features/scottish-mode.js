@@ -1,0 +1,155 @@
+import { pipeline, env } from '../lib/transformers.min.js'
+import { SCOTS_WORD_LEXICON } from './scots-lexicon.js'
+
+if (typeof chrome !== 'undefined' && chrome?.runtime?.getURL) {
+  env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('src/lib/')
+}
+env.backends.onnx.wasm.numThreads = 1
+
+let rewriterLoading = null
+
+// A resolved promise is memoized, so this also serves as the "already loaded" cache.
+// On rejection the cache is cleared so a transient load failure can be retried.
+//
+// distilbart-cnn-6-6 (not a general instruction model like LaMini-Flan-T5)
+// is fine-tuned specifically for summarization: it's trained to condense
+// source text while covering its content, which is exactly where a tiny
+// instruction-follower kept failing (dropping most of a post after a
+// sentence or two, or looping). It expects raw source text, not an
+// instruction-wrapped prompt — dialect transfer still isn't its job; that
+// stays a deterministic pass (see scotticize below).
+const getRewriter = () => {
+  if (rewriterLoading) return rewriterLoading
+  rewriterLoading = pipeline('summarization', 'Xenova/distilbart-cnn-6-6', {
+    quantized: true,
+  }).catch((err) => {
+    console.error('FocusedIn: scottish-mode model failed to load', err)
+    rewriterLoading = null
+    throw err
+  })
+  return rewriterLoading
+}
+
+// "do/does/did/is/was/would/should/could" all negate the same regular way:
+// "<verb> not", "<verb>n't", or the apostrophe-less informal "<verb>nt" all
+// mean the same thing, so generate the three variants per verb rather than
+// writing 24 near-identical lines by hand. "can" is irregular ("can't", not
+// "cann't") and stays a one-off rule alongside it.
+const NEGATABLE_VERBS = [
+  ['do', 'dinnae'],
+  ['does', 'disnae'],
+  ['did', 'didnae'],
+  ['is', 'isnae'],
+  ['was', 'wisnae'],
+  ['would', 'widnae'],
+  ['should', 'shouldnae'],
+  ['could', 'couldnae'],
+]
+const NEGATION_RULES = NEGATABLE_VERBS.flatMap(([verb, negated]) => [
+  [new RegExp(`\\b${verb} not\\b`, 'gi'), negated],
+  [new RegExp(`\\b${verb}n't\\b`, 'gi'), negated],
+  [new RegExp(`\\b${verb}nt\\b`, 'gi'), negated],
+])
+
+// Contractions, negations, and the case-sensitive "I" pronoun need special
+// handling (multi-word phrases, or matching a specific capitalization) that
+// a flat word->word data map can't express, so these stay hardcoded rather
+// than living in scots-lexicon.js.
+const SCOTS_GRAMMAR_RULES = [
+  [/\bgoing to\b/gi, 'gonnae'],
+  [/\bcan ?not\b/gi, 'cannae'],
+  [/\bcan't\b/gi, 'cannae'],
+  ...NEGATION_RULES,
+  [/\bI am\b/g, "Ah'm"],
+  [/\bI'm\b/g, "Ah'm"],
+  [/\bI\b/g, 'Ah'],
+  [/\btoday\b/gi, 'the day'],
+  [/\btonight\b/gi, 'the night'],
+  [/\baround\b/gi, 'aroond'],
+  // "no" is "nae" before a following word (nae money, nae bother) but "naw"
+  // used on its own (Naw, thanks). A heuristic, not real grammar — it won't
+  // always guess right on set phrases like "no way", but covers the common
+  // determiner-vs-interjection case. Order matters: the more specific rule
+  // must run first, or the general one would already have consumed every "no".
+  [/\bno\b(?=\s+\w)/gi, 'nae'],
+  [/\bno\b/gi, 'naw'],
+]
+
+// Single-word substitutions, data-driven from scots-lexicon.js.
+const SCOTS_WORD_RULES = Object.entries(SCOTS_WORD_LEXICON).map(
+  ([english, scots]) => [new RegExp(`\\b${english}\\b`, 'gi'), scots]
+)
+
+const SCOTS_LEXICON = [...SCOTS_GRAMMAR_RULES, ...SCOTS_WORD_RULES]
+
+const matchCase = (source, target) =>
+  source[0] === source[0].toUpperCase() && source[0] !== source[0].toLowerCase()
+    ? target[0].toUpperCase() + target.slice(1)
+    : target
+
+// Words where "ing" is part of the root, not a present-participle suffix —
+// "a ring", "a king", "a thing" aren't verbs missing their "g". Deliberately
+// a short, conservative list of common false positives, not an attempt at
+// real part-of-speech tagging (it won't catch every noun coincidentally
+// ending in "ing", just the frequent short ones).
+const NOT_A_GERUND = ['ring', 'king', 'thing', 'spring', 'string', 'sing', 'wing', 'bring', 'cling', 'fling', 'sling', 'sting', 'ping']
+const NOT_A_GERUND_PATTERN = NOT_A_GERUND.join('|')
+
+// Applies to any (non-excluded) word ending "ing" (talking -> talkin',
+// something -> somethin'), not just lexicon entries — the replacement is
+// built from whatever's captured, so it can't be expressed as a static
+// [pattern, replacement] pair in SCOTS_LEXICON. Runs last, after whole-word
+// substitutions.
+const dropTrailingG = (text) =>
+  text.replace(new RegExp(`\\b(?!(?:${NOT_A_GERUND_PATTERN})\\b)(\\w+)ing\\b`, 'gi'), "$1in'")
+
+const scotticize = (text) => {
+  let result = text
+  for (const [pattern, replacement] of SCOTS_LEXICON) {
+    result = result.replace(pattern, (match) => matchCase(match, replacement))
+  }
+  return dropTrailingG(result)
+}
+
+// A long, dense post can still exhaust max_new_tokens before the model
+// reaches a natural stopping point, cutting the summary off mid-clause
+// (e.g. "...from late" instead of "...from late August"). Trimming back to
+// the last complete sentence means a summary that had to leave out later
+// content ends cleanly instead of looking broken.
+const trimToLastSentence = (text) => {
+  if (/[.!?]["'’]?$/.test(text)) return text
+  const lastEnd = Math.max(text.lastIndexOf('.'), text.lastIndexOf('!'), text.lastIndexOf('?'))
+  return lastEnd > 0 ? text.slice(0, lastEnd + 1) : text
+}
+
+// LinkedIn posts run up to ~3000 characters — don't chop a real post
+// mid-sentence before the model ever sees the rest of it.
+//
+// no_repeat_ngram_size/repetition_penalty guard against the classic greedy-
+// decoding failure mode where a small model gets stuck looping the same
+// sentence on longer outputs; harmless to keep as a safety net here too.
+const runRewrite = async (postText) => {
+  const rewriter = await getRewriter()
+  const [result] = await rewriter(postText.slice(0, 3000), {
+    max_new_tokens: 300,
+    no_repeat_ngram_size: 3,
+    repetition_penalty: 1.3,
+  })
+  const simplified = trimToLastSentence((result.summary_text?.trim() || postText))
+  return { text: scotticize(simplified) }
+}
+
+// The feed can flag several posts in the same scroll batch, each triggering
+// a scottish-rewrite call. Running those concurrently makes them all
+// contend for the same single-threaded WASM runtime instead of actually
+// running in parallel, which just makes every one of them slower. Chaining
+// them through one queue runs them one at a time instead — a rejection is
+// caught inside the chain so one failed rewrite doesn't wedge every rewrite
+// queued behind it.
+let queue = Promise.resolve()
+
+export const scottishRewrite = (postText) => {
+  const result = queue.then(() => runRewrite(postText))
+  queue = result.catch(() => {})
+  return result
+}

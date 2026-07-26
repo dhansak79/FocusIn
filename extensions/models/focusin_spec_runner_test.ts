@@ -64,6 +64,56 @@ Deno.test("run: passed=false when cucumber exits non-zero", async () => {
   await Deno.remove(dir, { recursive: true });
 });
 
+Deno.test("run: does not exclude @wip scenarios from the cucumber invocation", async () => {
+  const dir = await Deno.makeTempDir();
+  const capturedArgs: string[][] = [];
+  const ctx = {
+    globalArgs: { projectDir: dir },
+    writeResource: async (_s: string, _i: string, data: Record<string, unknown>) => {
+      return { name: "runResult/current" };
+    },
+  };
+
+  await withMockCommand(
+    (_cmd, opts) => {
+      capturedArgs.push(opts.args);
+      return { output: async () => ({ code: 0, stdout: new Uint8Array(), stderr: new Uint8Array() }) };
+    },
+    async () => {
+      await model.methods.run.execute({}, ctx as never);
+      assertEquals(capturedArgs[0].includes("--tags"), false);
+    },
+  );
+
+  await Deno.remove(dir, { recursive: true });
+});
+
+Deno.test("run: uses cucumber.spec-gate.mjs so cucumber.mjs's tags: \"not @wip\" doesn't apply", async () => {
+  const dir = await Deno.makeTempDir();
+  const capturedArgs: string[][] = [];
+  const ctx = {
+    globalArgs: { projectDir: dir },
+    writeResource: async (_s: string, _i: string, data: Record<string, unknown>) => {
+      return { name: "runResult/current" };
+    },
+  };
+
+  await withMockCommand(
+    (_cmd, opts) => {
+      capturedArgs.push(opts.args);
+      return { output: async () => ({ code: 0, stdout: new Uint8Array(), stderr: new Uint8Array() }) };
+    },
+    async () => {
+      await model.methods.run.execute({}, ctx as never);
+      const configIndex = capturedArgs[0].indexOf("--config");
+      assertEquals(configIndex >= 0, true);
+      assertEquals(capturedArgs[0][configIndex + 1], "cucumber.spec-gate.mjs");
+    },
+  );
+
+  await Deno.remove(dir, { recursive: true });
+});
+
 Deno.test("run: uses featuresGlob override when provided", async () => {
   const dir = await Deno.makeTempDir();
   const capturedArgs: string[][] = [];
