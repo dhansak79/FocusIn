@@ -12,6 +12,7 @@
 // alphabetically — if you're adding entries by hand, keep it that way.
 export const SCOTS_WORD_LEXICON = {
   about: 'aboot',
+  account: 'accoont',
   afternoon: 'efternoon',
   all: "a'",
   alright: 'awrite',
@@ -43,6 +44,8 @@ export const SCOTS_WORD_LEXICON = {
   church: 'kirk',
   clothes: 'claes',
   cold: 'chankin',
+  count: 'coont',
+  counting: 'coontin',
   "couple of": 'cuttla',
   cry: 'greet',
   cuddle: 'bosie',
@@ -196,6 +199,7 @@ export const SCOTS_WORD_LEXICON = {
   with: 'wi',
   wobbly: 'shoogly',
   woman: 'lassie',
+  women: 'wummen',
   yellow: 'yellae',
   yes: 'aye',
   you: 'ye',
