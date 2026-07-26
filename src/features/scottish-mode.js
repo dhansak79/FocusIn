@@ -1,4 +1,5 @@
 import { pipeline, env } from '../lib/transformers.min.js'
+import { SCOTS_WORD_LEXICON } from './scots-lexicon.js'
 
 if (typeof chrome !== 'undefined' && chrome?.runtime?.getURL) {
   env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('src/lib/')
@@ -29,10 +30,11 @@ const getRewriter = () => {
   return rewriterLoading
 }
 
-// Deterministic word/phrase substitutions toward a light Scots dialect
-// flavor, applied after simplification. Longer phrases are listed before
-// their single-word components so they match first.
-const SCOTS_LEXICON = [
+// Contractions, negations, and the case-sensitive "I" pronoun need special
+// handling (multi-word phrases, or matching a specific capitalization) that
+// a flat word->word data map can't express, so these stay hardcoded rather
+// than living in scots-lexicon.js.
+const SCOTS_GRAMMAR_RULES = [
   [/\bgoing to\b/gi, 'gonnae'],
   [/\bcan ?not\b/gi, 'cannae'],
   [/\bcan't\b/gi, 'cannae'],
@@ -45,22 +47,17 @@ const SCOTS_LEXICON = [
   [/\bI am\b/g, "Ah'm"],
   [/\bI'm\b/g, "Ah'm"],
   [/\bI\b/g, 'Ah'],
-  [/\bmy\b/gi, 'ma'],
-  [/\byour\b/gi, 'yer'],
-  [/\byou\b/gi, 'ye'],
-  [/\bknow\b/gi, 'ken'],
-  [/\blittle\b/gi, 'wee'],
-  [/\bsmall\b/gi, 'wee'],
-  [/\byes\b/gi, 'aye'],
-  [/\babout\b/gi, 'aboot'],
-  [/\baround\b/gi, 'aroond'],
   [/\btoday\b/gi, 'the day'],
   [/\btonight\b/gi, 'the night'],
-  [/\bhouse\b/gi, 'hoose'],
-  [/\bdown\b/gi, 'doon'],
-  [/\bvery\b/gi, 'awfy'],
-  [/\bchild\b/gi, 'bairn'],
+  [/\baround\b/gi, 'aroond'],
 ]
+
+// Single-word substitutions, data-driven from scots-lexicon.js.
+const SCOTS_WORD_RULES = Object.entries(SCOTS_WORD_LEXICON).map(
+  ([english, scots]) => [new RegExp(`\\b${english}\\b`, 'gi'), scots]
+)
+
+const SCOTS_LEXICON = [...SCOTS_GRAMMAR_RULES, ...SCOTS_WORD_RULES]
 
 const matchCase = (source, target) =>
   source[0] === source[0].toUpperCase() && source[0] !== source[0].toLowerCase()
